@@ -4,7 +4,7 @@ Mobile-first one-page site for Strand Barbershop (Zhytomyr, Ukraine). Dark concr
 Site UI language: Ukrainian (`<html lang="uk">`). Talk to the user in Ukrainian.
 
 ## Progress (edit ONLY this block at the end of each stage, then commit)
-Done: 0, 1 · Next: 1b-1
+Done: 0, 1, 1b-1 (awaiting my visual OK) · Next: 1b-2
 Order: 0 → 1 → 1b-1 → 1b-2 → 1b-3 → 2 → 3 → 4 → 4b → 5
 Specs live in `.claude/stages/stage-<id>.md` (e.g. `stage-1b-1.md`). On "next" read ONLY the next stage file, never the others.
 Model original filename: strand-scissors.glb

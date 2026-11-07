@@ -71,6 +71,18 @@
   }
 }
 
+/* Fixed 3D overlay; lvh keeps the iOS address bar from resizing the drawing buffer. */
+.scissors-layer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  pointer-events: none;
+  z-index: 40;
+}
+
 /* Lenis recommended styles */
 html.lenis,
 html.lenis body {
