@@ -4,10 +4,10 @@ import { formatRating } from '../../lib/format.js';
 import { hoverLift } from '../../lib/motion.js';
 import Img from '../Img.jsx';
 import InstagramIcon from '../InstagramIcon.jsx';
+import { barberPhoto } from './photo.js';
 import Reveal from '../Reveal.jsx';
 import StarIcon from '../StarIcon.jsx';
 
-const PHOTO_DIR = '/images/team';
 
 // The name button stretches over the whole card; the Instagram link sits above it.
 export default function BarberCard({ barber, index, onOpen }) {
@@ -23,7 +23,7 @@ export default function BarberCard({ barber, index, onOpen }) {
       className="group relative w-[72%] shrink-0 snap-start sm:w-[44%] md:w-auto"
     >
       <div className="overflow-hidden rounded border border-line bg-surface">
-        <Img src={`${PHOTO_DIR}/${slug}.jpg`} alt={name} width={800} height={1000} className="aspect-[4/5] w-full object-cover" />
+        <Img src={barberPhoto(slug)} alt={name} width={800} height={1000} className="aspect-[4/5] w-full object-cover" />
       </div>
 
       <div className="mt-4 flex items-start justify-between gap-3">

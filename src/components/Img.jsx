@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
-// Missing or broken files render a dark placeholder of the same size, never a broken icon.
-export default function Img({ src, alt = '', width, height, priority = false, className = '', ...rest }) {
+// Missing or broken files render `fallback`, or a dark placeholder of the same size, never a broken icon.
+export default function Img({ src, alt = '', width, height, priority = false, fallback = null, className = '', ...rest }) {
   const [failedSrc, setFailedSrc] = useState(null);
 
   if (!src || failedSrc === src) {
+    if (fallback) return fallback;
     return (
       <div
         role={alt ? 'img' : undefined}

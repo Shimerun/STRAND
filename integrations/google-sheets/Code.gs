@@ -28,7 +28,7 @@ const TZ = 'Europe/Kiev';
 const OPEN_MIN = 10 * 60;   // початок роботи, хвилини від півночі
 const CLOSE_MIN = 21 * 60;  // кінець роботи
 const SLOT_MIN = 60;        // site.booking.slotMinutes
-const DAYS_AHEAD = 14;      // site.booking.daysAhead
+const DAYS_AHEAD = 30;      // site.booking.daysAhead
 const MIN_LEAD_MIN = 60;    // site.booking.minLeadMinutes
 const MAX_BLOCKS = 4;
 const NOTIFY_EMAIL = '';    // вкажіть пошту, щоб отримувати лист про кожну заявку; порожньо = без листів
@@ -93,7 +93,7 @@ function doPost(e) {
       barber,
       d.barber === 'any' ? 'будь-який' : clean_(d.barberName, 80),
       d.barber === 'any' ? 'так' : '',
-      clean_(d.serviceName, 120) || d.service,
+      clean_(d.serviceName, 300) || d.service,
       clean_(d.name, 60),
       fmtPhone_(normPhone_(d.phone)),
       clean_(d.comment, 300)
@@ -159,7 +159,7 @@ function notify_(d, barber) {
     MailApp.sendEmail(
       NOTIFY_EMAIL,
       'Новий запис Strand: ' + d.date + ' ' + d.time,
-      [clean_(d.name, 60), fmtPhone_(normPhone_(d.phone)), clean_(d.serviceName, 120), 'Майстер: ' + barber, clean_(d.comment, 300)].join('\n')
+      [clean_(d.name, 60), fmtPhone_(normPhone_(d.phone)), clean_(d.serviceName, 300), 'Майстер: ' + barber, clean_(d.comment, 300)].join('\n')
     );
   } catch (err) { /* лист не повинен ламати запис */ }
 }

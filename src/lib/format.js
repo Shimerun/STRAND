@@ -51,6 +51,22 @@ export function formatDayMonth(iso) {
   return dayMonthFormatter.format(new Date(iso));
 }
 
+const monthFormatter = new Intl.DateTimeFormat('uk-UA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const longDayFormatter = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+// "Листопад 2026": the month and year only, without the "р." suffix.
+export function formatMonth(iso) {
+  const parts = monthFormatter.formatToParts(new Date(iso));
+  const month = parts.find((part) => part.type === 'month').value;
+  const year = parts.find((part) => part.type === 'year').value;
+  return `${month[0].toUpperCase()}${month.slice(1)} ${year}`;
+}
+
+// "пт, 13 листопада"
+export function formatLongDay(iso) {
+  return longDayFormatter.format(new Date(iso));
+}
+
 export function formatHours(day, closedLabel) {
   return day ? `${day.open}–${day.close}` : closedLabel;
 }

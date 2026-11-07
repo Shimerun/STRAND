@@ -17,7 +17,12 @@ export const site = {
   geo: { lat: 50.2501429, lng: 28.6766117 },
   timezone: "Europe/Kyiv",
   hours: { mon: day, tue: day, wed: day, thu: day, fri: day, sat: day, sun: day },
-  booking: { daysAhead: 14, slotMinutes: 60, minLeadMinutes: 60 },
+  booking: {
+    daysAhead: 30, slotMinutes: 60, minLeadMinutes: 60, // must match DAYS_AHEAD, SLOT_MIN, MIN_LEAD_MIN in Code.gs
+    maxBlocks: 4, // longest visit in slots; must match MAX_BLOCKS in integrations/google-sheets/Code.gs
+    // Services offered as extras to the main one in the booking form (ids from `services`, in display order).
+    addons: ["scalp-peeling", "face-care", "gray-beard", "gray-head", "kids", "beard"]
+  },
   social: { instagram: "https://www.instagram.com/strand_barbershop/" },
   images: {
     hero: "/images/hero.webp", // TODO: 680px wide now; a 1600px-wide photo (<= ~200 KB) looks sharp on desktop
@@ -26,6 +31,36 @@ export const site = {
     interior: ["/images/interior-1.webp", "/images/interior-2.webp", "/images/interior-3.webp", "/images/interior-4.webp"],
     logo: null, // TODO: a transparent SVG/PNG; LOGO.webp is an opaque square, so the text wordmark stays
     og: "/images/hero.webp", // TODO: a 1200x630 JPG previews best in messengers and Facebook
+    // Booking form thumbnails by service id: per barber slug and/or `all`.
+    // A barber without an own photo gets `all`, then another barber's photo of the same service.
+    services: {
+      haircut: {
+        "oleh-dok": "/images/services/haircut-oleh-dok.webp", "liubov-zainchkovska": "/images/services/haircut-liubov-zainchkovska.webp",
+        "liliia-pavlenko": "/images/services/haircut-liliia-pavlenko.webp", "daryna-badio": "/images/services/haircut-daryna-badio.webp"
+      },
+      scissors: { "oleh-dok": "/images/services/scissors-oleh-dok.webp", "liubov-zainchkovska": "/images/services/scissors-liubov-zainchkovska.webp" },
+      clipper: {
+        "oleh-dok": "/images/services/clipper-oleh-dok.webp", "liubov-zainchkovska": "/images/services/clipper-liubov-zainchkovska.webp",
+        "daryna-badio": "/images/services/clipper-daryna-badio.webp"
+      },
+      beard: {
+        all: "/images/services/beard.webp",
+        "oleh-dok": "/images/services/beard-oleh-dok.webp", "liubov-zainchkovska": "/images/services/beard-liubov-zainchkovska.webp",
+        "liliia-pavlenko": "/images/services/beard-liliia-pavlenko.webp", "daryna-badio": "/images/services/beard-daryna-badio.webp"
+      },
+      kids: {
+        all: "/images/services/kids.webp",
+        "oleh-dok": "/images/services/kids-oleh-dok.webp", "liubov-zainchkovska": "/images/services/kids-liubov-zainchkovska.webp",
+        "daryna-badio": "/images/services/kids-daryna-badio.webp"
+      },
+      "gray-head": { all: "/images/services/gray-head.webp" },
+      "gray-beard": { all: "/images/services/gray-beard.webp" },
+      perm: { all: "/images/services/perm.webp" },
+      "face-care": { all: "/images/services/face-care.webp" },
+      "scalp-peeling": { all: "/images/services/scalp-peeling.webp" },
+      styling: { all: "/images/services/styling.webp" }
+      // TODO: "scalp-care" (Nevitaly) has no photo yet
+    },
     favicon: "/images/logo.webp"
   },
   seo: {
@@ -121,9 +156,15 @@ export const site = {
     form: {
       title: "Запис онлайн",
       subtitle: "Залиште заявку — ми зателефонуємо для підтвердження",
-      fields: { name: "Ім'я", phone: "Телефон", barber: "Майстер", service: "Послуга", date: "Дата", time: "Час", comment: "Коментар (необов'язково)" },
-      placeholders: { name: "Ваше ім'я", phone: "+380 XX XXX XX XX", service: "Оберіть послугу", comment: "Побажання до стрижки" },
-      anyBarber: "Будь-який майстер",
+      fields: { name: "Ім'я", phone: "Телефон", barber: "Майстер", service: "Послуга", addons: "Додаткові послуги", date: "Дата", time: "Час", comment: "Коментар (необов'язково)" },
+      addonsFull: "Решта послуг не вміщається в один запис — напишіть про них у коментарі.",
+      addonsAdd: "+ Додати послугу",
+      addonsHide: "Згорнути",
+      addonsChosen: "Обрано:",
+      steps: { choice: "Майстер і послуга", when: "Дата і час", contacts: "Ваші контакти" },
+      calendar: { prev: "Попередній місяць", next: "Наступний місяць" },
+      summary: { title: "Ваш запис", barber: "Майстер", services: "Послуги", when: "Дата і час", duration: "Тривалість", total: "Разом", empty: "—" },
+      placeholders: { name: "Ваше ім'я", phone: "+380 XX XXX XX XX", barber: "Оберіть майстра", service: "Оберіть послугу", comment: "Побажання до стрижки" },
       priceLabel: "Вартість",
       submit: "Записатись",
       sending: "Надсилаємо…",

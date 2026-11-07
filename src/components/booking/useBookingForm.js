@@ -3,20 +3,19 @@ import { site } from '../../data/site.js';
 import { BookingError, submitBooking } from '../../lib/booking.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
 import { normalizePhone } from '../../lib/phone.js';
-import { barbersFor, serviceById } from '../../lib/pricing.js';
-import { ANY_BARBER, blocksFor, bookingDates, freeTimes } from '../../lib/slots.js';
+import { serviceById, visitPrice } from '../../lib/pricing.js';
+import { blocksFor, bookingDates, freeTimes, fullDates } from '../../lib/slots.js';
 import { EVENTS, track } from '../../lib/track.js';
+import { useAddons } from './useAddons.js';
 import { RULES, validate, withError } from './validation.js';
 
-const { form } = site.ui;
-
-const barberName = (slug) =>
-  slug === ANY_BARBER ? form.anyBarber : site.team.find((barber) => barber.slug === slug)?.name ?? slug;
+const barberName = (slug) => site.team.find((barber) => barber.slug === slug)?.name ?? slug;
+const NO_DATES = new Set();
 
 export function useBookingForm(availability) {
   const { selection, select } = useBooking();
   const [dates] = useState(() => bookingDates());
-  const [values, setValues] = useState({ name: '', phone: '', date: dates[0] ?? '', time: '', comment: '', website: '' });
+  const [values, setValues] = useState({ name: '', phone: '', date: dates[0] ?? '', time: '', addons: [], comment: '', website: '' });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | success | error
   const [slotTaken, setSlotTaken] = useState(false);
@@ -25,21 +24,27 @@ export function useBookingForm(availability) {
 
   const { barber } = selection;
   const service = serviceById(selection.service);
-  const candidates = useMemo(() => (service ? barbersFor(service) : []), [service]);
+  const extras = useAddons(service, barber, values.addons);
+  const { durationMin } = extras;
+  const ready = Boolean(service && barber);
+  const { busy } = availability;
   const times = useMemo(
-    () =>
-      service
-        ? freeTimes({ dateISO: values.date, service, barberSlug: barber, candidates, busy: availability.busy })
-        : [],
-    [service, barber, candidates, values.date, availability.busy],
+    () => (ready ? freeTimes({ dateISO: values.date, durationMin, barberSlug: barber, busy }) : []),
+    [ready, durationMin, barber, values.date, busy],
   );
+  // Days with nothing left are crossed out in the calendar, but only once the busy list really loaded.
+  const full = useMemo(
+    () => (ready && availability.state === 'ready' ? fullDates({ dates, durationMin, barberSlug: barber, busy }) : NO_DATES),
+    [ready, availability.state, dates, durationMin, barber, busy],
+  );
+  const price = visitPrice(extras.services, barber, extras.candidates);
   // A time that is no longer free (refetch, another barber or service) counts as not chosen.
   const time = times.includes(values.time) ? values.time : '';
 
   useEffect(() => {
     if (!focusRequest) return;
     const invalid = formRef.current?.querySelector('[data-invalid="true"]');
-    const target = invalid?.querySelector('input:checked') ?? invalid?.querySelector('input, select, textarea');
+    const target = invalid?.querySelector('input:checked') ?? invalid?.querySelector('input, select, textarea, [role="combobox"]');
     target?.focus();
   }, [focusRequest]);
 
@@ -56,6 +61,12 @@ export function useBookingForm(availability) {
     select({ barber: slug });
     recheck('barber', slug);
   };
+
+  const toggleAddon = (id) =>
+    setValues((prev) => ({
+      ...prev,
+      addons: prev.addons.includes(id) ? prev.addons.filter((addon) => addon !== id) : [...prev.addons, id],
+    }));
 
   const chooseService = (id) => {
     select({ service: id || null });
@@ -77,25 +88,24 @@ export function useBookingForm(availability) {
       name: values.name.trim(),
       phone: normalizePhone(values.phone),
       barber,
-      candidates: barber === ANY_BARBER ? candidates : undefined,
       barberName: barberName(barber),
       service: service.id,
-      serviceName: service.name,
+      serviceName: extras.services.map(({ name }) => name).join(' + '),
+      addons: extras.addons.map(({ id }) => id),
       date: values.date,
       time,
-      blocks: blocksFor(service),
+      blocks: blocksFor(durationMin),
       comment: values.comment.trim(),
       website: values.website,
     };
-    const meta = { barber, service: service.id };
+    const meta = { barber, service: service.id, addons: extras.addons.length };
 
     track(EVENTS.bookingSubmit, meta);
     setStatus('sending');
     setSlotTaken(false);
     try {
-      const result = await submitBooking(data);
-      const assigned = result.barber ?? (barber === ANY_BARBER ? null : barber);
-      if (assigned) availability.addBusy({ date: data.date, time, blocks: data.blocks, barber: assigned });
+      await submitBooking(data);
+      availability.addBusy({ date: data.date, time, blocks: data.blocks, barber });
       void availability.refetch();
       track(EVENTS.bookingSuccess, meta);
       setStatus('success');
@@ -125,10 +135,14 @@ export function useBookingForm(availability) {
     time,
     barber,
     service,
+    extras,
+    full,
+    price,
     serviceReset: selection.serviceReset,
     setField,
     chooseBarber,
     chooseService,
+    toggleAddon,
     submit,
   };
 }

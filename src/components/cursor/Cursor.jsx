@@ -7,7 +7,7 @@ const RING_LERP = 0.18;
 const SETTLE_PX = 0.1; // the loop stops once the ring is this close to the dot
 const ROOT_CLASS = 'has-custom-cursor';
 // The ring grows over these.
-const CLICKABLE = 'a, button, [role="button"], .btn, label, select, summary';
+const CLICKABLE = 'a, button, [role="button"], [role="option"], .btn, label, select, summary';
 // The system cursor takes over here; iframes (the map) draw their own.
 const NATIVE = 'input:not([type="radio"], [type="checkbox"]), textarea, [contenteditable="true"], iframe';
 
