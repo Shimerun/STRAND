@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import {
   ACESFilmicToneMapping,
@@ -52,8 +52,8 @@ function Studio() {
   return <spotLight position={[6, 4, -6]} angle={0.6} penumbra={1} intensity={150} />;
 }
 
-function Rig({ config, hold, showAxes, onInfo }) {
-  const { groupRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, hold });
+function Rig({ config, hold, layerRef, showAxes, onInfo }) {
+  const { groupRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, length: config.SCALE, layerRef, hold });
 
   return (
     <group ref={groupRef}>
@@ -68,10 +68,11 @@ export default function Scissors3D() {
   const [config, setConfig] = useState(CONFIG);
   const [hold, setHold] = useState(debug ? 'open' : null);
   const [info, setInfo] = useState(null);
+  const layerRef = useRef(null);
 
   return (
     <>
-      <div className="scissors-layer" aria-hidden="true">
+      <div ref={layerRef} className="scissors-layer" aria-hidden="true">
         <Canvas
           frameloop="demand"
           dpr={DPR}
@@ -86,7 +87,7 @@ export default function Scissors3D() {
         >
           <Studio />
           <Suspense fallback={null}>
-            <Rig config={config} hold={hold} showAxes={debug} onInfo={debug ? setInfo : undefined} />
+            <Rig config={config} hold={hold} layerRef={layerRef} showAxes={debug} onInfo={debug ? setInfo : undefined} />
           </Suspense>
         </Canvas>
       </div>

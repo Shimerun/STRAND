@@ -54,6 +54,8 @@ export default function App() {
       <Header />
       <main>
         <Hero />
+        {/* TODO: remove in Stage 2 — dev-only scroll room for checking the scissors track. */}
+        {import.meta.env.DEV && <div aria-hidden="true" className="h-[400vh]" />}
       </main>
       {showScissors && (
         <ErrorBoundary>
