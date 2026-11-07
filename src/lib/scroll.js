@@ -1,6 +1,9 @@
 // Matches the fixed header height (tailwind spacing.header).
 const HEADER_OFFSET = -72;
 
+export const TOP_ID = 'top';
+export const BOOKING_ID = 'booking';
+
 let lenis = null;
 
 export function setLenis(instance) {
@@ -13,6 +16,17 @@ export function getLenis() {
 
 export function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// Lenis is absent under reduced motion, so fall back to locking the root element.
+export function lockScroll() {
+  if (lenis) lenis.stop();
+  else document.documentElement.style.overflow = 'hidden';
+}
+
+export function unlockScroll() {
+  if (lenis) lenis.start();
+  else document.documentElement.style.overflow = '';
 }
 
 export function scrollToId(id) {

@@ -1,13 +1,9 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
-import { site } from './data/site.js';
-import { prefersReducedMotion, scrollToId, setLenis } from './lib/scroll.js';
-import { EVENTS } from './lib/track.js';
-import Button from './components/Button.jsx';
-import Img from './components/Img.jsx';
-import Logo from './components/Logo.jsx';
-import Reveal from './components/Reveal.jsx';
-import Section from './components/Section.jsx';
+import { prefersReducedMotion, setLenis } from './lib/scroll.js';
+import Header from './components/Header.jsx';
+import Hero from './components/Hero.jsx';
+import Intro from './components/Intro.jsx';
 
 function useLenis() {
   useEffect(() => {
@@ -26,22 +22,16 @@ function useLenis() {
   }, []);
 }
 
-// TODO: Stage 0 shell — replaced by the real sections in Stage 1.
 export default function App() {
   useLenis();
 
   return (
-    <main>
-      <Section id="top">
-        <Logo />
-        <Reveal as="h1" className="mt-10 text-3xl md:text-5xl">
-          {site.tagline}
-        </Reveal>
-        <Img src={site.images.hero} alt="" width={1600} height={1067} priority className="mt-10 w-full rounded object-cover" />
-        <Button className="mt-8" track={{ name: EVENTS.bookClick }} onClick={() => scrollToId('booking')}>
-          {site.ui.cta.book}
-        </Button>
-      </Section>
-    </main>
+    <>
+      <Intro />
+      <Header />
+      <main>
+        <Hero />
+      </main>
+    </>
   );
 }
