@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { prefersReducedMotion, setLenis } from './lib/scroll.js';
+import About from './components/About.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import Intro from './components/Intro.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
+import Services from './components/Services.jsx';
+import Team from './components/team/Team.jsx';
 
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_MS = 200;
@@ -53,8 +56,9 @@ export default function App() {
       <Header />
       <main>
         <Hero />
-        {/* TODO: remove in Stage 2 — dev-only scroll room for checking the scissors track. */}
-        {import.meta.env.DEV && <div aria-hidden="true" className="h-[400vh]" />}
+        <About />
+        <Services />
+        <Team />
       </main>
       {showScissors && (
         <ErrorBoundary>

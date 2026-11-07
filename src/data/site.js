@@ -103,6 +103,7 @@ export const site = {
     sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", booking: "Запис онлайн", contacts: "Контакти" },
     services: { priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },
+    team: { prices: "Ціни майстра", rating: "Рейтинг" },
     brand: { sub: "Barbershop" },
     reviews: { verified: ["перевірений відгук", "перевірені відгуки", "перевірених відгуків"] },
     contacts: {

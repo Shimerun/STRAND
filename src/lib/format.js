@@ -27,6 +27,12 @@ export function formatPrice(n, { from = false } = {}) {
   return from ? `${site.ui.services.from}${NBSP}${price}` : price;
 }
 
+const ratingFormatter = new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+export function formatRating(n) {
+  return ratingFormatter.format(n);
+}
+
 export function formatHours(day, closedLabel) {
   return day ? `${day.open}–${day.close}` : closedLabel;
 }
