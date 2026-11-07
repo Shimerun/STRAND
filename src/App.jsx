@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { prefersReducedMotion, setLenis } from './lib/scroll.js';
 import About from './components/About.jsx';
+import Booking from './components/booking/Booking.jsx';
+import Contacts from './components/Contacts.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import Intro from './components/Intro.jsx';
+import MobileBar from './components/MobileBar.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
 import Reviews from './components/Reviews.jsx';
 import Services from './components/Services.jsx';
@@ -63,7 +67,11 @@ export default function App() {
         <Services />
         <Works />
         <Reviews />
+        <Booking />
+        <Contacts />
       </main>
+      <Footer />
+      <MobileBar />
       {showScissors && (
         <ErrorBoundary>
           <ScissorsLayer />

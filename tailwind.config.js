@@ -10,6 +10,7 @@ export default {
         concrete: '#8A8A8A',
         text: '#F2F2F2',
         accent: '#6B7F5E',
+        danger: '#E06C5A',
       },
       borderRadius: {
         DEFAULT: '6px',

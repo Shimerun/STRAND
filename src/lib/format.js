@@ -40,6 +40,17 @@ export function formatDate(iso) {
   return dateFormatter.format(new Date(iso));
 }
 
+const weekdayFormatter = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', timeZone: 'UTC' });
+const dayMonthFormatter = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+export function formatWeekday(iso) {
+  return weekdayFormatter.format(new Date(iso));
+}
+
+export function formatDayMonth(iso) {
+  return dayMonthFormatter.format(new Date(iso));
+}
+
 export function formatHours(day, closedLabel) {
   return day ? `${day.open}–${day.close}` : closedLabel;
 }

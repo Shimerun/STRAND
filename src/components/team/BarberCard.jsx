@@ -3,20 +3,11 @@ import { site } from '../../data/site.js';
 import { formatRating } from '../../lib/format.js';
 import { hoverLift } from '../../lib/motion.js';
 import Img from '../Img.jsx';
+import InstagramIcon from '../InstagramIcon.jsx';
 import Reveal from '../Reveal.jsx';
 import StarIcon from '../StarIcon.jsx';
 
 const PHOTO_DIR = '/images/team';
-
-function InstagramIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
 
 // The name button stretches over the whole card; the Instagram link sits above it.
 export default function BarberCard({ barber, onOpen }) {

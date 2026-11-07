@@ -112,6 +112,7 @@ export const site = {
       phone: "Телефон",
       hours: "Графік роботи",
       today: "Сьогодні",
+      map: "Strand на карті Google",
       closed: "Вихідний",
       days: { mon: "Понеділок", tue: "Вівторок", wed: "Середа", thu: "Четвер", fri: "П'ятниця", sat: "Субота", sun: "Неділя" }
     },

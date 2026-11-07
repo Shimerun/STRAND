@@ -1,14 +1,23 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { priceFor } from './pricing.js';
 import { BOOKING_ID, scrollToId } from './scroll.js';
-
-export const ANY_BARBER = 'any';
+import { ANY_BARBER } from './slots.js';
 
 const BookingContext = createContext(null);
 
-export function BookingProvider({ children }) {
-  const [selection, setSelection] = useState({ barber: ANY_BARBER, service: null });
+// Keeps the pair consistent. The latest choice wins: a new service frees the barber,
+// a new barber clears a service they do not offer and flags `serviceReset` for the form.
+function merge(prev, partial) {
+  const next = { ...prev, ...partial, serviceReset: false };
+  if (!next.service || next.barber === ANY_BARBER || priceFor(next.service, next.barber) !== null) return next;
+  if ('service' in partial && !('barber' in partial)) return { ...next, barber: ANY_BARBER };
+  return { ...next, service: null, serviceReset: true };
+}
 
-  const select = useCallback((partial) => setSelection((prev) => ({ ...prev, ...partial })), []);
+export function BookingProvider({ children }) {
+  const [selection, setSelection] = useState({ barber: ANY_BARBER, service: null, serviceReset: false });
+
+  const select = useCallback((partial) => setSelection((prev) => merge(prev, partial)), []);
 
   const openBooking = useCallback(
     (partial = {}) => {
