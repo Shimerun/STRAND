@@ -10,9 +10,20 @@ export default function DateField({ dates, value, error, onChange }) {
   const today = kyivNow().dateISO;
 
   return (
-    <fieldset data-invalid={Boolean(error)} aria-describedby={error ? errorId(ID) : undefined}>
+    <fieldset className="min-w-0" data-invalid={Boolean(error)} aria-describedby={error ? errorId(ID) : undefined}>
       <legend className={LABEL}>{form.fields.date}</legend>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1 [scrollbar-width:none]">
+      <div
+        data-lenis-prevent
+        onWheel={(event) => {
+          const list = event.currentTarget;
+          const maxScroll = list.scrollWidth - list.clientWidth;
+          const canScroll = event.deltaY > 0 ? list.scrollLeft < maxScroll : list.scrollLeft > 0;
+          if (!event.deltaY || !canScroll) return;
+          event.preventDefault();
+          list.scrollLeft = Math.max(0, Math.min(maxScroll, list.scrollLeft + event.deltaY));
+        }}
+        className="-mx-1 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain px-1 py-1"
+      >
         {dates.map((iso) => (
           <label key={iso} className="relative shrink-0 cursor-pointer">
             <input

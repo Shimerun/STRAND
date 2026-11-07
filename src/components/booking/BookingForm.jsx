@@ -1,5 +1,5 @@
 import { site } from '../../data/site.js';
-import { servicesFor } from '../../lib/pricing.js';
+import { barbersFor, servicesFor } from '../../lib/pricing.js';
 import { ANY_BARBER } from '../../lib/slots.js';
 import Button from '../Button.jsx';
 import ErrorState from './ErrorState.jsx';
@@ -18,6 +18,10 @@ export default function BookingForm({ form, availability }) {
   const copy = site.ui.form;
   const { values, errors, barber, service } = form;
   const services = barber === ANY_BARBER ? site.services : servicesFor(barber);
+  const eligibleBarbers = service ? new Set(barbersFor(service)) : null;
+  const barbers = eligibleBarbers
+    ? site.team.filter(({ slug }) => eligibleBarbers.has(slug))
+    : site.team;
   const sending = form.status === 'sending';
 
   return (
@@ -31,7 +35,7 @@ export default function BookingForm({ form, availability }) {
           onChange={form.chooseBarber}
         >
           <option value={ANY_BARBER}>{copy.anyBarber}</option>
-          {site.team.map(({ slug, name }) => (
+          {barbers.map(({ slug, name }) => (
             <option key={slug} value={slug}>
               {name}
             </option>
