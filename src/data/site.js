@@ -25,7 +25,8 @@ export const site = {
     facade: "/images/facade.jpg",
     interior: ["/images/interior-1.jpg", "/images/interior-2.jpg", "/images/interior-3.jpg", "/images/interior-4.jpg"],
     logo: "/images/logo.svg",
-    og: "/images/og.jpg" // 1200x630
+    og: "/images/og.jpg", // 1200x630
+    favicon: null // TODO: e.g. "/favicon.svg"; until then vite/siteMeta.js draws a placeholder
   },
   seo: {
     title: "Strand Barbershop — барбершоп у Житомирі · Запис онлайн",
@@ -100,6 +101,7 @@ export const site = {
     },
     status: { open: "Зараз відчинено", closed: "Зараз зачинено" },
     hero: { subline: "Барбершоп у Житомирі" }, // component appends " · " + site.addressShort
+    alt: { hero: "Барбершоп Strand у Житомирі", about: "Майстер Strand за роботою" }, // barber photos use the barber's name
     sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", booking: "Запис онлайн", contacts: "Контакти" },
     services: { priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },

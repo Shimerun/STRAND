@@ -22,7 +22,7 @@ export default function BarberCard({ barber, onOpen }) {
       className="group relative w-[72%] shrink-0 snap-start sm:w-[44%] md:w-auto"
     >
       <div className="overflow-hidden rounded border border-line bg-surface">
-        <Img src={`${PHOTO_DIR}/${slug}.jpg`} alt="" width={800} height={1000} className="aspect-[4/5] w-full object-cover" />
+        <Img src={`${PHOTO_DIR}/${slug}.jpg`} alt={name} width={800} height={1000} className="aspect-[4/5] w-full object-cover" />
       </div>
 
       <div className="mt-4 flex items-start justify-between gap-3">

@@ -19,7 +19,7 @@ export default function Hero() {
     <section ref={ref} id={TOP_ID} className="relative flex min-h-svh flex-col overflow-hidden">
       {/* Oversized to 120% so the parallax shift never reveals a gap. */}
       <motion.div className="absolute inset-x-0 top-0 h-[120%]" style={reduce ? undefined : { y }}>
-        <Img src={site.images.hero} alt="" width={1600} height={1067} priority className="h-full w-full object-cover" />
+        <Img src={site.images.hero} alt={site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
       </motion.div>
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/40 to-bg" />
 

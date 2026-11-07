@@ -1,7 +1,7 @@
 export const LABEL = 'mb-2 block text-xs font-medium uppercase tracking-heading text-concrete';
 
 export const CONTROL =
-  'block w-full rounded border bg-bg px-4 py-3 text-base text-text placeholder:text-concrete/70 transition-colors duration-300 hover:border-concrete';
+  'block w-full rounded border bg-bg px-4 py-3 text-base text-text placeholder:text-concrete transition-colors duration-300 hover:border-concrete';
 
 export const borderFor = (error) => (error ? 'border-danger' : 'border-line');
 

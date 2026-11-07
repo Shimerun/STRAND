@@ -18,7 +18,7 @@ export default function About() {
             ))}
           </div>
         </div>
-        <PhotoReveal src={site.images.about} alt="" width={1200} height={1500} className="aspect-[4/5] rounded" />
+        <PhotoReveal src={site.images.about} alt={site.ui.alt.about} width={1200} height={1500} className="aspect-[4/5] rounded" />
       </div>
 
       <Reveal as="ul" className="mt-12 flex flex-wrap gap-2 md:mt-16">
