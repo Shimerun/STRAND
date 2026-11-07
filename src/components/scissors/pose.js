@@ -33,7 +33,9 @@ export const TRACK = {
 };
 export const DOCK_END = 0.6; // fraction of the hero height scrolled when the shears sit on the track
 export const END_OFFSET = 0.3; // track ends this many viewports before the end element scrolls into view
-const FADE_FROM = 0.85;
+// Final cut: the end element's top crosses this fraction of the viewport; the shears snip, then fade out.
+export const CUT_LINE = 0.6;
+export const CUT_FADE = 0.8; // s
 
 const SNIP_DEG = 17; // opening per half, as in the demo
 const IDLE_SNIP = { period: 2.8, open: 0.35, close: 0.25 };
@@ -92,7 +94,7 @@ export function trackPoint(p, screen, gutter, track) {
   };
 }
 
-// Opacity over the last part of the track.
-export function trackFade(p) {
-  return 1 - smoothstep(p, FADE_FROM, 1);
+// Eased opacity for a linear fade value 0..1.
+export function easeFade(t) {
+  return smoothstep(t, 0, 1);
 }

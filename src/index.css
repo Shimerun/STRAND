@@ -83,6 +83,11 @@
   z-index: 40;
 }
 
+/* CutReveal: dashed cut line, 6px on / 8px off. */
+.cut-dashed {
+  background-image: repeating-linear-gradient(to right, theme('colors.line') 0 6px, transparent 6px 14px);
+}
+
 /* Lenis recommended styles */
 html.lenis,
 html.lenis body {

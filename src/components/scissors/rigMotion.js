@@ -1,7 +1,7 @@
 // Renderer-free motion of the shears in CSS px, shared by the 3D rig and the 2D fallback.
 import {
-  BURST_DURATION, DESKTOP_MIN_PX, DOCK_END, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
-  clamp, idleSnip, lerp, scrollSnip, trackFade, trackPoint, trackTurn, withBurst,
+  BURST_DURATION, CUT_FADE, CUT_LINE, DESKTOP_MIN_PX, DOCK_END, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
+  clamp, easeFade, idleSnip, lerp, scrollSnip, trackPoint, trackTurn, withBurst,
 } from './pose.js';
 import { burstElapsed, rig } from './rig.js';
 
@@ -53,6 +53,8 @@ const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(
 export function createRigMotion() {
   const lean = { x: 0, y: 0 };
   let smoothY = null;
+  let shown = null; // linear visibility 0..1, eased into the opacity
+  let cutAt = null; // performance.now() when the end element crossed CUT_LINE
 
   return function step({ time, dt: rawDt, scrollY, dock, signals, screen, unit, length, maxOpen }) {
     const dt = Math.min(rawDt, MAX_DT);
@@ -77,7 +79,14 @@ export function createRigMotion() {
     const trackRotation = { x: turn.x + lean.x, y: turn.y + lean.y, z: point.tilt };
     const rotation = mix(hero.rotation, trackRotation, dock);
     const burst = burstElapsed();
-    const opacity = range.endTop < window.innerHeight ? 0 : Math.round(trackFade(p) * 1000) / 1000;
+    const now = performance.now();
+    const pastCut = range.endTop < window.innerHeight * CUT_LINE;
+    if (!pastCut) cutAt = null;
+    else if (cutAt === null) cutAt = now;
+    const holding = pastCut && (now - cutAt) / 1000 < BURST_DURATION; // the final snips play before the fade
+    const target = pastCut && !holding ? 0 : 1;
+    shown = shown === null ? target : clamp(shown + Math.sign(target - shown) * (dt / CUT_FADE), 0, 1);
+    const opacity = Math.round(easeFade(shown) * 1000) / 1000;
     const leaning = Math.abs(leanX - lean.x) + Math.abs(leanY - lean.y) > POINTER.settle;
 
     const frame = {
@@ -90,7 +99,7 @@ export function createRigMotion() {
       rotation,
       open: withBurst(lerp(idleSnip(time, maxOpen), scrollSnip(smoothY, screen.height), dock), burst),
       opacity,
-      active: !signals.pageHidden && (signals.heroVisible || leaning || smoothY !== scrollY || burst < BURST_DURATION),
+      active: !signals.pageHidden && (signals.heroVisible || leaning || smoothY !== scrollY || burst < BURST_DURATION || holding || shown !== target),
     };
 
     const reach = (frame.length / 2) * Math.cos(rotation.x);

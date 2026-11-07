@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { prefersReducedMotion } from '../../lib/scroll.js';
 import ErrorBoundary from '../ErrorBoundary.jsx';
+import CutReveal from './CutReveal.jsx';
 import ScissorsFallback from './ScissorsFallback.jsx';
 
 // The 3D chunk (three.js, R3F, the model) loads only when every check below passes.
@@ -53,13 +54,20 @@ export default function ScissorsLayer() {
     setMode(MODE.flat);
   }, []);
 
-  if (mode !== MODE.webgl) return <ScissorsFallback still={mode === MODE.still} />;
+  if (mode === MODE.still) return <ScissorsFallback still />;
 
   return (
-    <ErrorBoundary fallback={<ScissorsFallback />}>
-      <Suspense fallback={null}>
-        <Scissors3D onLost={toFlat} onSlow={toFlatForSession} />
-      </Suspense>
-    </ErrorBoundary>
+    <>
+      <CutReveal />
+      {mode === MODE.flat ? (
+        <ScissorsFallback />
+      ) : (
+        <ErrorBoundary fallback={<ScissorsFallback />}>
+          <Suspense fallback={null}>
+            <Scissors3D onLost={toFlat} onSlow={toFlatForSession} />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+    </>
   );
 }
