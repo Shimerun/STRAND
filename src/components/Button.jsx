@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { hoverLift } from '../lib/motion.js';
+import { hoverLift, tapPress } from '../lib/motion.js';
 import { track } from '../lib/track.js';
 
 const BASE =
@@ -8,6 +8,7 @@ const BASE =
 const VARIANTS = {
   primary: 'bg-text text-bg hover:bg-accent',
   ghost: 'border border-line text-text hover:border-accent',
+  link: 'group !px-0 text-text hover:text-accent',
 };
 
 export default function Button({
@@ -36,6 +37,7 @@ export default function Button({
       href={href}
       type={href ? undefined : type}
       whileHover={reduce ? undefined : hoverLift}
+      whileTap={reduce ? undefined : tapPress}
       onClick={handleClick}
       className={`${BASE} ${VARIANTS[variant]} ${className}`}
       {...rest}

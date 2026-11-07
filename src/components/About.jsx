@@ -6,7 +6,7 @@ import SectionTitle from './SectionTitle.jsx';
 
 export default function About() {
   return (
-    <Section id="about">
+    <Section id="about" tone="surface">
       <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <SectionTitle>{site.ui.sections.about}</SectionTitle>

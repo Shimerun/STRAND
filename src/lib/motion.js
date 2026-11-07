@@ -3,9 +3,17 @@ export const EASE_HOVER = [0.26, 1.04, 0.54, 1];
 
 export const revealViewport = { once: true, amount: 0.3 };
 
+// List items in the same row reveal one after another; `index` comes through Reveal's `custom`.
+const STAGGER = { step: 0.08, columns: 3 };
+
 export const textReveal = {
   hidden: { opacity: 0, y: 24, filter: 'blur(12px)' },
-  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.8, ease: EASE_REVEAL } },
+  visible: (index = 0) => ({
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: 0.8, ease: EASE_REVEAL, delay: (index % STAGGER.columns) * STAGGER.step },
+  }),
 };
 
 // prefers-reduced-motion: plain fade, no blur or movement.
@@ -15,3 +23,4 @@ export const fadeReveal = {
 };
 
 export const hoverLift = { y: -2, transition: { duration: 0.3, ease: EASE_HOVER } };
+export const tapPress = { scale: 0.97, transition: { duration: 0.15, ease: EASE_HOVER } };

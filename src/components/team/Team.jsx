@@ -18,8 +18,8 @@ export default function Team() {
 
       {/* Horizontal scroll-snap on mobile, bleeding to the left edge; grid from md up. */}
       <ul className="-ml-5 mt-8 flex snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto pb-4 pl-5 pt-2 [scrollbar-width:none] md:ml-0 md:mt-10 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:p-0 lg:gap-8">
-        {site.team.map((barber) => (
-          <BarberCard key={barber.slug} barber={barber} onOpen={setOpenSlug} />
+        {site.team.map((barber, index) => (
+          <BarberCard key={barber.slug} barber={barber} index={index} onOpen={setOpenSlug} />
         ))}
       </ul>
 

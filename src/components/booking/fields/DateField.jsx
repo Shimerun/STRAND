@@ -35,7 +35,7 @@ export default function DateField({ dates, value, error, onChange }) {
               className="peer sr-only"
             />
             <span className={`${CHIP} min-w-[4.75rem]`}>
-              <span className="text-[0.6875rem] font-medium uppercase tracking-heading">
+              <span className="text-xs font-medium uppercase tracking-heading">
                 {iso === today ? contacts.today : formatWeekday(iso)}
               </span>
               <span className="mt-0.5 whitespace-nowrap text-sm font-bold">{formatDayMonth(iso)}</span>

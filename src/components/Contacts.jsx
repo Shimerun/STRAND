@@ -17,7 +17,7 @@ export default function Contacts() {
   const today = kyivNow().weekday;
 
   return (
-    <Section id="contacts">
+    <Section id="contacts" tone="surface">
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <SectionTitle>{sections.contacts}</SectionTitle>
@@ -56,7 +56,7 @@ export default function Contacts() {
                       <th scope="row" className="py-2.5 text-left font-[inherit]">
                         {contacts.days[key]}
                         {isToday && (
-                          <span className="ml-2 rounded border border-accent px-1.5 py-0.5 text-[0.625rem] uppercase tracking-heading text-accent">
+                          <span className="ml-2 rounded border border-accent px-1.5 py-0.5 text-xs uppercase tracking-heading text-text">
                             {contacts.today}
                           </span>
                         )}
@@ -81,7 +81,7 @@ export default function Contacts() {
           </Button>
         </div>
 
-        <div className="min-h-[320px] overflow-hidden rounded border border-line bg-surface">
+        <div className="min-h-[320px] overflow-hidden rounded border border-line bg-bg">
           <iframe
             src={MAP_EMBED_URL}
             title={contacts.map}

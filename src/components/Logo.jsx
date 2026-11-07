@@ -19,7 +19,7 @@ export default function Logo({ className = '' }) {
       {!loaded && (
         <span className="flex flex-col uppercase leading-none">
           <span className="text-xl font-extrabold tracking-wordmark">{site.name}</span>
-          <span className="mt-1 text-[0.55rem] font-medium tracking-wordmark text-concrete">{site.ui.brand.sub}</span>
+          <span className="mt-1 text-xs font-medium tracking-wordmark text-concrete">{site.ui.brand.sub}</span>
         </span>
       )}
     </span>

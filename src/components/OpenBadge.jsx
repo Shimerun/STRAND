@@ -20,7 +20,7 @@ export default function OpenBadge() {
   const { status } = site.ui;
 
   return (
-    <span className="inline-flex items-center gap-2 rounded border border-line bg-bg/60 px-3 py-1.5 text-[0.7rem] font-medium uppercase tracking-heading">
+    <span className="inline-flex items-center gap-2 rounded border border-line bg-bg/60 px-3 py-1.5 text-xs font-medium uppercase tracking-heading">
       <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${open ? 'bg-accent' : 'bg-concrete'}`} />
       {open ? status.open : status.closed}
     </span>

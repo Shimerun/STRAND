@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { prefersReducedMotion, setLenis } from './lib/scroll.js';
 import About from './components/About.jsx';
@@ -15,6 +15,10 @@ import Reviews from './components/Reviews.jsx';
 import Services from './components/Services.jsx';
 import Team from './components/team/Team.jsx';
 import Works from './components/works/Works.jsx';
+
+// The custom cursor (and its CSS) loads only on devices with a mouse.
+const Cursor = lazy(() => import('./components/cursor/Cursor.jsx'));
+const hasMouse = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_MS = 200;
@@ -55,6 +59,7 @@ function useLenis() {
 export default function App() {
   useLenis();
   const showScissors = useAfterFirstPaint();
+  const [showCursor] = useState(hasMouse);
 
   return (
     <>
@@ -75,6 +80,13 @@ export default function App() {
       {showScissors && (
         <ErrorBoundary>
           <ScissorsLayer />
+        </ErrorBoundary>
+      )}
+      {showCursor && (
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <Cursor />
+          </Suspense>
         </ErrorBoundary>
       )}
     </>

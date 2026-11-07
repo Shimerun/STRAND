@@ -1,0 +1,92 @@
+/* Custom cursor. Loaded only on devices with a mouse (see App.jsx), so phones download none of this. */
+
+.cursor {
+  /* Size and color: change here. */
+  --cursor-dot: 7px; /* dot diameter */
+  --cursor-ring: 32px; /* ring diameter */
+  --cursor-stroke: 1px; /* ring line width */
+  --cursor-color: theme('colors.text'); /* with `difference` it inverts over light areas */
+  --cursor-hover-scale: 1.5; /* ring over links and buttons */
+  --cursor-press-scale: 0.85; /* ring while the button is held */
+
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 110; /* above every layer, including the intro (100) */
+  pointer-events: none;
+  mix-blend-mode: difference;
+  transition: opacity 0.3s ease;
+}
+
+.cursor.is-hidden {
+  opacity: 0;
+}
+
+/* Moved with translate3d from Cursor.jsx; the inner shapes only scale. */
+.cursor-dot,
+.cursor-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.cursor-dot-shape,
+.cursor-ring-shape {
+  display: block;
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.26, 1.04, 0.54, 1);
+}
+
+.cursor-dot-shape {
+  width: var(--cursor-dot);
+  height: var(--cursor-dot);
+  margin: calc(var(--cursor-dot) / -2) 0 0 calc(var(--cursor-dot) / -2);
+  background: var(--cursor-color);
+}
+
+.cursor-ring-shape {
+  width: var(--cursor-ring);
+  height: var(--cursor-ring);
+  margin: calc(var(--cursor-ring) / -2) 0 0 calc(var(--cursor-ring) / -2);
+  border: var(--cursor-stroke) solid var(--cursor-color);
+  transform: scale(var(--ring-hover, 1)) scale(var(--ring-press, 1));
+}
+
+.cursor.is-hover {
+  --ring-hover: var(--cursor-hover-scale);
+}
+
+.cursor.is-pressed {
+  --ring-press: var(--cursor-press-scale);
+}
+
+.cursor.is-hover .cursor-dot-shape {
+  transform: scale(0);
+}
+
+/* The system cursor goes away only once Cursor.jsx has mounted and set the class. */
+@media (hover: hover) and (pointer: fine) {
+  html.has-custom-cursor,
+  html.has-custom-cursor * {
+    cursor: none !important;
+  }
+
+  html.has-custom-cursor :is(input:not([type='radio'], [type='checkbox']), textarea, [contenteditable='true']) {
+    cursor: auto !important;
+  }
+}
+
+@media not all and (hover: hover) and (pointer: fine) {
+  .cursor {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .cursor-dot-shape,
+  .cursor-ring-shape {
+    transition: none;
+  }
+}

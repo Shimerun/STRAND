@@ -16,7 +16,7 @@ export default function Reviews() {
   const fullStars = Math.round(rating.value);
 
   return (
-    <Section id="reviews">
+    <Section id="reviews" tone="surface">
       <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-16">
         <div className="shrink-0">
           <SectionTitle>{ui.sections.reviews}</SectionTitle>
@@ -40,14 +40,15 @@ export default function Reviews() {
 
         {/* Horizontal scroll-snap on mobile, bleeding to the left edge; grid from md up. */}
         <ul className="-ml-5 flex min-w-0 flex-1 snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto pb-4 pl-5 pt-2 [scrollbar-width:none] md:ml-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-0">
-          {reviews.map((review) => (
+          {reviews.map((review, index) => (
             <Reveal
               as="li"
               key={`${review.name}-${review.date}`}
+              index={index}
               whileHover={reduce ? undefined : hoverLift}
               className="w-[85%] shrink-0 snap-start sm:w-[60%] md:w-auto"
             >
-              <figure className="flex h-full flex-col rounded border border-line bg-surface p-6">
+              <figure className="flex h-full flex-col rounded border border-line bg-bg p-6">
                 <span aria-hidden="true" className="text-4xl font-extrabold leading-none text-concrete">
                   “
                 </span>

@@ -18,15 +18,15 @@ export const site = {
   timezone: "Europe/Kyiv",
   hours: { mon: day, tue: day, wed: day, thu: day, fri: day, sat: day, sun: day },
   booking: { daysAhead: 14, slotMinutes: 60, minLeadMinutes: 60 },
-  social: { instagram: null }, // TODO: client link
+  social: { instagram: "https://www.instagram.com/strand_barbershop/" },
   images: {
-    hero: "/images/hero.jpg", // 1600px wide, <= ~200 KB (webp is fine: rename file and change the path here)
-    about: "/images/about.jpg",
-    facade: "/images/facade.jpg",
-    interior: ["/images/interior-1.jpg", "/images/interior-2.jpg", "/images/interior-3.jpg", "/images/interior-4.jpg"],
-    logo: "/images/logo.svg",
-    og: "/images/og.jpg", // 1200x630
-    favicon: null // TODO: e.g. "/favicon.svg"; until then vite/siteMeta.js draws a placeholder
+    hero: "/images/hero.webp", // TODO: 680px wide now; a 1600px-wide photo (<= ~200 KB) looks sharp on desktop
+    about: "/images/about.webp",
+    facade: "/images/facade.webp",
+    interior: ["/images/interior-1.webp", "/images/interior-2.webp", "/images/interior-3.webp", "/images/interior-4.webp"],
+    logo: null, // TODO: a transparent SVG/PNG; LOGO.webp is an opaque square, so the text wordmark stays
+    og: "/images/hero.webp", // TODO: a 1200x630 JPG previews best in messengers and Facebook
+    favicon: "/images/logo.webp"
   },
   seo: {
     title: "Strand Barbershop — барбершоп у Житомирі · Запис онлайн",
@@ -65,12 +65,12 @@ export const site = {
       prices: { "oleh-dok": 150, "liubov-zainchkovska": 150, "liliia-pavlenko": 150, "daryna-badio": 150 } }
   ],
   team: [
-    { slug: "oleh-dok", name: "Олег Док", role: "Барбер", junior: false, rating: 5.0, instagram: null },
-    { slug: "liubov-zainchkovska", name: "Люба Зайнчковська", role: "Барбер", junior: false, rating: 5.0, instagram: null },
-    { slug: "liliia-pavlenko", name: "Лілія Павленко", role: "Барбер", junior: false, rating: 5.0, instagram: null },
-    { slug: "daryna-badio", name: "Дарина Бадьо", role: "Барбер", junior: false, rating: 5.0, instagram: null },
-    { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", junior: true, rating: null, instagram: null },
-    { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", junior: true, rating: null, instagram: null }
+    { slug: "oleh-dok", name: "Олег Док", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/olegdok_/" },
+    { slug: "liubov-zainchkovska", name: "Люба Зайнчковська", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/luybka_barber/" },
+    { slug: "liliia-pavlenko", name: "Лілія Павленко", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/pavlenko_lilya_/" },
+    { slug: "daryna-badio", name: "Дарина Бадьо", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/darina.bado/" },
+    { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/rmn_mkhlvski/" },
+    { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/puhach.dm/" }
   ],
   works: [], // TODO: [{ src: "/images/works/work-01.jpg", alt: "Чоловіча стрижка, Strand" }]
   reviews: [

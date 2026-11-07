@@ -83,6 +83,16 @@
   z-index: 40;
 }
 
+/* SectionTitle: sections are numbered 01, 02, … in page order. */
+main {
+  counter-reset: section;
+}
+
+.section-index::before {
+  counter-increment: section;
+  content: counter(section, decimal-leading-zero);
+}
+
 /* CutReveal: dashed cut line, 6px on / 8px off. */
 .cut-dashed {
   background-image: repeating-linear-gradient(to right, theme('colors.line') 0 6px, transparent 6px 14px);

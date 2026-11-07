@@ -26,16 +26,16 @@ export default function Hero() {
       <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16">
         <div className="lg:w-1/2">
           <OpenBadge />
-          <Reveal as="h1" className="mt-5 text-balance text-[1.75rem] leading-[1.1] sm:text-5xl sm:leading-[1.08]">
+          <Reveal as="h1" className="mt-5 text-balance text-[2.25rem] leading-[1.05] sm:text-6xl sm:leading-[1.02] xl:text-7xl">
             {site.tagline}
           </Reveal>
         </div>
 
-        {/* TODO: scissors area (Stage 1b) — under the headline on mobile, the right half on desktop. */}
+        {/* Room for the shears under the headline on mobile; on desktop they take the right half. */}
         <div aria-hidden="true" className="min-h-[22svh] flex-1 lg:hidden" />
 
         <div className="lg:mt-8 lg:w-1/2">
-          <p className="text-xs font-medium uppercase tracking-heading text-concrete sm:text-sm">
+          <p className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base">
             {hero.subline} · {site.addressShort}
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">

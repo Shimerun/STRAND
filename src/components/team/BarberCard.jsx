@@ -10,7 +10,7 @@ import StarIcon from '../StarIcon.jsx';
 const PHOTO_DIR = '/images/team';
 
 // The name button stretches over the whole card; the Instagram link sits above it.
-export default function BarberCard({ barber, onOpen }) {
+export default function BarberCard({ barber, index, onOpen }) {
   const reduce = useReducedMotion();
   const { team } = site.ui;
   const { slug, name, role, junior, rating, instagram } = barber;
@@ -18,6 +18,7 @@ export default function BarberCard({ barber, onOpen }) {
   return (
     <Reveal
       as="li"
+      index={index}
       whileHover={reduce ? undefined : hoverLift}
       className="group relative w-[72%] shrink-0 snap-start sm:w-[44%] md:w-auto"
     >
@@ -38,7 +39,7 @@ export default function BarberCard({ barber, onOpen }) {
             </button>
           </h3>
           {junior ? (
-            <span className="mt-2 inline-block rounded border border-line px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-heading text-concrete">
+            <span className="mt-2 inline-block rounded border border-line px-2 py-0.5 text-xs font-medium uppercase tracking-heading text-concrete">
               {role}
             </span>
           ) : (
