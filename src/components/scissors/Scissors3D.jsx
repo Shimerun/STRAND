@@ -1,90 +1,80 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import {
-  ACESFilmicToneMapping,
-  BackSide,
-  BoxGeometry,
-  Color,
-  DoubleSide,
-  Mesh,
-  MeshBasicMaterial,
-  PlaneGeometry,
-  PMREMGenerator,
-  Scene,
-} from 'three';
+import { ACESFilmicToneMapping } from 'three';
+import { CAMERA } from './pose.js';
 import Shears, { CONFIG } from './Shears.jsx';
+import Studio from './Studio.jsx';
 import { useScissorsRig } from './useScissorsRig.js';
 
 // Dev-only helper: the dynamic import is dead code in production builds.
 const ScissorsDebug = import.meta.env.DEV ? lazy(() => import('./ScissorsDebug.jsx')) : null;
 const isDebug = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug');
 
-const CAMERA = { fov: 35, position: [0, 0, 10], near: 0.1, far: 50 };
 const DPR = [1, 1.75];
 const EXPOSURE = 1.05;
+const PROBE = { frames: 30, skip: 5, slowMs: 30 };
 
-// Studio from the reference viewer: a dark room lit by soft boxes, for crisp chrome reflections.
-const ROOM = { size: 10, wall: 4.9, color: 0x232428, floor: 0x0c0c0d, blur: 0.035 };
-// Ceiling strips facing down with dark gaps between them: [depth, z, intensity].
-const CEILING = [[3.2, 3.2, 2.0], [2.0, 0.3, 0.9], [2.8, -3.0, 1.5]];
-const CEILING_WIDTH = 9.6;
-// Soft boxes facing the model: [width, height, x, y, z, intensity, color].
-const SOFTBOXES = [
-  [9.0, 2.2, 0, 2.75, 4.9, 2.0], // front, upper
-  [9.0, 2.0, 0, 0.35, 4.9, 0.55], // dim zone behind the viewer: face-on steel reads grey, not white
-  [9.0, 0.8, 0, -1.65, 4.9, 1.2], // low front strip
-  [0.9, 7, -4.85, 0.4, 1.4, 2.8], // left strip
-  [0.9, 7, 4.85, 0.4, 0.2, 2.0, 0xffefdc], // right strip, warm
-  [5.0, 3.0, 0.8, 1.0, -4.9, 1.5], // back panel
-];
-const KEY_LIGHT = { position: [0.3, 0.6, 1], intensity: 0.6 };
-
-const glow = (intensity, color = 0xffffff) =>
-  new MeshBasicMaterial({ color: new Color(color).multiplyScalar(intensity), side: DoubleSide });
-
-function buildStudio() {
-  const studio = new Scene();
-  studio.add(new Mesh(new BoxGeometry(ROOM.size, ROOM.size, ROOM.size), new MeshBasicMaterial({ color: ROOM.color, side: BackSide })));
-  const floor = new Mesh(new PlaneGeometry(ROOM.size, ROOM.size), new MeshBasicMaterial({ color: ROOM.floor }));
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -ROOM.wall;
-  studio.add(floor);
-  CEILING.forEach(([depth, z, intensity]) => {
-    const strip = new Mesh(new PlaneGeometry(CEILING_WIDTH, depth), glow(intensity));
-    strip.rotation.x = Math.PI / 2;
-    strip.position.set(0, ROOM.wall, z);
-    studio.add(strip);
-  });
-  SOFTBOXES.forEach(([width, height, x, y, z, intensity, color]) => {
-    const box = new Mesh(new PlaneGeometry(width, height), glow(intensity, color));
-    box.position.set(x, y, z);
-    box.lookAt(0, 0, 0);
-    studio.add(box);
-  });
-  return studio;
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function Studio() {
-  const { gl, scene } = useThree();
+// A lost WebGL context hands over to the 2D fallback.
+function ContextWatch({ onLost }) {
+  const gl = useThree((state) => state.gl);
 
   useEffect(() => {
-    const pmrem = new PMREMGenerator(gl);
-    const studio = buildStudio();
-    const envMap = pmrem.fromScene(studio, ROOM.blur).texture;
-    studio.traverse((object) => {
-      if (!object.isMesh) return;
-      object.geometry.dispose();
-      object.material.dispose();
-    });
-    pmrem.dispose();
-    scene.environment = envMap;
-    return () => {
-      scene.environment = null;
-      envMap.dispose();
+    const canvas = gl.domElement;
+    const handleLost = (event) => {
+      event.preventDefault();
+      onLost();
     };
-  }, [gl, scene]);
+    canvas.addEventListener('webglcontextlost', handleLost);
+    return () => canvas.removeEventListener('webglcontextlost', handleLost);
+  }, [gl, onLost]);
 
-  return <directionalLight position={KEY_LIGHT.position} intensity={KEY_LIGHT.intensity} />;
+  return null;
+}
+
+// Mounts once the model has loaded: forces PROBE.frames renders and calls onSlow when the median
+// requestAnimationFrame delta, ignoring the first PROBE.skip, is above PROBE.slowMs.
+function FrameProbe({ onSlow }) {
+  const invalidate = useThree((state) => state.invalidate);
+
+  useEffect(() => {
+    const deltas = [];
+    let frame = 0;
+    let count = 0;
+    let last = 0;
+    // A hidden tab stalls requestAnimationFrame, which would read as a slow device: start over.
+    const restart = () => {
+      deltas.length = 0;
+      count = 0;
+      last = 0;
+    };
+    const sample = (now) => {
+      if (last) {
+        count += 1;
+        if (count > PROBE.skip) deltas.push(now - last);
+      }
+      last = now;
+      if (count >= PROBE.frames) {
+        if (median(deltas) > PROBE.slowMs) onSlow();
+        return;
+      }
+      invalidate();
+      frame = requestAnimationFrame(sample);
+    };
+    frame = requestAnimationFrame(sample);
+    document.addEventListener('visibilitychange', restart);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('visibilitychange', restart);
+    };
+  }, [invalidate, onSlow]);
+
+  return null;
 }
 
 function Rig({ config, hold, layerRef, showAxes, onInfo }) {
@@ -98,7 +88,8 @@ function Rig({ config, hold, layerRef, showAxes, onInfo }) {
   );
 }
 
-export default function Scissors3D() {
+/** WebGL shears. onLost: the context was lost; onSlow: the frame-time probe failed. Both must be stable. */
+export default function Scissors3D({ onLost, onSlow }) {
   const [debug] = useState(isDebug);
   const [config, setConfig] = useState(CONFIG);
   const [hold, setHold] = useState(debug ? 'open' : null);
@@ -120,9 +111,11 @@ export default function Scissors3D() {
             gl.toneMappingExposure = EXPOSURE;
           }}
         >
+          <ContextWatch onLost={onLost} />
           <Studio />
           <Suspense fallback={null}>
             <Rig config={config} hold={hold} layerRef={layerRef} showAxes={debug} onInfo={debug ? setInfo : undefined} />
+            {!debug && <FrameProbe onSlow={onSlow} />}
           </Suspense>
         </Canvas>
       </div>

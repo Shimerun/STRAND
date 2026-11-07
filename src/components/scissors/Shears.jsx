@@ -89,6 +89,19 @@ export default function Shears({ config = CONFIG, openRef, onInfo }) {
     onInfo?.({ clipMaxDeg: timeline?.maxDeg ?? null });
   }, [onInfo, timeline]);
 
+  // <primitive> objects are not disposed by R3F. Free the model's GPU resources; three re-uploads them if the
+  // cached scene is mounted again (StrictMode, HMR), so the useGLTF cache is kept.
+  useEffect(() => () => {
+    scene.traverse((object) => {
+      if (!object.isMesh) return;
+      object.geometry.dispose();
+      [object.material].flat().forEach((material) => {
+        Object.values(material).forEach((value) => value?.isTexture && value.dispose());
+        material.dispose();
+      });
+    });
+  }, [scene]);
+
   useFrame(() => {
     const action = clip && actions[clip.name];
     if (!action || !timeline) return;

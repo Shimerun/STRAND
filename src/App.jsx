@@ -1,12 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { prefersReducedMotion, setLenis } from './lib/scroll.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import Intro from './components/Intro.jsx';
-
-const Scissors3D = lazy(() => import('./components/scissors/Scissors3D.jsx'));
+import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
 
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_MS = 200;
@@ -59,9 +58,7 @@ export default function App() {
       </main>
       {showScissors && (
         <ErrorBoundary>
-          <Suspense fallback={null}>
-            <Scissors3D />
-          </Suspense>
+          <ScissorsLayer />
         </ErrorBoundary>
       )}
     </>

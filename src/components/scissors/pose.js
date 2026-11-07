@@ -1,9 +1,21 @@
-import { MathUtils } from 'three';
-
+// Pure pose math shared by the 3D shears and the 2D fallback; must not import three.js.
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 const HEADER_PX = 72; // tailwind spacing.header
 export const DESKTOP_MIN_PX = 1024;
+
+export const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+export const lerp = (a, b, t) => a + (b - a) * t;
+const smoothstep = (value, min, max) => {
+  const t = clamp((value - min) / (max - min), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+// The 3D camera; the 2D fallback uses the same framing.
+export const CAMERA = { fov: 35, position: [0, 0, 10], near: 0.1, far: 50 };
+export const VIEW_HEIGHT = 2 * CAMERA.position[2] * Math.tan((CAMERA.fov / 2) * DEG); // world units across the viewport
+// Mirrors CONFIG.SCALE and CONFIG.MAX_OPEN in Shears.jsx, which the fallback can't import without three.js.
+export const FLAT = { length: 4, maxOpen: 30 };
 
 // Hero pose: x / y as fractions of the viewport (world units at z = 0), scale relative to CONFIG.SCALE.
 export const HERO = {
@@ -52,7 +64,7 @@ export function scrollSnip(scrollY, screenHeight) {
 export function withBurst(angle, elapsed) {
   if (elapsed < 0 || elapsed >= BURST_DURATION) return angle;
   const period = BURST.open + BURST.close;
-  return MathUtils.lerp(angle, SNIP_DEG, pulse(elapsed % period, BURST.open, BURST.close));
+  return lerp(angle, SNIP_DEG, pulse(elapsed % period, BURST.open, BURST.close));
 }
 
 // Rotation about the screen X and the long axis along the track: the shears turn over
@@ -82,5 +94,5 @@ export function trackPoint(p, screen, gutter, track) {
 
 // Opacity over the last part of the track.
 export function trackFade(p) {
-  return 1 - MathUtils.smoothstep(p, FADE_FROM, 1);
+  return 1 - smoothstep(p, FADE_FROM, 1);
 }
