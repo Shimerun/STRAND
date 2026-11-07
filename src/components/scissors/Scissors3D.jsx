@@ -19,7 +19,7 @@ import { useScissorsRig } from './useScissorsRig.js';
 const ScissorsDebug = import.meta.env.DEV ? lazy(() => import('./ScissorsDebug.jsx')) : null;
 const isDebug = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug');
 
-const CAMERA = { fov: 30, position: [0, 0, 10], near: 0.1, far: 50 };
+const CAMERA = { fov: 35, position: [0, 0, 10], near: 0.1, far: 50 };
 const DPR = [1, 1.75];
 const EXPOSURE = 1.05;
 

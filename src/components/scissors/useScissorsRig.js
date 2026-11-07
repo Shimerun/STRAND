@@ -3,23 +3,23 @@ import { useFrame } from '@react-three/fiber';
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three';
 import { prefersReducedMotion } from '../../lib/scroll.js';
 import {
-  BURST_DURATION, DESKTOP_MIN_PX, HERO, HERO_EULER, SPIN, TRACK,
+  BURST_DURATION, DESKTOP_MIN_PX, FLOAT, HERO, SWAY, TRACK,
   idleSnip, scrollSnip, trackFade, trackPoint, trackTurn, withBurst,
 } from './pose.js';
 import { burstElapsed, rig } from './rig.js';
 import { readTrack, useScissorsSignals } from './useScissorsSignals.js';
 
+const TAU = Math.PI * 2;
 const RIG_PRIORITY = -1; // runs before Shears reads openRef; negative keeps auto-rendering on
 const POINTER = { max: 8 * (Math.PI / 180), lerp: 0.08, settle: 1e-4 };
 const LAG = 8; // 1/s: the shears trail the scroll, as in the demo
 const LAG_SETTLE = 0.5; // px
 const MAX_DT = 0.05;
-const UP = new Vector3(0, 1, 0);
 
 const { clamp, lerp } = MathUtils;
 
 /**
- * Owns the shears' motion: the hero's spinning 3/4 view with an idle snip, docking onto the gutter
+ * Owns the shears' motion: hero pose with idle float / sway / snip, docking onto the gutter
  * track, turning over and snipping with the (slightly trailing) scroll, bursts and pointer lean.
  * Writes the transform into groupRef, the opening (degrees per half) into openRef, the fade into
  * layerRef, and the tip position into `rig`.
@@ -32,7 +32,7 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
   const { signals, scrollY, dock, dockTarget } = useScissorsSignals(reduce);
   const state = useRef({ lean: { x: 0, y: 0 }, smoothY: null, opacity: -1 });
   const [tmp] = useState(() => ({
-    tip: new Vector3(), euler: new Euler(), qHero: new Quaternion(), qTrack: new Quaternion(), qSpin: new Quaternion(),
+    tip: new Vector3(), euler: new Euler(), qHero: new Quaternion(), qTrack: new Quaternion(),
   }));
 
   useFrame(({ viewport, size, clock, camera, invalidate }, delta) => {
@@ -56,22 +56,20 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
     // Track position in CSS px, converted to world units at z = 0.
     const px = 1 / viewport.factor;
     const point = trackPoint(p, { width: document.documentElement.clientWidth, height: size.height }, s.gutter, track);
-    const heroScale = Math.min(hero.scale, (hero.fit * viewport.width) / length);
     group.position.set(
       lerp(hero.x * viewport.width, (point.x - size.width / 2) * px, d),
-      lerp(hero.y * viewport.height, (size.height / 2 - point.y) * px, d),
+      lerp(hero.y * viewport.height + FLOAT.amp * Math.sin(TAU * FLOAT.hz * time), (size.height / 2 - point.y) * px, d),
       0,
     );
-    group.scale.setScalar(lerp(heroScale, (track.length * px) / length, d));
+    group.scale.setScalar(lerp(hero.scale, (track.length * px) / length, d));
 
     const k = 1 - (1 - POINTER.lerp) ** (dt * 60); // frame-rate independent lerp
     const lean = m.lean;
     lean.x += (s.pointer.y * POINTER.max - lean.x) * k;
     lean.y += (s.pointer.x * POINTER.max - lean.y) * k;
 
-    const { tip, euler, qHero, qTrack, qSpin } = tmp;
-    qHero.setFromEuler(euler.set(HERO_EULER[0] + lean.x, HERO_EULER[1] + lean.y, HERO_EULER[2]));
-    qHero.premultiply(qSpin.setFromAxisAngle(UP, SPIN * time));
+    const { tip, euler, qHero, qTrack } = tmp;
+    qHero.setFromEuler(euler.set(lean.x, hero.yaw + SWAY.amp * Math.sin(TAU * SWAY.hz * time) + lean.y, hero.tilt));
     const turn = trackTurn(reduce ? 0 : p);
     qTrack.setFromEuler(euler.set(turn.x + lean.x, turn.y + lean.y, point.tilt));
     group.quaternion.slerpQuaternions(qHero, qTrack, d);
@@ -79,7 +77,7 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
     const burst = burstElapsed();
     if (hold === 'open') openRef.current = maxOpen;
     else if (hold === 'closed' || reduce) openRef.current = 0;
-    else openRef.current = withBurst(lerp(idleSnip(time), scrollSnip(m.smoothY, size.height), d), burst);
+    else openRef.current = withBurst(lerp(idleSnip(time, maxOpen), scrollSnip(m.smoothY, size.height), d), burst);
 
     // Fade over the end of the track; hidden while the end element is on screen or above it.
     const opacity = range.endTop < window.innerHeight ? 0 : Math.round(trackFade(p) * 1000) / 1000;
