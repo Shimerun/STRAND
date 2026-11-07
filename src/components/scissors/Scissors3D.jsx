@@ -2,14 +2,16 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import {
   ACESFilmicToneMapping,
+  BackSide,
+  BoxGeometry,
   Color,
   DoubleSide,
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
   PMREMGenerator,
+  Scene,
 } from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import Shears, { CONFIG } from './Shears.jsx';
 import { useScissorsRig } from './useScissorsRig.js';
 
@@ -17,39 +19,72 @@ import { useScissorsRig } from './useScissorsRig.js';
 const ScissorsDebug = import.meta.env.DEV ? lazy(() => import('./ScissorsDebug.jsx')) : null;
 const isDebug = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug');
 
-const CAMERA = { fov: 35, position: [0, 0, 10], near: 0.1, far: 50 };
+const CAMERA = { fov: 30, position: [0, 0, 10], near: 0.1, far: 50 };
 const DPR = [1, 1.75];
 const EXPOSURE = 1.05;
-const STRIP = { width: 0.6, height: 12, boost: 30, x: 9, y: 2, z: 4, turn: Math.PI / 2.3 };
 
-// Procedural studio: RoomEnvironment plus two tall strip lights for long soft highlights on the steel.
+// Studio from the reference viewer: a dark room lit by soft boxes, for crisp chrome reflections.
+const ROOM = { size: 10, wall: 4.9, color: 0x232428, floor: 0x0c0c0d, blur: 0.035 };
+// Ceiling strips facing down with dark gaps between them: [depth, z, intensity].
+const CEILING = [[3.2, 3.2, 2.0], [2.0, 0.3, 0.9], [2.8, -3.0, 1.5]];
+const CEILING_WIDTH = 9.6;
+// Soft boxes facing the model: [width, height, x, y, z, intensity, color].
+const SOFTBOXES = [
+  [9.0, 2.2, 0, 2.75, 4.9, 2.0], // front, upper
+  [9.0, 2.0, 0, 0.35, 4.9, 0.55], // dim zone behind the viewer: face-on steel reads grey, not white
+  [9.0, 0.8, 0, -1.65, 4.9, 1.2], // low front strip
+  [0.9, 7, -4.85, 0.4, 1.4, 2.8], // left strip
+  [0.9, 7, 4.85, 0.4, 0.2, 2.0, 0xffefdc], // right strip, warm
+  [5.0, 3.0, 0.8, 1.0, -4.9, 1.5], // back panel
+];
+const KEY_LIGHT = { position: [0.3, 0.6, 1], intensity: 0.6 };
+
+const glow = (intensity, color = 0xffffff) =>
+  new MeshBasicMaterial({ color: new Color(color).multiplyScalar(intensity), side: DoubleSide });
+
+function buildStudio() {
+  const studio = new Scene();
+  studio.add(new Mesh(new BoxGeometry(ROOM.size, ROOM.size, ROOM.size), new MeshBasicMaterial({ color: ROOM.color, side: BackSide })));
+  const floor = new Mesh(new PlaneGeometry(ROOM.size, ROOM.size), new MeshBasicMaterial({ color: ROOM.floor }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -ROOM.wall;
+  studio.add(floor);
+  CEILING.forEach(([depth, z, intensity]) => {
+    const strip = new Mesh(new PlaneGeometry(CEILING_WIDTH, depth), glow(intensity));
+    strip.rotation.x = Math.PI / 2;
+    strip.position.set(0, ROOM.wall, z);
+    studio.add(strip);
+  });
+  SOFTBOXES.forEach(([width, height, x, y, z, intensity, color]) => {
+    const box = new Mesh(new PlaneGeometry(width, height), glow(intensity, color));
+    box.position.set(x, y, z);
+    box.lookAt(0, 0, 0);
+    studio.add(box);
+  });
+  return studio;
+}
+
 function Studio() {
   const { gl, scene } = useThree();
 
   useEffect(() => {
     const pmrem = new PMREMGenerator(gl);
-    const room = new RoomEnvironment();
-    const geometry = new PlaneGeometry(STRIP.width, STRIP.height);
-    const material = new MeshBasicMaterial({ color: new Color(1, 1, 1).multiplyScalar(STRIP.boost), side: DoubleSide });
-    [-1, 1].forEach((side) => {
-      const strip = new Mesh(geometry, material);
-      strip.position.set(side * STRIP.x, STRIP.y, STRIP.z);
-      strip.rotation.y = -side * STRIP.turn;
-      room.add(strip);
+    const studio = buildStudio();
+    const envMap = pmrem.fromScene(studio, ROOM.blur).texture;
+    studio.traverse((object) => {
+      if (!object.isMesh) return;
+      object.geometry.dispose();
+      object.material.dispose();
     });
-    const envMap = pmrem.fromScene(room, 0.03).texture;
+    pmrem.dispose();
     scene.environment = envMap;
-    scene.environmentIntensity = 1;
-    room.dispose(); // also disposes the strip geometry and material
     return () => {
       scene.environment = null;
       envMap.dispose();
-      pmrem.dispose();
     };
   }, [gl, scene]);
 
-  // Rim light from behind-right.
-  return <spotLight position={[6, 4, -6]} angle={0.6} penumbra={1} intensity={150} />;
+  return <directionalLight position={KEY_LIGHT.position} intensity={KEY_LIGHT.intensity} />;
 }
 
 function Rig({ config, hold, layerRef, showAxes, onInfo }) {
