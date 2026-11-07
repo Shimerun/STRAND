@@ -7,8 +7,10 @@ import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import Intro from './components/Intro.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
+import Reviews from './components/Reviews.jsx';
 import Services from './components/Services.jsx';
 import Team from './components/team/Team.jsx';
+import Works from './components/works/Works.jsx';
 
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_MS = 200;
@@ -57,8 +59,10 @@ export default function App() {
       <main>
         <Hero />
         <About />
-        <Services />
         <Team />
+        <Services />
+        <Works />
+        <Reviews />
       </main>
       {showScissors && (
         <ErrorBoundary>

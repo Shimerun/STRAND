@@ -83,8 +83,8 @@ export const site = {
   ui: {
     nav: [
       { id: "about", label: "Про нас" },
-      { id: "services", label: "Послуги" },
       { id: "team", label: "Команда" },
+      { id: "services", label: "Послуги" },
       { id: "works", label: "Роботи" },
       { id: "reviews", label: "Відгуки" },
       { id: "contacts", label: "Контакти" }
@@ -104,6 +104,7 @@ export const site = {
     services: { priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },
     team: { prices: "Ціни майстра", rating: "Рейтинг" },
+    works: { prev: "Попереднє фото", next: "Наступне фото" },
     brand: { sub: "Barbershop" },
     reviews: { verified: ["перевірений відгук", "перевірені відгуки", "перевірених відгуків"] },
     contacts: {

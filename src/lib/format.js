@@ -33,6 +33,13 @@ export function formatRating(n) {
   return ratingFormatter.format(n);
 }
 
+// ISO dates ("2026-09-05") parse as UTC midnight, so format in UTC to keep the same day.
+const dateFormatter = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+export function formatDate(iso) {
+  return dateFormatter.format(new Date(iso));
+}
+
 export function formatHours(day, closedLabel) {
   return day ? `${day.open}–${day.close}` : closedLabel;
 }
