@@ -1,9 +1,10 @@
 // Renderer-free motion of the shears in CSS px, shared by the 3D rig and the 2D fallback.
+import { heroCutPhases } from '../../lib/heroCut.js';
 import {
-  BURST_DURATION, CUT_FADE, CUT_LINE, DESKTOP_MIN_PX, DOCK_END, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
-  clamp, easeFade, idleSnip, lerp, scrollSnip, trackPoint, trackTurn, withBurst,
+  BURST_DURATION, CUT_FADE, CUT_LINE, DESKTOP_MIN_PX, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
+  clamp, cutPose, dockRange, easeFade, idleSnip, lerp, nearAngle, scrollSnip, trackPoint, trackTurn, withBurst,
 } from './pose.js';
-import { burstElapsed, rig } from './rig.js';
+import { burstElapsed, getScene, rig } from './rig.js';
 
 const TAU = Math.PI * 2;
 const POINTER = { max: 8 * (Math.PI / 180), lerp: 0.08, settle: 1e-4 };
@@ -13,13 +14,13 @@ const MAX_DT = 0.05;
 const END_SELECTOR = '[data-scissors-end]';
 
 /**
- * Scroll range of the track in scrollY px. It ends END_OFFSET viewports before the
- * [data-scissors-end] element scrolls into view, or at the page bottom when there is none.
+ * Scroll range of the track in scrollY px. It starts when the shears have docked and ends END_OFFSET
+ * viewports before the [data-scissors-end] element scrolls into view, or at the page bottom when there is none.
  * endTop is that element's viewport top (Infinity without one).
  */
-function readTrack(heroHeight) {
+function readTrack({ heroHeight, cutPin }) {
   const viewport = window.innerHeight;
-  const start = heroHeight * DOCK_END;
+  const start = dockRange(heroHeight, cutPin).to;
   const endEl = document.querySelector(END_SELECTOR);
   const endTop = endEl ? endEl.getBoundingClientRect().top : Infinity;
   const end = endEl
@@ -43,6 +44,23 @@ export function heroPose(screen, unit, length, time = 0) {
 }
 
 const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
+const easeInOut = (t) => t * t * (3 - 2 * t);
+const SCENE_SCALE = 0.8; // a borrowed pair is a little smaller than on the track
+
+// Blends the frame towards a scene that borrowed the shears (rig.setScene): tips on its point, flat to the camera.
+function applyScene(frame, scene, trackLength, maxOpen) {
+  const w = scene.weight;
+  const length = trackLength * SCENE_SCALE;
+  const turn = (rotation) => ({ x: 0, y: 0, z: nearAngle(Math.atan2(-scene.dirX, -scene.dirY), rotation.z) });
+  frame.x = lerp(frame.x, scene.tipX - (scene.dirX * length) / 2, w);
+  frame.y = lerp(frame.y, scene.tipY - (scene.dirY * length) / 2, w);
+  frame.length = lerp(frame.length, length, w);
+  frame.rotation = mix(frame.rotation, turn(frame.rotation), w);
+  frame.heroRotation = mix(frame.heroRotation, turn(frame.heroRotation), w);
+  frame.trackRotation = mix(frame.trackRotation, turn(frame.trackRotation), w);
+  frame.open = lerp(frame.open, maxOpen * scene.open, w);
+  frame.opacity = Math.max(frame.opacity, w);
+}
 
 /**
  * Returns step(input) → frame for one rendered frame. input: { time, dt (s), scrollY, dock (0..1),
@@ -61,7 +79,7 @@ export function createRigMotion() {
     if (smoothY === null || Math.abs(scrollY - smoothY) <= LAG_SETTLE) smoothY = scrollY;
     else smoothY += (scrollY - smoothY) * (1 - Math.exp(-LAG * dt));
 
-    const range = readTrack(signals.heroHeight);
+    const range = readTrack(signals);
     const p = clamp((smoothY - range.start) / range.span, 0, 1);
     const track = screen.width >= DESKTOP_MIN_PX ? TRACK.desktop : TRACK.mobile;
     const point = trackPoint(p, { width: document.documentElement.clientWidth, height: screen.height }, signals.gutter, track);
@@ -75,9 +93,22 @@ export function createRigMotion() {
     const hero = heroPose(screen, unit, length, time);
     hero.rotation.x += lean.x;
     hero.rotation.y += lean.y;
+
+    // Hero cut: raw scroll (no lag) keeps the tip on the line the hero draws.
+    const phases = heroCutPhases(scrollY, signals.cutPin);
+    const aim = easeInOut(phases.aim);
+    const cut = cutPose(phases.along, document.documentElement.clientWidth, signals.heroHeight, maxOpen);
+    const before = {
+      x: lerp(hero.x, cut.x, aim),
+      y: lerp(hero.y, cut.y, aim),
+      length: lerp(hero.length, cut.length, aim),
+      rotation: mix(hero.rotation, { x: cut.rotation.x + lean.x, y: cut.rotation.y + lean.y, z: cut.rotation.z }, aim),
+      open: lerp(idleSnip(time, maxOpen), cut.open, aim),
+    };
+
     const turn = trackTurn(p);
-    const trackRotation = { x: turn.x + lean.x, y: turn.y + lean.y, z: point.tilt };
-    const rotation = mix(hero.rotation, trackRotation, dock);
+    const trackRotation = { x: turn.x + lean.x, y: turn.y + lean.y, z: nearAngle(point.tilt, before.rotation.z) };
+    const rotation = mix(before.rotation, trackRotation, dock);
     const burst = burstElapsed();
     const now = performance.now();
     const pastCut = range.endTop < window.innerHeight * CUT_LINE;
@@ -90,22 +121,26 @@ export function createRigMotion() {
     const leaning = Math.abs(leanX - lean.x) + Math.abs(leanY - lean.y) > POINTER.settle;
 
     const frame = {
-      x: lerp(hero.x, point.x, dock),
-      y: lerp(hero.y, point.y, dock),
-      length: lerp(hero.length, track.length, dock),
+      x: lerp(before.x, point.x, dock),
+      y: lerp(before.y, point.y, dock),
+      length: lerp(before.length, track.length, dock),
       dock,
-      heroRotation: hero.rotation,
+      heroRotation: before.rotation, // the 3D rig slerps from here to the track
       trackRotation,
       rotation,
-      open: withBurst(lerp(idleSnip(time, maxOpen), scrollSnip(smoothY, screen.height), dock), burst),
+      open: withBurst(lerp(before.open, scrollSnip(smoothY, screen.height), dock), burst),
       opacity,
       active: !signals.pageHidden && (signals.heroVisible || leaning || smoothY !== scrollY || burst < BURST_DURATION || holding || shown !== target),
     };
 
-    const reach = (frame.length / 2) * Math.cos(rotation.x);
-    rig.visible = opacity > 0;
-    rig.tipX = frame.x - reach * Math.sin(rotation.z);
-    rig.tipY = frame.y - reach * Math.cos(rotation.z);
+    const scene = getScene();
+    if (scene && scene.weight > 0) applyScene(frame, scene, track.length, maxOpen);
+    const { rotation: final } = frame;
+
+    const reach = (frame.length / 2) * Math.cos(final.x);
+    rig.visible = frame.opacity > 0;
+    rig.tipX = frame.x - reach * Math.sin(final.z);
+    rig.tipY = frame.y - reach * Math.cos(final.z);
     return frame;
   };
 }

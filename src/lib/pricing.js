@@ -1,6 +1,44 @@
 import { site } from '../data/site.js';
 
 const servicesById = new Map(site.services.map((service) => [service.id, service]));
+const MAX_PRICE = 100_000;
+
+// Live prices: applyPrices swaps service.prices in place (every holder of a service object sees it) and bumps
+// a version that components subscribe to (lib/livePrices.js) so they re-render.
+let version = 0;
+const listeners = new Set();
+
+export const pricesVersion = () => version;
+
+export function subscribePrices(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Takes { serviceId: { barberSlug: price } } (the "Ціни" sheet). Unknown services and barbers and prices that
+ * are not positive numbers are ignored; a service left with no valid price keeps the prices from site.js.
+ */
+export function applyPrices(table) {
+  if (!table || typeof table !== 'object') return;
+  const slugs = new Set(site.team.map(({ slug }) => slug));
+  let changed = false;
+  site.services.forEach((service) => {
+    const row = table[service.id];
+    if (!row || typeof row !== 'object') return;
+    const prices = {};
+    Object.entries(row).forEach(([slug, value]) => {
+      const price = Number(value);
+      if (slugs.has(slug) && Number.isFinite(price) && price > 0 && price < MAX_PRICE) prices[slug] = Math.round(price);
+    });
+    if (Object.keys(prices).length === 0) return;
+    service.prices = prices;
+    changed = true;
+  });
+  if (!changed) return;
+  version += 1;
+  listeners.forEach((listener) => listener());
+}
 
 export function serviceById(serviceId) {
   return servicesById.get(serviceId) ?? null;

@@ -2,6 +2,7 @@ import { site } from '../data/site.js';
 import { EVENTS, track } from '../lib/track.js';
 import InstagramIcon from './InstagramIcon.jsx';
 import Logo from './Logo.jsx';
+import Stencil from './Stencil.jsx';
 
 export default function Footer() {
   const { instagram } = site.social;
@@ -9,6 +10,7 @@ export default function Footer() {
   return (
     // Extra bottom room on mobile so the sticky bar never covers the footer.
     <footer className="border-t border-line pb-28 pt-12 lg:pb-12">
+      <Stencil />
       <div className="mx-auto flex max-w-6xl flex-col gap-8 pl-5 pr-[var(--gutter)] md:flex-row md:items-end md:justify-between">
         <div>
           <Logo />

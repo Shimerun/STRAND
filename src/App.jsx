@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import Lenis from 'lenis';
+import { useLivePrices } from './lib/livePrices.js';
 import { prefersReducedMotion, setLenis } from './lib/scroll.js';
 import About from './components/About.jsx';
 import Booking from './components/booking/Booking.jsx';
@@ -7,12 +8,14 @@ import Contacts from './components/Contacts.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
-import Hero from './components/Hero.jsx';
+import Hero from './components/hero/Hero.jsx';
 import Intro from './components/Intro.jsx';
+import Marquee from './components/Marquee.jsx';
 import MobileBar from './components/MobileBar.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
-import Reviews from './components/Reviews.jsx';
-import Services from './components/Services.jsx';
+import ScrollScale from './components/ScrollScale.jsx';
+import Reviews from './components/reviews/Reviews.jsx';
+import Services from './components/services/Services.jsx';
 import Team from './components/team/Team.jsx';
 import Works from './components/works/Works.jsx';
 
@@ -58,6 +61,7 @@ function useLenis() {
 
 export default function App() {
   useLenis();
+  useLivePrices(); // re-renders the page when prices from the Google Sheet arrive
   const showScissors = useAfterFirstPaint();
   const [showCursor] = useState(hasMouse);
 
@@ -70,6 +74,7 @@ export default function App() {
         <About />
         <Team />
         <Services />
+        <Marquee />
         <Works />
         <Reviews />
         <Booking />
@@ -80,6 +85,11 @@ export default function App() {
       {showScissors && (
         <ErrorBoundary>
           <ScissorsLayer />
+        </ErrorBoundary>
+      )}
+      {showScissors && (
+        <ErrorBoundary>
+          <ScrollScale />
         </ErrorBoundary>
       )}
       {showCursor && (

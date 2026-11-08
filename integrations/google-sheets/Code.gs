@@ -13,6 +13,19 @@
  *  5) Вставте цей URL у файл .env сайту: VITE_BOOKING_ENDPOINT=https://script.google.com/macros/s/…/exec
  *  6) Після ЗМІНИ цього коду: Розгорнути → Керувати розгортаннями → олівець → Нова версія.
  *
+ * ЦІНИ (аркуш «Ціни»):
+ *  7) Оберіть функцію setupPrices і натисніть «Виконати» — з'явиться аркуш «Ціни» з поточними цінами.
+ *     Рядок = послуга, стовпчик = майстер (наведіть на заголовок — видно ім'я). Порожня клітинка = майстер
+ *     цю послугу не робить. Сайт підхоплює зміни при наступному відкритті сторінки. Не змінюйте стовпчик «id»
+ *     і заголовки-slug.
+ *
+ * ВІДГУКИ GOOGLE:
+ *  8) Google Cloud Console → увімкніть «Places API (New)» → створіть ключ API (обмежте його цим API).
+ *  9) Знайдіть Place ID барбершопу: https://developers.google.com/maps/documentation/places/web-service/place-id
+ * 10) Apps Script → Налаштування проєкту → Властивості скрипта: PLACES_API_KEY = ключ, PLACE_ID = Place ID.
+ * 11) Виконайте будь-яку функцію ще раз і дозвольте доступ до зовнішніх запитів, потім — нова версія розгортання.
+ *     Без ключа сайт показує відгуки з src/data/site.js.
+ *
  * ЯК ЦЕ ПРАЦЮЄ:
  *  • Нова заявка додається рядком у «Записи» зі статусом «нова».
  *  • Зайнятий час зникає з форми на сайті для цього майстра.
@@ -51,11 +64,113 @@ function setup() {
   );
 }
 
+/* ---------- ціни ---------- */
+
+// Стовпчики аркуша «Ціни»: id послуги, назва, далі по стовпчику на майстра (у заголовку — slug майстра,
+// ім'я — у примітці до клітинки). Порожня клітинка = майстер цю послугу не виконує.
+const PRICES_SHEET = 'Ціни';
+const PRICE_BARBERS = [['oleh-dok', 'Олег Док'], ['liubov-zainchkovska', 'Люба Зайнчковська'], ['liliia-pavlenko', 'Лілія Павленко'], ['daryna-badio', 'Дарина Бадьо'], ['roman-mykhailovskyi', 'Роман Михайловський'], ['dmytro-puhach', 'Дмитро Пугач']];
+// Стартові ціни (як у src/data/site.js); setupPrices() записує їх лише в порожній аркуш.
+const INITIAL_PRICES = [
+  ['haircut', 'Стрижка', 900, 1000, 800, 650, 400, 400],
+  ['scissors', 'Стрижка ножицями', 1000, 1300, '', '', '', ''],
+  ['clipper', 'Коротка стрижка під насадку', 800, 900, 700, 600, 350, 350],
+  ['beard', 'Стрижка бороди', 800, 900, 700, 600, 350, 350],
+  ['kids', 'Дитяча стрижка', 800, 1000, 700, 600, 350, 350],
+  ['gray-head', 'Камуфляж сивини голови', 600, 600, 600, 600, '', ''],
+  ['gray-beard', 'Камуфляж сивини бороди', 550, 550, 550, 550, '', ''],
+  ['perm', 'Біозавивка', '', 3000, 3000, '', '', ''],
+  ['face-care', 'Догляд за обличчям Mr.Scrubber', 600, 600, 600, 600, '', ''],
+  ['scalp-care', 'Догляд за шкірою голови Nevitaly', 350, 350, 350, 350, '', 350],
+  ['scalp-peeling', 'Пілінг шкіри голови Luxina', 150, 150, 150, 150, '', 150],
+  ['styling', 'Укладання волосся', 150, 150, 150, 150, '', ''],
+];
+const MAX_PRICE = 100000;
+
+// Запустіть один раз: створює аркуш «Ціни» зі стартовими цінами. Наявні ціни не перезаписує.
+function setupPrices() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const existing = ss.getSheetByName(PRICES_SHEET);
+  if (existing && existing.getLastRow() > 1) return;
+  const sh = existing || ss.insertSheet(PRICES_SHEET);
+  const header = ['id', 'Послуга'].concat(PRICE_BARBERS.map(function (b) { return b[0]; }));
+  sh.getRange(1, 1, 1, header.length).setValues([header]).setFontWeight('bold');
+  PRICE_BARBERS.forEach(function (b, i) { sh.getRange(1, i + 3).setNote(b[1]); });
+  sh.getRange(2, 1, INITIAL_PRICES.length, header.length).setValues(INITIAL_PRICES);
+  sh.getRange(2, 3, INITIAL_PRICES.length, PRICE_BARBERS.length).setNumberFormat('0');
+  sh.setFrozenRows(1);
+  sh.setFrozenColumns(2);
+}
+
+function prices_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PRICES_SHEET);
+  if (!sh || sh.getLastRow() < 2) return json_({ ok: false, error: 'no_prices' });
+  const values = sh.getDataRange().getValues();
+  const slugs = values[0].slice(2).map(function (s) { return String(s).trim(); });
+  const prices = {};
+  values.slice(1).forEach(function (row) {
+    const id = String(row[0]).trim();
+    if (!isSlug_(id)) return;
+    const byBarber = {};
+    slugs.forEach(function (slug, i) {
+      const cell = row[i + 2];
+      const price = Number(cell);
+      if (isSlug_(slug) && cell !== '' && isFinite(price) && price > 0 && price < MAX_PRICE) byBarber[slug] = Math.round(price);
+    });
+    prices[id] = byBarber;
+  });
+  return json_({ ok: true, prices: prices });
+}
+
+/* ---------- відгуки Google ---------- */
+
+// Відгуки беруться з Google Places API (New) щоразу наживо: правила Google забороняють кешувати відгуки.
+// Ключ і Place ID — у Властивостях скрипта (Налаштування проєкту → Властивості скрипта):
+//   PLACES_API_KEY — ключ API з увімкненим «Places API (New)»;
+//   PLACE_ID — ідентифікатор барбершопу в Google Maps.
+const PLACES_FIELDS = 'rating,userRatingCount,reviews,googleMapsUri';
+
+function reviews_() {
+  const props = PropertiesService.getScriptProperties();
+  const key = props.getProperty('PLACES_API_KEY');
+  const placeId = props.getProperty('PLACE_ID');
+  if (!key || !placeId) return json_({ ok: false, error: 'not_configured' });
+  const res = UrlFetchApp.fetch('https://places.googleapis.com/v1/places/' + encodeURIComponent(placeId) + '?languageCode=uk', {
+    headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': PLACES_FIELDS },
+    muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) return json_({ ok: false, error: 'places_' + res.getResponseCode() });
+  const place = JSON.parse(res.getContentText());
+  const reviews = (place.reviews || []).map(function (r) {
+    const author = r.authorAttribution || {};
+    const text = r.text || {};
+    const original = r.originalText || {};
+    return {
+      author: author.displayName || '',
+      authorUrl: author.uri || '',
+      photo: author.photoUri || '',
+      rating: r.rating || 0,
+      text: text.text || '',
+      translated: Boolean(original.languageCode && text.languageCode && original.languageCode !== text.languageCode),
+      time: r.relativePublishTimeDescription || '',
+      publishTime: r.publishTime || '',
+      url: r.googleMapsUri || '',
+    };
+  });
+  return json_({ ok: true, rating: place.rating || 0, count: place.userRatingCount || 0, url: place.googleMapsUri || '', reviews: reviews });
+}
+
 /* ---------- HTTP ---------- */
 
 function doGet(e) {
   const p = (e && e.parameter) || {};
-  if (p.action !== 'busy') return json_({ ok: false, error: 'bad_action' });
+  if (p.action === 'busy') return busy_(p);
+  if (p.action === 'prices') return prices_();
+  if (p.action === 'reviews') return reviews_();
+  return json_({ ok: false, error: 'bad_action' });
+}
+
+function busy_(p) {
   const today = nowKyiv_().date;
   const from = isDate_(p.from) ? p.from : today;
   const to = isDate_(p.to) ? p.to : addDays_(today, DAYS_AHEAD);

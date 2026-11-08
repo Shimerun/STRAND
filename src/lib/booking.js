@@ -1,4 +1,5 @@
-// The only module that knows where bookings go: a Google Apps Script web app (see integrations/google-sheets).
+// The only module that knows the Google Apps Script web app (see integrations/google-sheets): bookings,
+// busy slots, prices from the sheet and Google reviews.
 const ENDPOINT = import.meta.env.VITE_BOOKING_ENDPOINT;
 const FETCH_TIMEOUT_MS = 15_000;
 // Apps Script can cold-start and then wait up to 10 s for its lock.
@@ -49,6 +50,47 @@ export async function fetchBusy({ from, to }) {
   url.search = new URLSearchParams({ action: 'busy', from, to }).toString();
   const json = await request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
   return Array.isArray(json.busy) ? json.busy.map(toBusyItem).filter(Boolean) : [];
+}
+
+/** Prices from the "Ціни" sheet: { serviceId: { barberSlug: price } }, or null without an endpoint. */
+export async function fetchPrices() {
+  if (!ENDPOINT) return null;
+  const url = new URL(ENDPOINT);
+  url.search = new URLSearchParams({ action: 'prices' }).toString();
+  const json = await request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
+  return json.prices && typeof json.prices === 'object' ? json.prices : null;
+}
+
+// Only https links from Google reach an href.
+const httpsUrl = (value) => (typeof value === 'string' && value.startsWith('https://') ? value : null);
+const text = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
+
+function toReview(item) {
+  const body = text(item?.text, 2000);
+  const author = text(item?.author, 80);
+  if (!body || !author) return null;
+  return {
+    author,
+    authorUrl: httpsUrl(item.authorUrl),
+    photo: httpsUrl(item.photo),
+    rating: Math.min(Math.max(Number(item.rating) || 0, 0), 5),
+    text: body,
+    translated: item.translated === true,
+    time: text(item.time, 40),
+    url: httpsUrl(item.url),
+  };
+}
+
+/** Google reviews through the web app: { rating, count, url, reviews }, or null without an endpoint. */
+export async function fetchReviews() {
+  if (!ENDPOINT) return null;
+  const url = new URL(ENDPOINT);
+  url.search = new URLSearchParams({ action: 'reviews' }).toString();
+  const json = await request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
+  const reviews = Array.isArray(json.reviews) ? json.reviews.map(toReview).filter(Boolean) : [];
+  const rating = Number(json.rating);
+  if (!reviews.length || !(rating > 0)) return null;
+  return { rating: Math.min(rating, 5), count: Math.max(Math.round(Number(json.count) || 0), reviews.length), url: httpsUrl(json.url), reviews };
 }
 
 export async function submitBooking(data) {

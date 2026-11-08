@@ -1,19 +1,40 @@
 import { useRef } from 'react';
-import { motion, useMotionTemplate, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { fadeReveal, revealViewport } from '../lib/motion.js';
 import Img from './Img.jsx';
 
-// Horizontal inset (%) on each side before the photo opens to full width.
-const CLIP_START = 30;
+// Where the photo opens from: inset (%) on each side [top, right, bottom, left] before it reaches full size.
+const OPEN_FROM = {
+  sides: [0, 30, 0, 30],
+  left: [0, 55, 0, 0],
+  right: [0, 0, 0, 55],
+  bottom: [45, 0, 0, 0],
+};
+const RADIUS = 6; // px, theme borderRadius: the opening edge keeps the card's corners
+// The photo starts zoomed in, settles to `rest` as it opens and keeps that margin for the drift.
+const ZOOM = { from: 1.25, rest: 1.1 };
+const DRIFT = 4; // % of the photo height it moves inside its frame over the whole pass (needs ZOOM.rest > 1 + 2 * DRIFT / 100)
 
 const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visible', viewport: revealViewport };
 
-export default function PhotoReveal({ className = '', ...imgProps }) {
+/**
+ * Photo that opens with the scroll (clip-path from `from`) while the image inside settles from a zoom,
+ * then drifts slower than the page. Reduced motion: plain fade-in, no clip, zoom or drift.
+ */
+export default function PhotoReveal({ from = 'sides', className = '', ...imgProps }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
-  const inset = useTransform(scrollYProgress, [0, 1], [CLIP_START, 0]);
-  const clipPath = useMotionTemplate`inset(0% ${inset}%)`;
+  const { scrollYProgress: open } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const { scrollYProgress: pass } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const insets = OPEN_FROM[from] ?? OPEN_FROM.sides;
+
+  const clipPath = useTransform(open, (progress) => {
+    const closed = 1 - Math.min(Math.max(progress, 0), 1);
+    const [top, right, bottom, left] = insets.map((inset) => inset * closed);
+    return `inset(${top}% ${right}% ${bottom}% ${left}% round ${RADIUS}px)`;
+  });
+  const scale = useTransform(open, [0, 1], [ZOOM.from, ZOOM.rest]);
+  const y = useTransform(pass, [0, 1], [`-${DRIFT}%`, `${DRIFT}%`]);
 
   return (
     <motion.div
@@ -22,7 +43,9 @@ export default function PhotoReveal({ className = '', ...imgProps }) {
       style={reduce ? undefined : { clipPath }}
       {...(reduce ? fadeProps : undefined)}
     >
-      <Img {...imgProps} className="h-full w-full object-cover" />
+      <motion.div className="h-full w-full" style={reduce ? undefined : { scale, y }}>
+        <Img {...imgProps} className="h-full w-full object-cover" />
+      </motion.div>
     </motion.div>
   );
 }

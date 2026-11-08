@@ -9,15 +9,9 @@ const DRAW = 0.9; // s: the line runs from the shears to the left edge
 const SOLID_AT = 0.8; // share of DRAW after which the solid line fades in
 const FADE = 1.2; // s: then both lines fade out
 const SECTION_THRESHOLD = 0.2;
-const SECTIONS = `main section[id]:not(#${TOP_ID}):not([data-scissors-end])`;
+// The hero and the section right after it are cut by the hero cut (components/hero), not here.
+const SECTIONS = `main section[id]:not(#${TOP_ID}):not(#${TOP_ID} + section):not([data-scissors-end])`;
 const END = '[data-scissors-end]';
-const HAIR_S = 0.8;
-// Hair strands falling from the tip: drift in px (left and down) and rotation in degrees.
-const HAIRS = [
-  { x: -14, y: 30, from: 20, to: 75 },
-  { x: -4, y: 40, from: -15, to: -55 },
-  { x: -9, y: 22, from: 55, to: 110 },
-];
 
 let lastId = 0;
 
@@ -40,15 +34,6 @@ function Cut({ cut, onDone }) {
           transition={{ delay: DRAW * SOLID_AT, duration: DRAW * (1 - SOLID_AT) }}
         />
       </motion.div>
-      {HAIRS.map((hair) => (
-        <motion.span
-          key={hair.from}
-          className="absolute right-0 top-0 h-2.5 w-px bg-concrete"
-          initial={{ x: 0, y: 0, rotate: hair.from, opacity: 0.9 }}
-          animate={{ x: hair.x, y: hair.y, rotate: hair.to, opacity: 0 }}
-          transition={{ duration: HAIR_S, ease: 'easeOut' }}
-        />
-      ))}
     </div>
   );
 }

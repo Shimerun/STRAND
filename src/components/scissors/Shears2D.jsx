@@ -3,7 +3,7 @@ import { useId } from 'react';
 // Flat stand-in for the 3D model: blades up, long axis vertical, halves hinged at the pivot.
 // cx / cy: shape centre (the 3D pivot is the bounding-box centre too); length: tip to ring bottom.
 const PIVOT = { x: 60, y: 160 };
-export const SVG = { width: 120, height: 328, cx: 60, cy: 164, length: 318, pivot: `${PIVOT.x} ${PIVOT.y}` };
+export const SVG = { width: 120, height: 328, cx: 60, cy: 164, length: 318, blade: 156, pivot: `${PIVOT.x} ${PIVOT.y}` };
 
 const STEEL = [['0', '#5d636b'], ['0.35', '#eef0f2'], ['0.6', '#a7adb4'], ['1', '#3f444a']];
 const HANDLE = [['0', '#3a3d42'], ['0.5', '#0b0b0c'], ['1', '#2b2d31']];

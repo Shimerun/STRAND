@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { site } from '../../data/site.js';
+import { usePricesVersion } from '../../lib/livePrices.js';
 import { barbersFor, serviceById } from '../../lib/pricing.js';
 import { blocksFor } from '../../lib/slots.js';
 
@@ -18,6 +19,7 @@ const NONE = { options: [], addons: [], services: [], candidates: [], durationMi
  * can do all of them, and the total length in minutes. Checked extras that no longer fit are dropped in list order.
  */
 export function useAddons(service, barber, ids) {
+  const prices = usePricesVersion(); // who offers what can change when prices arrive from the sheet
   return useMemo(() => {
     if (!service) return NONE;
     const offered = barbersFor(service);
@@ -31,5 +33,5 @@ export function useAddons(service, barber, ids) {
     const services = [service, ...addons];
     const candidates = offered.filter((slug) => addons.every((addon) => offers(addon, slug)));
     return { options, addons, services, candidates, durationMin: totalMinutes(services) };
-  }, [service, barber, ids]);
+  }, [service, barber, ids, prices]);
 }

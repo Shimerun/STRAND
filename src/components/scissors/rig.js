@@ -13,6 +13,21 @@ export const rig = {
   },
 };
 
+let scene = null;
+
+/**
+ * Lets a DOM scene borrow the shears (e.g. the footer stencil). scene: { weight 0..1, tipX, tipY (viewport px),
+ * dirX, dirY (unit vector the tips point along), open 0..1 } or null to give them back.
+ */
+export function setScene(next) {
+  scene = next;
+  wake();
+}
+
+export function getScene() {
+  return scene;
+}
+
 // The mounted rig registers how to request a frame; returns the unbind function.
 export function bindRig(onWake) {
   wake = onWake;

@@ -1,4 +1,6 @@
 // Pure pose math shared by the 3D shears and the 2D fallback; must not import three.js.
+import { HERO_CUT, cutState } from '../../lib/heroCut.js';
+
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 const HEADER_PX = 72; // tailwind spacing.header
@@ -32,6 +34,35 @@ export const TRACK = {
   mobile: { length: 130, drift: 14, edge: 0.8, top: 16, bottom: 96 },
 };
 export const DOCK_END = 0.6; // fraction of the hero height scrolled when the shears sit on the track
+// With the hero cut, docking starts this share of the pin in (after the cut) and ends with the pin.
+const DOCK_FROM_PIN = HERO_CUT.cutEnd + 0.08;
+const CUT_TILT = 0.18; // rad the shears pitch with the blades wide open
+const CUT_WOBBLE = 0.05; // rad of side wobble mid-snip
+
+/** Scroll range in px over which the shears dock onto the track; the track starts at `to`. */
+export function dockRange(heroHeight, pin) {
+  return pin > 0 ? { from: pin * DOCK_FROM_PIN, to: pin } : { from: 0, to: heroHeight * DOCK_END };
+}
+
+/** `angle` moved by whole turns to the value nearest `ref`, so a linear blend takes the short way round. */
+export const nearAngle = (angle, ref) => angle + TAU * Math.round((ref - angle) / TAU);
+
+/**
+ * Shears cutting the hero at progress `along`: the pivot (= the centre) on the line, the tips pointing the way
+ * they cut, the blades one snip step long and opening as cutState says. width / height: hero frame in CSS px.
+ */
+export function cutPose(along, width, height, maxOpen) {
+  const { pivot, dir, blade, open } = cutState(along, width, height);
+  // Effort while the blades move: a slight wobble and tilt, zero when they are shut so the tips meet the cut.
+  const effort = 4 * open * (1 - open);
+  return {
+    x: pivot.x,
+    y: pivot.y,
+    length: 2 * blade,
+    rotation: { x: CUT_TILT * open, y: 0, z: Math.atan2(-dir.x, -dir.y) + CUT_WOBBLE * effort },
+    open: maxOpen * HERO_CUT.openShare * open,
+  };
+}
 export const END_OFFSET = 0.3; // track ends this many viewports before the end element scrolls into view
 // Final cut: the end element's top crosses this fraction of the viewport; the shears snip, then fade out.
 export const CUT_LINE = 0.6;

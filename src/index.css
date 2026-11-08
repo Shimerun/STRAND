@@ -93,6 +93,59 @@ main {
   content: counter(section, decimal-leading-zero);
 }
 
+/* BarberPole: the stripes climb one period per loop, which reads as the pole turning. */
+.barber-pole-stripes {
+  animation: barber-pole 1.1s linear infinite;
+}
+
+@keyframes barber-pole {
+  to {
+    transform: translateY(-14px); /* STRIPE.period in BarberPole.jsx */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barber-pole-stripes {
+    animation: none;
+  }
+}
+
+/* Services: the concrete slab the cards are cut from, a shade lighter than the band, with a fine speckle. */
+.slab {
+  background-color: color-mix(in srgb, theme('colors.surface'), theme('colors.concrete') 10%);
+  background-image:
+    radial-gradient(rgb(242 242 242 / 0.06) 1px, transparent 1.2px),
+    radial-gradient(rgb(0 0 0 / 0.35) 1px, transparent 1.2px);
+  background-size: 5px 5px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+}
+
+/* Marquee: every other word drawn as an outline. */
+.marquee-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px theme('colors.concrete');
+}
+
+/* ScrollScale: comb ticks, short every 8px and long every 40px, on a hairline axis. */
+.comb-ticks {
+  background-image:
+    linear-gradient(theme('colors.line'), theme('colors.line')),
+    linear-gradient(to bottom, theme('colors.concrete') 1px, transparent 1px),
+    linear-gradient(to bottom, theme('colors.concrete') 1px, transparent 1px);
+  background-size: 1px 100%, 6px 8px, 12px 40px;
+  background-repeat: no-repeat, repeat-y, repeat-y;
+}
+
+/* Ticket: tear line between the receipt and its stub. */
+.cut-perforation {
+  background-image: repeating-linear-gradient(to right, theme('colors.concrete') 0 6px, transparent 6px 11px);
+}
+
+/* Hero cut: dashed "cut here" guide along the path of the shears. */
+.cut-guide {
+  background-image: repeating-linear-gradient(to left, theme('colors.text') 0 8px, transparent 8px 14px);
+}
+
 /* CutReveal: dashed cut line, 6px on / 8px off. */
 .cut-dashed {
   background-image: repeating-linear-gradient(to right, theme('colors.line') 0 6px, transparent 6px 14px);

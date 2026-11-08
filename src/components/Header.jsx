@@ -6,6 +6,7 @@ import { EVENTS } from '../lib/track.js';
 import Button from './Button.jsx';
 import Logo from './Logo.jsx';
 import MobileMenu from './MobileMenu.jsx';
+import ScrollProgress from './ScrollProgress.jsx';
 
 const SCROLLED_AT_PX = 80;
 const MENU_ID = 'mobile-menu';
@@ -87,6 +88,7 @@ export default function Header() {
             </svg>
           </button>
         </div>
+        <ScrollProgress visible={scrolled} />
       </header>
 
       <AnimatePresence>{menuOpen && <MobileMenu id={MENU_ID} onClose={closeMenu} />}</AnimatePresence>

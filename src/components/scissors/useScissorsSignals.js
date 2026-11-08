@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useSpring } from 'framer-motion';
 import { TOP_ID } from '../../lib/scroll.js';
-import { DOCK_END, clamp } from './pose.js';
+import { clamp, dockRange } from './pose.js';
 import { bindRig } from './rig.js';
 
 const DOCK_SPRING = { stiffness: 120, damping: 24 };
+const FRAME_SELECTOR = '[data-hero-frame]';
 
-const dockFor = (scrollY, heroHeight) => clamp(scrollY / (heroHeight * DOCK_END), 0, 1);
+const dockFor = (scrollY, { heroHeight, cutPin }) => {
+  const { from, to } = dockRange(heroHeight, cutPin);
+  return clamp((scrollY - from) / (to - from), 0, 1);
+};
 
 function readGutter() {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter')) || 0;
@@ -20,13 +24,14 @@ function readGutter() {
 export function useScissorsSignals(requestFrame) {
   const signals = useRef({
     gutter: 0,
-    heroHeight: window.innerHeight,
+    heroHeight: window.innerHeight, // the hero's visible frame (pinned while it is cut)
+    cutPin: 0, // px of scroll the hero stays pinned for the cut; 0 = no cut
     heroVisible: true,
     pageHidden: document.hidden,
     pointer: { x: 0, y: 0 },
   });
   const { scrollY } = useScroll();
-  const dockTarget = useMotionValue(dockFor(window.scrollY, window.innerHeight));
+  const dockTarget = useMotionValue(dockFor(window.scrollY, signals.current));
   const dock = useSpring(dockTarget, DOCK_SPRING);
 
   const wake = useCallback(() => {
@@ -34,7 +39,7 @@ export function useScissorsSignals(requestFrame) {
   }, [requestFrame]);
 
   useMotionValueEvent(scrollY, 'change', (value) => {
-    dockTarget.set(dockFor(value, signals.current.heroHeight));
+    dockTarget.set(dockFor(value, signals.current));
     wake();
   });
   useMotionValueEvent(dock, 'change', wake);
@@ -43,10 +48,12 @@ export function useScissorsSignals(requestFrame) {
 
   useEffect(() => {
     const hero = document.getElementById(TOP_ID);
+    const frame = hero?.querySelector(FRAME_SELECTOR) ?? hero;
     const measure = () => {
       signals.current.gutter = readGutter();
-      signals.current.heroHeight = hero?.offsetHeight || window.innerHeight;
-      dockTarget.set(dockFor(scrollY.get(), signals.current.heroHeight));
+      signals.current.heroHeight = frame?.offsetHeight || window.innerHeight;
+      signals.current.cutPin = hero && frame ? Math.max(hero.offsetHeight - frame.offsetHeight, 0) : 0;
+      dockTarget.set(dockFor(scrollY.get(), signals.current));
       wake();
     };
     measure();
@@ -55,6 +62,9 @@ export function useScissorsSignals(requestFrame) {
       signals.current.heroVisible = false;
       return () => window.removeEventListener('resize', measure);
     }
+    // The pin height is set after the hero measures itself, so watch the section too.
+    const resizer = new ResizeObserver(measure);
+    resizer.observe(hero);
     const observer = new IntersectionObserver(([entry]) => {
       signals.current.heroVisible = entry.isIntersecting;
       wake();
@@ -62,6 +72,7 @@ export function useScissorsSignals(requestFrame) {
     observer.observe(hero);
     return () => {
       window.removeEventListener('resize', measure);
+      resizer.disconnect();
       observer.disconnect();
     };
   }, [dockTarget, scrollY, wake]);

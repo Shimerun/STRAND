@@ -143,7 +143,16 @@ export const site = {
     team: { prices: "Ціни майстра", rating: "Рейтинг" },
     works: { prev: "Попереднє фото", next: "Наступне фото" },
     brand: { sub: "Barbershop" },
-    reviews: { verified: ["перевірений відгук", "перевірені відгуки", "перевірених відгуків"] },
+    reviews: {
+      verified: ["перевірений відгук", "перевірені відгуки", "перевірених відгуків"],
+      count: ["відгук", "відгуки", "відгуків"],
+      onGoogle: "у Google",
+      googleMaps: "Google Maps", // Google's attribution: keep as is, never translate
+      order: "Відгуки з Google Maps, впорядковані за релевантністю. Google не перевіряє відгуки, але видаляє неправдиві.",
+      open: "Відкрити в Google Maps",
+      translated: "Перекладено Google",
+      ratingOf: "Оцінка"
+    },
     contacts: {
       address: "Адреса",
       phone: "Телефон",
@@ -164,6 +173,7 @@ export const site = {
       steps: { choice: "Майстер і послуга", when: "Дата і час", contacts: "Ваші контакти" },
       calendar: { prev: "Попередній місяць", next: "Наступний місяць" },
       summary: { title: "Ваш запис", barber: "Майстер", services: "Послуги", when: "Дата і час", duration: "Тривалість", total: "Разом", empty: "—" },
+      ticket: { title: "Ваш талон", stub: "Контроль" },
       placeholders: { name: "Ваше ім'я", phone: "+380 XX XXX XX XX", barber: "Оберіть майстра", service: "Оберіть послугу", comment: "Побажання до стрижки" },
       priceLabel: "Вартість",
       submit: "Записатись",

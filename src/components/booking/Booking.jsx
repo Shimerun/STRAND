@@ -6,6 +6,7 @@ import SectionTitle from '../SectionTitle.jsx';
 import BookingForm from './BookingForm.jsx';
 import BookingSummary from './BookingSummary.jsx';
 import SuccessState from './SuccessState.jsx';
+import Ticket from './Ticket.jsx';
 import { useAvailability } from './useAvailability.js';
 import { useBookingForm } from './useBookingForm.js';
 
@@ -30,6 +31,7 @@ export default function Booking() {
 
         <div className="rounded border border-line bg-surface p-5 md:p-8">
           <div aria-live="polite">{success && <SuccessState />}</div>
+          {success && <Ticket form={form} />}
           {!success && <BookingForm form={form} availability={availability} />}
         </div>
       </div>

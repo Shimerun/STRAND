@@ -1,32 +1,32 @@
-import { useRef } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { site } from '../data/site.js';
-import { BOOKING_ID, TOP_ID, scrollToId } from '../lib/scroll.js';
-import { EVENTS } from '../lib/track.js';
-import Button from './Button.jsx';
-import Img from './Img.jsx';
-import OpenBadge from './OpenBadge.jsx';
-import Reveal from './Reveal.jsx';
+import { motion } from 'framer-motion';
+import { site } from '../../data/site.js';
+import { BOOKING_ID, scrollToId } from '../../lib/scroll.js';
+import { EVENTS } from '../../lib/track.js';
+import Button from '../Button.jsx';
+import Img from '../Img.jsx';
+import OpenBadge from '../OpenBadge.jsx';
+import Reveal from '../Reveal.jsx';
 
-export default function Hero() {
-  const ref = useRef(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
+/**
+ * Photo, headline and calls to action of the first screen. parallaxY: motion value for the photo shift
+ * (none under reduced motion). copy: the duplicate drawn for the lower half of the cut, kept out of the
+ * accessibility tree by its parent, so it carries no h1 and no alt text.
+ */
+export default function HeroContent({ parallaxY, copy = false }) {
   const { cta, hero } = site.ui;
 
   return (
-    <section ref={ref} id={TOP_ID} className="relative flex min-h-svh flex-col overflow-hidden">
+    <div className="relative flex min-h-svh flex-col overflow-hidden">
       {/* Oversized to 120% so the parallax shift never reveals a gap. */}
-      <motion.div className="absolute inset-x-0 top-0 h-[120%]" style={reduce ? undefined : { y }}>
-        <Img src={site.images.hero} alt={site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
+      <motion.div className="absolute inset-x-0 top-0 h-[120%]" style={parallaxY ? { y: parallaxY } : undefined}>
+        <Img src={site.images.hero} alt={copy ? '' : site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
       </motion.div>
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/40 to-bg" />
 
       <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16">
         <div className="lg:w-1/2">
           <OpenBadge />
-          <Reveal as="h1" className="mt-5 text-balance text-[2.25rem] leading-[1.05] sm:text-6xl sm:leading-[1.02] xl:text-7xl">
+          <Reveal as={copy ? 'p' : 'h1'} className="mt-5 text-balance text-[2.25rem] font-extrabold uppercase leading-[1.05] tracking-heading sm:text-6xl sm:leading-[1.02] xl:text-7xl">
             {site.tagline}
           </Reveal>
         </div>
@@ -48,6 +48,6 @@ export default function Hero() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

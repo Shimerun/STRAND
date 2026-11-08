@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
@@ -9,6 +9,7 @@ import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
 import Lightbox from './Lightbox.jsx';
+import { useColumnDrift } from './useColumnDrift.js';
 
 // Varied ratios keep the masonry rhythm while real photos are missing.
 const PLACEHOLDER_RATIOS = [
@@ -26,33 +27,42 @@ export default function Works() {
   const [openIndex, setOpenIndex] = useState(null);
   const close = useCallback(() => setOpenIndex(null), []);
   const reduce = useReducedMotion();
+  const listRef = useRef(null);
+  const column = useColumnDrift(listRef);
   const { works, social, ui } = site;
 
   return (
     <Section id="works">
       <SectionTitle>{ui.sections.works}</SectionTitle>
 
-      <ul className="mt-10 columns-2 gap-4 md:columns-3 md:gap-6">
+      <ul ref={listRef} className="mt-10 columns-2 gap-4 md:columns-3 md:gap-6">
         {works.length === 0
           ? // TODO: fill site.works with real photos; placeholders until then.
-            PLACEHOLDER_RATIOS.map(([width, height], index) => (
-              <li key={index} aria-hidden="true" className={ITEM}>
-                <PhotoReveal width={width} height={height} className="rounded" />
-              </li>
-            ))
-          : works.map((work, index) => (
-              <li key={work.src} className={ITEM}>
-                <motion.button
-                  type="button"
-                  aria-haspopup="dialog"
-                  onClick={() => setOpenIndex(index)}
-                  whileHover={reduce ? undefined : hoverLift}
-                  className="block w-full rounded"
-                >
-                  <PhotoReveal src={work.src} alt={work.alt} {...PHOTO_SIZE} className="rounded" />
-                </motion.button>
-              </li>
-            ))}
+            PLACEHOLDER_RATIOS.map(([width, height], index) => {
+              const { y, from } = column(index);
+              return (
+                <motion.li key={index} aria-hidden="true" style={reduce ? undefined : { y }} className={ITEM}>
+                  <PhotoReveal key={from} from={from} width={width} height={height} className="rounded" />
+                </motion.li>
+              );
+            })
+          : works.map((work, index) => {
+              const { y, from } = column(index);
+              return (
+                <motion.li key={work.src} style={reduce ? undefined : { y }} className={ITEM}>
+                  <motion.button
+                    type="button"
+                    aria-haspopup="dialog"
+                    onClick={() => setOpenIndex(index)}
+                    whileHover={reduce ? undefined : hoverLift}
+                    className="block w-full rounded"
+                  >
+                    {/* Keyed by side: the column is known only after layout, and the clip is set up once per mount. */}
+                    <PhotoReveal key={from} from={from} src={work.src} alt={work.alt} {...PHOTO_SIZE} className="rounded" />
+                  </motion.button>
+                </motion.li>
+              );
+            })}
       </ul>
 
       {social.instagram && (

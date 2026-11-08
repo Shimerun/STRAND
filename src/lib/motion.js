@@ -1,5 +1,6 @@
 export const EASE_REVEAL = [0.4, 0, 0.2, 1];
 export const EASE_HOVER = [0.26, 1.04, 0.54, 1];
+export const EASE_MASK = [0.16, 1, 0.3, 1]; // fast start, long settle: words rising out of a mask
 
 export const revealViewport = { once: true, amount: 0.3 };
 
@@ -14,6 +15,13 @@ export const textReveal = {
     filter: 'blur(0px)',
     transition: { duration: 0.8, ease: EASE_REVEAL, delay: (index % STAGGER.columns) * STAGGER.step },
   }),
+};
+
+// Section titles: each word rises out of its own mask, one after another.
+export const maskWords = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } };
+export const maskWord = {
+  hidden: { y: '110%' },
+  visible: { y: 0, transition: { duration: 0.8, ease: EASE_MASK } },
 };
 
 // prefers-reduced-motion: plain fade, no blur or movement.

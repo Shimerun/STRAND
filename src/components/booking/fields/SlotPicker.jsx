@@ -1,4 +1,5 @@
 import { site } from '../../../data/site.js';
+import BarberPole from '../../BarberPole.jsx';
 import { CHIP, FieldError, LABEL, errorId } from './Field.jsx';
 
 const ID = 'booking-time';
@@ -19,7 +20,12 @@ export default function SlotPicker({ hasService, availability, times, value, err
       <div aria-live="polite" className="space-y-2 text-sm">
         {slotTaken && <p className="text-danger">{slots.taken}</p>}
         {hasService && availability === 'failed' && <p className="text-concrete">{slots.loadFailed}</p>}
-        {message && <p className="text-concrete">{message}</p>}
+        {message && (
+          <p className="flex items-center gap-4 text-concrete">
+            {message === slots.loading && <BarberPole />}
+            {message}
+          </p>
+        )}
       </div>
 
       {!message && (
