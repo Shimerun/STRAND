@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import { CAMERA } from './pose.js';
 import Shears, { CONFIG } from './Shears.jsx';
+import { SHEET_Z } from './sheet.js';
 import Studio from './Studio.jsx';
 import { useScissorsRig } from './useScissorsRig.js';
 
@@ -10,6 +11,7 @@ import { useScissorsRig } from './useScissorsRig.js';
 const ScissorsDebug = import.meta.env.DEV ? lazy(() => import('./ScissorsDebug.jsx')) : null;
 const isDebug = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug');
 
+const SHADOW_PLANE = [40, 40]; // world units, wider than any viewport
 const DPR = [1, 1.75];
 const EXPOSURE = 1.05;
 const PROBE = { frames: 30, skip: 5, slowMs: 30 };
@@ -78,13 +80,22 @@ function FrameProbe({ onSlow }) {
 }
 
 function Rig({ config, hold, layerRef, showAxes, onInfo }) {
-  const { groupRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, length: config.SCALE, layerRef, hold });
+  const { groupRef, rollRef, shadowRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, length: config.SCALE, layerRef, hold });
 
   return (
-    <group ref={groupRef}>
-      <Shears config={config} openRef={openRef} onInfo={onInfo} />
-      {showAxes && <axesHelper args={[2.5]} />}
-    </group>
+    <>
+      <group ref={groupRef}>
+        <group ref={rollRef}>
+          <Shears config={config} openRef={openRef} onInfo={onInfo} />
+        </group>
+        {showAxes && <axesHelper args={[2.5]} />}
+      </group>
+      {/* Shadow catcher on the hero photo while it is cut; transparent everywhere else. */}
+      <mesh ref={shadowRef} position={[0, 0, SHEET_Z]} receiveShadow visible={false}>
+        <planeGeometry args={SHADOW_PLANE} />
+        <shadowMaterial transparent depthWrite={false} opacity={0} />
+      </mesh>
+    </>
   );
 }
 
@@ -101,6 +112,7 @@ export default function Scissors3D({ onLost, onSlow }) {
       <div ref={layerRef} className="scissors-layer" aria-hidden="true">
         <Canvas
           frameloop="demand"
+          shadows
           dpr={DPR}
           camera={CAMERA}
           gl={{ antialias: true, alpha: true }}
@@ -109,6 +121,7 @@ export default function Scissors3D({ onLost, onSlow }) {
           onCreated={({ gl }) => {
             gl.toneMapping = ACESFilmicToneMapping;
             gl.toneMappingExposure = EXPOSURE;
+            gl.localClippingEnabled = true; // sheet.js: the blade under the hero photo
           }}
         >
           <ContextWatch onLost={onLost} />

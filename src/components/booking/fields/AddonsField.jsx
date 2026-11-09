@@ -6,11 +6,9 @@ import CheckIcon from '../../CheckIcon.jsx';
 import Img from '../../Img.jsx';
 import { servicePhoto } from '../servicePhoto.js';
 import { tooLong } from '../useAddons.js';
-import { LABEL } from './Field.jsx';
+import { LABEL, TOGGLE } from './Field.jsx';
 
 const LIST_ID = 'booking-addons';
-const TOGGLE =
-  'flex min-h-11 w-full items-center justify-between gap-4 rounded border border-dashed border-edge px-4 py-3 text-left text-sm font-bold transition-colors duration-300 hover:border-concrete';
 const ROW =
   'flex h-full min-h-11 items-center gap-3 rounded border px-3 py-3 transition-colors duration-300 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent';
 const THUMB = 48; // px

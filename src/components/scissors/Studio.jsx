@@ -16,7 +16,9 @@ const SOFTBOXES = [
   [0.9, 7, 4.85, 0.4, 0.2, 2.0, 0xffefdc], // right strip, warm
   [5.0, 3.0, 0.8, 1.0, -4.9, 1.5], // back panel
 ];
-const KEY_LIGHT = { position: [0.3, 0.6, 1], intensity: 0.6 };
+const KEY_LIGHT = { position: [3, 6, 10], intensity: 0.6 }; // directional: only the direction matters
+// The key light also casts the shears' shadow onto the hero photo while it is cut (sheet.js).
+const SHADOW = { mapSize: 1024, extent: 8, near: 1, far: 30, bias: -0.0005, radius: 4 };
 
 const glow = (intensity, color = 0xffffff) =>
   new MeshBasicMaterial({ color: new Color(color).multiplyScalar(intensity), side: DoubleSide });
@@ -64,5 +66,20 @@ export default function Studio() {
     };
   }, [gl, scene]);
 
-  return <directionalLight position={KEY_LIGHT.position} intensity={KEY_LIGHT.intensity} />;
+  return (
+    <directionalLight
+      position={KEY_LIGHT.position}
+      intensity={KEY_LIGHT.intensity}
+      castShadow
+      shadow-mapSize={[SHADOW.mapSize, SHADOW.mapSize]}
+      shadow-camera-left={-SHADOW.extent}
+      shadow-camera-right={SHADOW.extent}
+      shadow-camera-top={SHADOW.extent}
+      shadow-camera-bottom={-SHADOW.extent}
+      shadow-camera-near={SHADOW.near}
+      shadow-camera-far={SHADOW.far}
+      shadow-bias={SHADOW.bias}
+      shadow-radius={SHADOW.radius}
+    />
+  );
 }

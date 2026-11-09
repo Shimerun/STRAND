@@ -4,14 +4,14 @@ import { useAnimations, useGLTF } from '@react-three/drei';
 import { Box3, LoopOnce, MathUtils, Matrix4, Quaternion, Vector3 } from 'three';
 
 export const CONFIG = {
-  ORIENTATION: [0, 0, Math.PI / 2], // Euler radians: blades point +Y, rings -Y, shears flat in the XY plane
+  ORIENTATION: [0, 0, -Math.PI / 2], // Euler radians: blades point +Y, rings -Y, shears flat in the XY plane
   SCALE: 4,               // long axis in world units
   PIVOT: null,            // [x,y,z] in model space (screw / point between the halves); null = bounding-box centre
   MAX_OPEN: 30,           // max degrees PER HALF; I tune this by eye so the blades never cross
   SIGN_A: 1, SIGN_B: -1,  // flip a sign if a half opens the wrong way (unused while the built-in Snip clip drives the halves)
 };
 
-const MODEL_URL = '/models/scissors.glb';
+const MODEL_URL = `${import.meta.env.BASE_URL}models/scissors.glb`;
 const USE_DRACO = false; // model is meshopt-compressed; never fetch a Draco decoder from a CDN
 const SAMPLES = 120;
 

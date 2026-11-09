@@ -1,7 +1,7 @@
 // Renderer-free motion of the shears in CSS px, shared by the 3D rig and the 2D fallback.
 import { heroCutPhases } from '../../lib/heroCut.js';
 import {
-  BURST_DURATION, CUT_FADE, CUT_LINE, DESKTOP_MIN_PX, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
+  BURST_DURATION, CUT_FADE, CUT_LINE, CUT_ROLL, DESKTOP_MIN_PX, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
   clamp, cutPose, dockRange, easeFade, idleSnip, lerp, nearAngle, scrollSnip, trackPoint, trackTurn, withBurst,
 } from './pose.js';
 import { burstElapsed, getScene, rig } from './rig.js';
@@ -59,6 +59,8 @@ function applyScene(frame, scene, trackLength, maxOpen) {
   frame.heroRotation = mix(frame.heroRotation, turn(frame.heroRotation), w);
   frame.trackRotation = mix(frame.trackRotation, turn(frame.trackRotation), w);
   frame.open = lerp(frame.open, maxOpen * scene.open, w);
+  frame.roll = lerp(frame.roll, 0, w);
+  frame.paper = lerp(frame.paper, 0, w);
   frame.opacity = Math.max(frame.opacity, w);
 }
 
@@ -104,6 +106,7 @@ export function createRigMotion() {
       length: lerp(hero.length, cut.length, aim),
       rotation: mix(hero.rotation, { x: cut.rotation.x + lean.x, y: cut.rotation.y + lean.y, z: cut.rotation.z }, aim),
       open: lerp(idleSnip(time, maxOpen), cut.open, aim),
+      roll: CUT_ROLL * aim,
     };
 
     const turn = trackTurn(p);
@@ -129,6 +132,8 @@ export function createRigMotion() {
       trackRotation,
       rotation,
       open: withBurst(lerp(before.open, scrollSnip(smoothY, screen.height), dock), burst),
+      roll: lerp(before.roll, 0, dock), // about the long axis, inside the rotation above (3D only)
+      paper: aim * (1 - dock), // 0..1: how much the hero photo acts as a sheet the shears cut through (3D only)
       opacity,
       active: !signals.pageHidden && (signals.heroVisible || leaning || smoothY !== scrollY || burst < BURST_DURATION || holding || shown !== target),
     };

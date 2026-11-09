@@ -7,6 +7,7 @@ import Button from './Button.jsx';
 import Logo from './Logo.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import ScrollProgress from './ScrollProgress.jsx';
+import SpinningPole from './SpinningPole.jsx';
 
 const SCROLLED_AT_PX = 80;
 const MENU_ID = 'mobile-menu';
@@ -48,7 +49,8 @@ export default function Header() {
         }`}
       >
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-6 px-5">
-          <a href={`#${TOP_ID}`} onClick={goTo(TOP_ID)} className="rounded">
+          <a href={`#${TOP_ID}`} onClick={goTo(TOP_ID)} className="flex items-center gap-3 rounded">
+            <SpinningPole />
             <Logo />
           </a>
 

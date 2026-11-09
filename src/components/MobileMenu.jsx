@@ -6,6 +6,7 @@ import { BOOKING_ID, lockScroll, scrollToId, unlockScroll } from '../lib/scroll.
 import { EVENTS, track } from '../lib/track.js';
 import Button from './Button.jsx';
 import Logo from './Logo.jsx';
+import SpinningPole from './SpinningPole.jsx';
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
 const FOCUSABLE = 'a[href], button:not([disabled])';
@@ -78,7 +79,10 @@ export default function MobileMenu({ id, onClose }) {
     >
       <div className="flex min-h-full flex-col">
         <div className="flex h-header shrink-0 items-center justify-between px-5">
-          <Logo />
+          <span className="flex items-center gap-3">
+            <SpinningPole />
+            <Logo />
+          </span>
           <button
             ref={closeRef}
             type="button"

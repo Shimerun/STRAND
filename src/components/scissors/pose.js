@@ -20,9 +20,10 @@ export const VIEW_HEIGHT = 2 * CAMERA.position[2] * Math.tan((CAMERA.fov / 2) * 
 export const FLAT = { length: 4, maxOpen: 30 };
 
 // Hero pose: x / y as fractions of the viewport (world units at z = 0), scale relative to CONFIG.SCALE.
+// tilt 145°: tips down to the left, rings up to the right.
 export const HERO = {
-  desktop: { x: 0.22, y: 0, scale: 1, tilt: -35 * DEG, yaw: 18 * DEG },
-  mobile: { x: 0, y: -0.04, scale: 0.62, tilt: -35 * DEG, yaw: 18 * DEG },
+  desktop: { x: 0.22, y: 0, scale: 1, tilt: 145 * DEG, yaw: 18 * DEG },
+  mobile: { x: 0, y: -0.04, scale: 0.62, tilt: 145 * DEG, yaw: 18 * DEG },
 };
 export const FLOAT = { amp: 0.06, hz: 0.8 };
 export const SWAY = { amp: 12 * DEG, hz: 0.25 };
@@ -38,6 +39,9 @@ export const DOCK_END = 0.6; // fraction of the hero height scrolled when the sh
 const DOCK_FROM_PIN = HERO_CUT.cutEnd + 0.08;
 const CUT_TILT = 0.18; // rad the shears pitch with the blades wide open
 const CUT_WOBBLE = 0.05; // rad of side wobble mid-snip
+// While cutting, the shears turn on their long axis so the blades open into the screen: one above the photo,
+// one under it (the 3D rig hides what is under the photo), the way paper sits between real blades.
+export const CUT_ROLL = 58 * DEG;
 
 /** Scroll range in px over which the shears dock onto the track; the track starts at `to`. */
 export function dockRange(heroHeight, pin) {

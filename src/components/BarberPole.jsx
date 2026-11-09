@@ -1,68 +1,105 @@
 import { useId } from 'react';
+import { motion } from 'framer-motion';
 
-// Geometry in viewBox units (36 × 100): glass tube between two chrome caps.
-const GLASS = { x: 9, y: 19, width: 18, height: 62 };
-const STRIPE = { period: 14, band: 7, slant: 11 }; // vertical repeat, band thickness, rise across the tube
-const BANDS = Array.from({ length: Math.ceil(GLASS.height / STRIPE.period) + 3 }, (_, i) => GLASS.y - STRIPE.period + i * STRIPE.period);
-const CHROME = [['0', '#2f3338'], ['0.3', '#eef0f2'], ['0.55', '#9aa0a7'], ['0.8', '#e2e5e8'], ['1', '#2a2d31']];
-// Across the tube: dark rims, a soft highlight left of centre, shadow on the right, as on a lit cylinder.
-const SHADE = [['0', '#000', 0.6], ['0.18', '#000', 0.1], ['0.32', '#fff', 0.35], ['0.45', '#fff', 0], ['0.8', '#000', 0.25], ['1', '#000', 0.7]];
+// Geometry in viewBox units (48 × 120): a glass tube with a striped cylinder inside, between two chrome caps.
+const VIEW = { width: 48, height: 120 };
+const CX = VIEW.width / 2;
+const GLASS = { x: CX - 14, y: 26, width: 28, height: 68 };
+const CORE = { x: CX - 12, width: 24 }; // the striped cylinder, as tall as the glass
+const CAP = { dome: 16, rim: 17 }; // half-widths of the chrome dome and the rim ring
+const R = CORE.width / 2;
 
-function Cap({ y, flip, chrome }) {
-  const ball = flip ? y + 11 : y - 3;
+// Two black stripes wound round the cylinder. `period`: vertical repeat on the front (one stripe passing);
+// turning the cylinder by one period moves every stripe up by exactly that much, so the loop is seamless.
+export const STRIPE = { period: 20, band: 9, count: 2 };
+const RISE = (STRIPE.period * STRIPE.count) / (2 * Math.PI); // helix rise per radian of turn
+const STEPS = 16; // points per stripe edge
+
+// One stripe seen from the front: each edge is a helix projected on the cylinder, steep where it turns away.
+const BAND = (() => {
+  const edge = (offset) =>
+    Array.from({ length: STEPS + 1 }, (_, i) => {
+      const angle = -Math.PI / 2 + (Math.PI * i) / STEPS;
+      return `${(CX + R * Math.sin(angle)).toFixed(2)},${(offset - RISE * angle).toFixed(2)}`;
+    });
+  return `M${[...edge(0), ...edge(STRIPE.band).reverse()].join('L')}Z`;
+})();
+const BAND_TOPS = Array.from(
+  { length: Math.ceil(GLASS.height / STRIPE.period) + 4 },
+  (_, i) => GLASS.y - 2 * STRIPE.period + i * STRIPE.period,
+);
+
+const CHROME = [[0, '#2a2d31'], [0.18, '#8d939a'], [0.34, '#f4f6f8'], [0.5, '#b9bec4'], [0.72, '#e4e7ea'], [1, '#24272b']];
+const BALL = [[0, '#ffffff'], [0.35, '#d5d9dd'], [0.75, '#6f757c'], [1, '#2a2d31']];
+// Across the cylinder: dark rims, a hot spot left of centre, a soft shadow to the right.
+const SHADE = [[0, '#000', 0.7], [0.14, '#000', 0.25], [0.3, '#fff', 0], [0.38, '#fff', 0.38], [0.48, '#fff', 0.04], [0.78, '#000', 0.22], [1, '#000', 0.75]];
+// The glass: bright thin edges, clear in the middle.
+const GLASS_SHADE = [[0, '#fff', 0.4], [0.07, '#fff', 0.06], [0.5, '#fff', 0.02], [0.93, '#fff', 0.06], [1, '#fff', 0.35]];
+
+const stops = (list) =>
+  list.map(([offset, color, opacity = 1]) => <stop key={offset} offset={offset} stopColor={color} stopOpacity={opacity} />);
+
+// Dome, rim and finial ball; `flip` mirrors it for the bottom cap.
+function Cap({ flip, chrome, ball }) {
+  const at = (y) => (flip ? VIEW.height - y : y);
+  const [left, right] = [CX - CAP.dome, CX + CAP.dome];
+  const dome = `M${left} ${at(22)} C${left} ${at(15)} ${CX - 8} ${at(12)} ${CX} ${at(12)} C${CX + 8} ${at(12)} ${right} ${at(15)} ${right} ${at(22)} Z`;
   return (
     <g>
-      <circle cx="18" cy={ball} r="3.5" fill={`url(#${chrome})`} />
-      <rect x="6" y={flip ? y : y + 1} width="24" height="6" rx="2" fill={`url(#${chrome})`} />
-      <rect x="8" y={flip ? y - 1 : y + 6} width="20" height="2" fill={`url(#${chrome})`} opacity="0.8" />
+      <rect x={CX - 2} y={flip ? at(13) : 7} width="4" height="6" fill={`url(#${chrome})`} />
+      <circle cx={CX} cy={at(6)} r="4.5" fill={`url(#${ball})`} />
+      <path d={dome} fill={`url(#${chrome})`} />
+      <rect x={CX - CAP.rim} y={flip ? at(26) : 22} width={CAP.rim * 2} height="4" rx="1" fill={`url(#${chrome})`} stroke="#000" strokeOpacity="0.45" strokeWidth="0.5" />
     </g>
   );
 }
 
-/** Black-and-white barber pole whose stripes spiral up; a loading indicator. Still under reduced motion (CSS). */
-export default function BarberPole({ height = 72, className = '' }) {
+/**
+ * Black-and-white barber pole. By default the cylinder turns on a CSS loop (the loading indicator; still under
+ * reduced motion). With `stripesY` (a motion value in view units, 0 to -STRIPE.period) the caller turns it.
+ */
+export default function BarberPole({ height = 72, stripesY, className = '' }) {
   const id = useId().replace(/:/g, '');
-  const chrome = `${id}-chrome`;
-  const shade = `${id}-shade`;
-  const glass = `${id}-glass`;
+  const ref = (name) => `${id}-${name}`;
   const { x, y, width, height: tube } = GLASS;
+  const Stripes = stripesY ? motion.g : 'g';
+  const stripesProps = stripesY ? { style: { y: stripesY } } : { className: 'barber-pole-stripes' };
 
   return (
-    <svg width={(height * 36) / 100} height={height} viewBox="0 0 36 100" aria-hidden="true" className={`shrink-0 ${className}`}>
+    <svg
+      width={(height * VIEW.width) / VIEW.height}
+      height={height}
+      viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
+      aria-hidden="true"
+      className={`shrink-0 ${className}`}
+    >
       <defs>
-        <linearGradient id={chrome} x1="0" x2="1">
-          {CHROME.map(([offset, color]) => (
-            <stop key={offset} offset={offset} stopColor={color} />
-          ))}
-        </linearGradient>
-        <linearGradient id={shade} x1="0" x2="1">
-          {SHADE.map(([offset, color, opacity]) => (
-            <stop key={offset} offset={offset} stopColor={color} stopOpacity={opacity} />
-          ))}
-        </linearGradient>
-        <clipPath id={glass}>
-          <rect x={x} y={y} width={width} height={tube} />
+        <linearGradient id={ref('chrome')} x1="0" x2="1">{stops(CHROME)}</linearGradient>
+        <radialGradient id={ref('ball')} cx="0.38" cy="0.32" r="0.7">{stops(BALL)}</radialGradient>
+        <linearGradient id={ref('shade')} x1="0" x2="1">{stops(SHADE)}</linearGradient>
+        <linearGradient id={ref('glass')} x1="0" x2="1">{stops(GLASS_SHADE)}</linearGradient>
+        <clipPath id={ref('core')}>
+          <rect x={CORE.x} y={y} width={CORE.width} height={tube} />
         </clipPath>
       </defs>
 
-      <g clipPath={`url(#${glass})`}>
-        <rect x={x} y={y} width={width} height={tube} className="fill-text" />
-        <g className="barber-pole-stripes">
-          {BANDS.map((top) => (
-            <polygon
-              key={top}
-              points={`${x},${top + STRIPE.slant} ${x + width},${top} ${x + width},${top + STRIPE.band} ${x},${top + STRIPE.slant + STRIPE.band}`}
-              className="fill-bg"
-            />
+      {/* Through the glass, a dark gap on either side of the cylinder. */}
+      <rect x={x} y={y} width={width} height={tube} fill="#000" fillOpacity="0.55" />
+      <g clipPath={`url(#${ref('core')})`}>
+        <rect x={CORE.x} y={y} width={CORE.width} height={tube} className="fill-text" />
+        <Stripes {...stripesProps}>
+          {BAND_TOPS.map((top) => (
+            <path key={top} d={BAND} transform={`translate(0 ${top})`} className="fill-bg" />
           ))}
-        </g>
-        <rect x={x} y={y} width={width} height={tube} fill={`url(#${shade})`} />
-        <rect x={x + 4} y={y} width="1.5" height={tube} fill="#fff" opacity="0.55" />
+        </Stripes>
+        <rect x={CORE.x} y={y} width={CORE.width} height={tube} fill={`url(#${ref('shade')})`} />
       </g>
-      <rect x={x} y={y} width={width} height={tube} fill="none" stroke="#000" strokeOpacity="0.6" strokeWidth="0.75" />
+      <rect x={x} y={y} width={width} height={tube} fill={`url(#${ref('glass')})`} />
+      <rect x={x + 3.5} y={y} width="1.4" height={tube} fill="#fff" fillOpacity="0.75" />
+      <rect x={x + width - 4} y={y} width="0.7" height={tube} fill="#fff" fillOpacity="0.3" />
 
-      <Cap y={13} chrome={chrome} />
-      <Cap y={81} flip chrome={chrome} />
+      <Cap chrome={ref('chrome')} ball={ref('ball')} />
+      <Cap flip chrome={ref('chrome')} ball={ref('ball')} />
     </svg>
   );
 }

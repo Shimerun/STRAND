@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { site } from '../data/site.js';
+import { assetUrl } from '../lib/assetUrl.js';
 
 // Text wordmark until the logo file actually loads; a missing file keeps the wordmark.
 export default function Logo({ className = '' }) {
   const [loaded, setLoaded] = useState(false);
-  const src = site.images.logo;
+  const src = assetUrl(site.images.logo);
 
   return (
     <span className={`inline-flex items-center ${className}`}>

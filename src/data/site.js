@@ -171,7 +171,7 @@ export const site = {
       addonsHide: "Згорнути",
       addonsChosen: "Обрано:",
       steps: { choice: "Майстер і послуга", when: "Дата і час", contacts: "Ваші контакти" },
-      calendar: { prev: "Попередній місяць", next: "Наступний місяць" },
+      calendar: { prev: "Попередній місяць", next: "Наступний місяць", expand: "Календар", collapse: "Згорнути" },
       summary: { title: "Ваш запис", barber: "Майстер", services: "Послуги", when: "Дата і час", duration: "Тривалість", total: "Разом", empty: "—" },
       ticket: { title: "Ваш талон", stub: "Контроль" },
       placeholders: { name: "Ваше ім'я", phone: "+380 XX XXX XX XX", barber: "Оберіть майстра", service: "Оберіть послугу", comment: "Побажання до стрижки" },

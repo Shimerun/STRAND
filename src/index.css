@@ -100,12 +100,34 @@ main {
 
 @keyframes barber-pole {
   to {
-    transform: translateY(-14px); /* STRIPE.period in BarberPole.jsx */
+    transform: translateY(-20px); /* STRIPE.period in BarberPole.jsx */
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .barber-pole-stripes {
+    animation: none;
+  }
+}
+
+/* ScrollCue: a glint runs down the hairline, then rests off it for the last part of the loop. Reduced motion:
+   it stands still in the middle of the line. */
+.scroll-cue-glint {
+  animation: scroll-cue 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scroll-cue {
+  0% {
+    transform: translateY(-100%);
+  }
+  70%,
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue-glint {
     animation: none;
   }
 }

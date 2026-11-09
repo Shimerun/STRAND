@@ -2,7 +2,9 @@
 // The hero pins for `pin` hero heights of scroll: the shears move onto a wavy line and cut it right to left,
 // snip by snip; then the halves part and swell towards the viewer while the next section shows through the cut.
 export const HERO_CUT = {
-  pin: 3, // extra scroll while the hero stays pinned, in hero (frame) heights
+  // Extra scroll while the hero stays pinned, in hero (frame) heights. Phones get fewer snips (minSnips), so a
+  // shorter pin keeps each snip under half a screen of scrolling; desktop (>= 1024px) has up to maxSnips.
+  pin: { mobile: 2, desktop: 3 },
   aimEnd: 0.08, // share of the pin: the shears move from the hero pose onto the line
   cutEnd: 0.72, // share of the pin: the last snip; the halves part over the rest
   right: 0.44, // line height at the right edge, share of the frame height
@@ -16,7 +18,7 @@ export const HERO_CUT = {
   minSnips: 3,
   maxSnips: 7,
   openShare: 0.8, // how wide the blades open while cutting, share of the model's max opening
-  sag: 1.6, // degrees the cut-off flap droops around the cutting point by the end of the cut
+  bite: 3, // power of the closing ease: the blades press slowly, then snap shut
 };
 
 const SAMPLES = 160;
@@ -91,7 +93,7 @@ export function cutState(along, width, height) {
   const snip = Math.floor(progress);
   const phase = progress - snip;
   const closing = phase < 0.5;
-  const t = ease(closing ? phase * 2 : phase * 2 - 1);
+  const t = closing ? (phase * 2) ** HERO_CUT.bite : ease(phase * 2 - 1);
   const pivotD = snip * step + (closing ? 0 : step * t);
   const cut = Math.min(snip * step + (closing ? step * t : step), total);
   const pivot = pointAt(geometry, pivotD);

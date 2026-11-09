@@ -10,7 +10,6 @@ import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import Hero from './components/hero/Hero.jsx';
 import Intro from './components/Intro.jsx';
-import Marquee from './components/Marquee.jsx';
 import MobileBar from './components/MobileBar.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
 import ScrollScale from './components/ScrollScale.jsx';
@@ -74,7 +73,6 @@ export default function App() {
         <About />
         <Team />
         <Services />
-        <Marquee />
         <Works />
         <Reviews />
         <Booking />

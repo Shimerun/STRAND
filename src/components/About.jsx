@@ -1,4 +1,5 @@
 import { site } from '../data/site.js';
+import { assetUrl } from '../lib/assetUrl.js';
 import PhotoReveal from './PhotoReveal.jsx';
 import Reveal from './Reveal.jsx';
 import Section from './Section.jsx';
@@ -18,7 +19,7 @@ export default function About() {
             ))}
           </div>
         </div>
-        <PhotoReveal src={site.images.about} alt={site.ui.alt.about} width={1200} height={1500} className="aspect-[4/5] rounded" />
+        <PhotoReveal src={assetUrl(site.images.about)} alt={site.ui.alt.about} width={1200} height={1500} className="aspect-[4/5] rounded" />
       </div>
 
       <Reveal as="ul" className="mt-12 flex flex-wrap gap-2 md:mt-16">

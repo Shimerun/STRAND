@@ -34,7 +34,11 @@ function openingHours() {
   return [...groups.values()];
 }
 
-function jsonLd(siteUrl) {
+function assetUrl(path, baseUrl) {
+  return `${baseUrl}${path.replace(/^\/+/, '')}`;
+}
+
+function jsonLd(siteUrl, baseUrl) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'BarberShop',
@@ -61,13 +65,13 @@ function jsonLd(siteUrl) {
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 }
 
-function headTags(siteUrl) {
+function headTags(siteUrl, baseUrl) {
   const { title, description } = site.seo;
   const tags = [
     `<title>${escapeHtml(title)}</title>`,
     meta('name', 'description', description),
     meta('name', 'theme-color', THEME_COLOR),
-    `<link rel="icon" href="${escapeHtml(site.images.favicon || placeholderFavicon())}" />`,
+    `<link rel="icon" href="${escapeHtml(site.images.favicon ? assetUrl(site.images.favicon, baseUrl) : placeholderFavicon())}" />`,
     meta('property', 'og:type', 'website'),
     meta('property', 'og:locale', LOCALE),
     meta('property', 'og:title', title),
@@ -81,9 +85,9 @@ function headTags(siteUrl) {
     );
   }
   if (site.images.hero) {
-    tags.push(`<link rel="preload" as="image" href="${escapeHtml(site.images.hero)}" fetchpriority="high" />`);
+    tags.push(`<link rel="preload" as="image" href="${escapeHtml(assetUrl(site.images.hero, baseUrl))}" fetchpriority="high" />`);
   }
-  tags.push(jsonLd(siteUrl));
+  tags.push(jsonLd(siteUrl, baseUrl));
   return tags.map((tag) => `    ${tag}`).join('\n');
 }
 
@@ -102,17 +106,19 @@ function readSiteUrl(raw) {
 /** Head meta, Open Graph, JSON-LD, robots.txt and sitemap.xml, all from src/data/site.js. */
 export default function siteMeta() {
   let siteUrl = '';
+  let baseUrl = '/';
   let logger = null;
 
   return {
     name: 'site-meta',
     configResolved(config) {
       logger = config.logger;
+      baseUrl = config.base;
       const env = loadEnv(config.mode, config.envDir || config.root, 'VITE_');
       siteUrl = readSiteUrl(env.VITE_SITE_URL);
     },
     transformIndexHtml(html) {
-      return html.replace(/\s*<\/head>/, `\n${headTags(siteUrl)}\n  </head>`);
+      return html.replace(/\s*<\/head>/, `\n${headTags(siteUrl, baseUrl)}\n  </head>`);
     },
     generateBundle() {
       if (!siteUrl) {
