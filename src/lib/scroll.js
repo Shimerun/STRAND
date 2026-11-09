@@ -5,9 +5,12 @@ export const TOP_ID = 'top';
 export const BOOKING_ID = 'booking';
 
 let lenis = null;
+let wakeLenis = null;
 
-export function setLenis(instance) {
+// wake: starts the frame loop that drives Lenis; it only runs while Lenis animates (see useLenis in App.jsx).
+export function setLenis(instance, wake = null) {
   lenis = instance;
+  wakeLenis = wake;
 }
 
 export function getLenis() {
@@ -33,6 +36,7 @@ export function scrollToId(id) {
   const el = document.getElementById(id);
   if (!el) return;
   if (lenis) {
+    wakeLenis?.();
     lenis.scrollTo(el, { offset: HEADER_OFFSET });
     return;
   }

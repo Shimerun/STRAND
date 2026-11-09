@@ -1,5 +1,4 @@
 import { useId } from 'react';
-import { motion } from 'framer-motion';
 
 // Geometry in viewBox units (48 × 120): a glass tube with a striped cylinder inside, between two chrome caps.
 const VIEW = { width: 48, height: 120 };
@@ -11,7 +10,8 @@ const R = CORE.width / 2;
 
 // Two black stripes wound round the cylinder. `period`: vertical repeat on the front (one stripe passing);
 // turning the cylinder by one period moves every stripe up by exactly that much, so the loop is seamless.
-export const STRIPE = { period: 20, band: 9, count: 2 };
+// The loop in index.css moves the stripes by period / VIEW.height of the pole's height: keep the two in step.
+const STRIPE = { period: 20, band: 9, count: 2 };
 const RISE = (STRIPE.period * STRIPE.count) / (2 * Math.PI); // helix rise per radian of turn
 const STEPS = 16; // points per stripe edge
 
@@ -54,52 +54,60 @@ function Cap({ flip, chrome, ball }) {
   );
 }
 
+const VIEW_BOX = `0 0 ${VIEW.width} ${VIEW.height}`;
+const LAYER = 'absolute inset-0 h-full w-full';
+const share = (value, of) => `${((value / of) * 100).toFixed(3)}%`;
+// The cylinder's window as a CSS clip of a pole-sized box: top, right, bottom, left.
+const CORE_CLIP = `inset(${share(GLASS.y, VIEW.height)} ${share(VIEW.width - CORE.x - CORE.width, VIEW.width)} ${share(VIEW.height - GLASS.y - GLASS.height, VIEW.height)} ${share(CORE.x, VIEW.width)})`;
+
 /**
- * Black-and-white barber pole. By default the cylinder turns on a CSS loop (the loading indicator; still under
- * reduced motion). With `stripesY` (a motion value in view units, 0 to -STRIPE.period) the caller turns it.
+ * Black-and-white barber pole whose cylinder turns on a CSS loop (.barber-pole-stripes in index.css; still
+ * under reduced motion). Three stacked drawings: the back, the stripes, and the shading, glass and caps over
+ * them. The stripes are a layer of their own so the loop runs on the compositor: turning the pole costs the
+ * page no style, layout or paint work, however long it spins.
+ * period: seconds for one stripe to pass. stripesRef: the turning element, for callers that change its speed
+ * (element.getAnimations()).
  */
-export default function BarberPole({ height = 72, stripesY, className = '' }) {
+export default function BarberPole({ height = 72, period = 1.1, stripesRef, className = '' }) {
   const id = useId().replace(/:/g, '');
   const ref = (name) => `${id}-${name}`;
   const { x, y, width, height: tube } = GLASS;
-  const Stripes = stripesY ? motion.g : 'g';
-  const stripesProps = stripesY ? { style: { y: stripesY } } : { className: 'barber-pole-stripes' };
 
   return (
-    <svg
-      width={(height * VIEW.width) / VIEW.height}
-      height={height}
-      viewBox={`0 0 ${VIEW.width} ${VIEW.height}`}
+    <span
       aria-hidden="true"
-      className={`shrink-0 ${className}`}
+      className={`relative inline-block shrink-0 ${className}`}
+      style={{ width: (height * VIEW.width) / VIEW.height, height }}
     >
-      <defs>
-        <linearGradient id={ref('chrome')} x1="0" x2="1">{stops(CHROME)}</linearGradient>
-        <radialGradient id={ref('ball')} cx="0.38" cy="0.32" r="0.7">{stops(BALL)}</radialGradient>
-        <linearGradient id={ref('shade')} x1="0" x2="1">{stops(SHADE)}</linearGradient>
-        <linearGradient id={ref('glass')} x1="0" x2="1">{stops(GLASS_SHADE)}</linearGradient>
-        <clipPath id={ref('core')}>
-          <rect x={CORE.x} y={y} width={CORE.width} height={tube} />
-        </clipPath>
-      </defs>
-
-      {/* Through the glass, a dark gap on either side of the cylinder. */}
-      <rect x={x} y={y} width={width} height={tube} fill="#000" fillOpacity="0.55" />
-      <g clipPath={`url(#${ref('core')})`}>
+      <svg viewBox={VIEW_BOX} className={LAYER}>
+        {/* Through the glass, a dark gap on either side of the cylinder. */}
+        <rect x={x} y={y} width={width} height={tube} fill="#000" fillOpacity="0.55" />
         <rect x={CORE.x} y={y} width={CORE.width} height={tube} className="fill-text" />
-        <Stripes {...stripesProps}>
+      </svg>
+
+      <span className={LAYER} style={{ clipPath: CORE_CLIP }}>
+        <svg ref={stripesRef} viewBox={VIEW_BOX} className={`barber-pole-stripes overflow-visible ${LAYER}`} style={{ animationDuration: `${period}s` }}>
           {BAND_TOPS.map((top) => (
             <path key={top} d={BAND} transform={`translate(0 ${top})`} className="fill-bg" />
           ))}
-        </Stripes>
-        <rect x={CORE.x} y={y} width={CORE.width} height={tube} fill={`url(#${ref('shade')})`} />
-      </g>
-      <rect x={x} y={y} width={width} height={tube} fill={`url(#${ref('glass')})`} />
-      <rect x={x + 3.5} y={y} width="1.4" height={tube} fill="#fff" fillOpacity="0.75" />
-      <rect x={x + width - 4} y={y} width="0.7" height={tube} fill="#fff" fillOpacity="0.3" />
+        </svg>
+      </span>
 
-      <Cap chrome={ref('chrome')} ball={ref('ball')} />
-      <Cap flip chrome={ref('chrome')} ball={ref('ball')} />
-    </svg>
+      <svg viewBox={VIEW_BOX} className={LAYER}>
+        <defs>
+          <linearGradient id={ref('chrome')} x1="0" x2="1">{stops(CHROME)}</linearGradient>
+          <radialGradient id={ref('ball')} cx="0.38" cy="0.32" r="0.7">{stops(BALL)}</radialGradient>
+          <linearGradient id={ref('shade')} x1="0" x2="1">{stops(SHADE)}</linearGradient>
+          <linearGradient id={ref('glass')} x1="0" x2="1">{stops(GLASS_SHADE)}</linearGradient>
+        </defs>
+        <rect x={CORE.x} y={y} width={CORE.width} height={tube} fill={`url(#${ref('shade')})`} />
+        <rect x={x} y={y} width={width} height={tube} fill={`url(#${ref('glass')})`} />
+        <rect x={x + 3.5} y={y} width="1.4" height={tube} fill="#fff" fillOpacity="0.75" />
+        <rect x={x + width - 4} y={y} width="0.7" height={tube} fill="#fff" fillOpacity="0.3" />
+
+        <Cap chrome={ref('chrome')} ball={ref('ball')} />
+        <Cap flip chrome={ref('chrome')} ball={ref('ball')} />
+      </svg>
+    </span>
   );
 }

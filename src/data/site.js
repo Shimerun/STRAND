@@ -108,14 +108,17 @@ export const site = {
     { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/puhach.dm/" }
   ],
   // width / height: the photo's own size, so the masonry keeps its place before the photo loads.
-  // TODO: alt texts name only the barber; describe each cut (and convert to WebP <= ~200 KB) when possible.
+  // New photos: WebP, at most 1200 px wide (a phone at 3x fills the lightbox with that), about 100-250 KB.
+  // work-02 stays a JPEG: it is 1200 px wide already and comes out larger as WebP.
+  // TODO: alt texts name only the barber; describe each cut when possible.
+  // barber: team slug; the barber's profile lists their works.
   works: [
-    { src: "/images/works/work-01.jpg", width: 1448, height: 1931, alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-02.jpg", width: 1200, height: 1600, alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-03.png", width: 612, height: 654, alt: "Робота барбера Олега Дока, Strand" },
-    { src: "/images/works/work-04.jpg", width: 1720, height: 2293, alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-05.jpg", width: 1720, height: 2293, alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-06.jpg", width: 1290, height: 1720, alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-01.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-02.jpg", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-03.webp", width: 612, height: 654, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-04.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-05.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-06.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
   ],
   reviews: [
     { name: "Анонімно", date: "2026-09-05", text: "Дуже атмосферно і професійно" },
@@ -149,7 +152,7 @@ export const site = {
     sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", booking: "Запис онлайн", contacts: "Контакти" },
     services: { priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },
-    team: { prices: "Ціни майстра", rating: "Рейтинг" },
+    team: { prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
     works: { prev: "Попереднє фото", next: "Наступне фото" },
     brand: { sub: "Barbershop" },
     reviews: {

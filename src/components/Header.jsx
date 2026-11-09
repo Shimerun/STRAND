@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useCallback, useRef, useState } from 'react';
+import { AnimatePresence, useMotionValueEvent, useScroll } from 'framer-motion';
 import { site } from '../data/site.js';
 import { BOOKING_ID, TOP_ID, scrollToId } from '../lib/scroll.js';
 import { EVENTS } from '../lib/track.js';
@@ -12,15 +12,12 @@ import SpinningPole from './SpinningPole.jsx';
 const SCROLLED_AT_PX = 80;
 const MENU_ID = 'mobile-menu';
 
+// From the shared scroll value (read once per frame for the whole page), not a scroll listener of its own.
 function useScrolled(threshold) {
-  const [scrolled, setScrolled] = useState(false);
+  const { scrollY } = useScroll();
+  const [scrolled, setScrolled] = useState(() => window.scrollY > threshold);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > threshold);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [threshold]);
+  useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > threshold));
 
   return scrolled;
 }

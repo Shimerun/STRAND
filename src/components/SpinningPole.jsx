@@ -1,29 +1,30 @@
 import { useRef } from 'react';
-import { useAnimationFrame, useMotionValue, useReducedMotion, useScroll, useVelocity } from 'framer-motion';
-import BarberPole, { STRIPE } from './BarberPole.jsx';
+import { useMotionValueEvent, useScroll, useVelocity } from 'framer-motion';
+import BarberPole from './BarberPole.jsx';
 
 const HEIGHT = 56; // px
-const SPIN = 0.8; // stripe periods per second at rest (one turn of the cylinder ≈ 2.5 s)
+const PERIOD_S = 1.25; // one stripe passing at rest (one turn of the cylinder ≈ 2.5 s)
 const BOOST = 0.003; // extra speed factor per px/s of scroll
 const MAX_FACTOR = 5;
+const RATE_STEP = 0.25; // the speed changes in steps, so the running loop is retimed a few times, not every frame
 
 /**
  * The pole beside the wordmark (header and mobile menu). It turns all the time, like a real one, and spins
- * faster while the page scrolls. The loop pauses with the tab (requestAnimationFrame). Reduced motion: still.
+ * faster while the page scrolls: the CSS loop keeps running on the compositor and only its playback rate is
+ * changed. Reduced motion: still (the loop is off in CSS, so there is nothing to speed up).
  */
 export default function SpinningPole() {
-  const reduce = useReducedMotion();
-  const phase = useRef(0);
-  const stripesY = useMotionValue(0);
+  const stripes = useRef(null);
+  const rate = useRef(1);
   const { scrollY } = useScroll();
   const velocity = useVelocity(scrollY);
 
-  useAnimationFrame((_, delta) => {
-    if (reduce) return;
-    const factor = Math.min(1 + Math.abs(velocity.get()) * BOOST, MAX_FACTOR);
-    phase.current = (phase.current + (SPIN * factor * delta) / 1000) % 1;
-    stripesY.set(-phase.current * STRIPE.period);
+  useMotionValueEvent(velocity, 'change', (speed) => {
+    const next = Math.round(Math.min(1 + Math.abs(speed) * BOOST, MAX_FACTOR) / RATE_STEP) * RATE_STEP;
+    if (next === rate.current) return;
+    rate.current = next;
+    stripes.current?.getAnimations?.().forEach((animation) => animation.updatePlaybackRate(next));
   });
 
-  return <BarberPole height={HEIGHT} stripesY={stripesY} />;
+  return <BarberPole height={HEIGHT} period={PERIOD_S} stripesRef={stripes} />;
 }

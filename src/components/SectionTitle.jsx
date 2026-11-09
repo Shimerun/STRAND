@@ -1,18 +1,28 @@
 import { Fragment, useRef } from 'react';
 import { motion, useReducedMotion, useScroll } from 'framer-motion';
 import { maskWord, maskWords, revealViewport } from '../lib/motion.js';
+import { useScrollWeight } from '../lib/scrollWeight.js';
 import Reveal from './Reveal.jsx';
 
 // The hairline is drawn by the scroll while the title travels from the bottom edge to 60% of the screen.
 const LINE_OFFSET = ['start end', 'start 0.6'];
 const H2 = 'text-[1.75rem] leading-tight sm:text-4xl';
+const H2_WEIGHT = 800; // font-extrabold, the h2 base style
 
-// Screen readers get the plain text; the masked words are decoration on top of it.
+/**
+ * The real text is in the flow but transparent: it sizes the title and is what screen readers, search and
+ * selection get. The words seen sit in a layer on top, each rising out of its own mask, and thin out while the
+ * page scrolls fast (useScrollWeight). The layer is laid out on its own (contain), so a change of weight never
+ * re-lays out the section around the title.
+ */
 function MaskedWords({ text }) {
+  const layerRef = useRef(null);
+  useScrollWeight(layerRef, H2_WEIGHT);
+
   return (
-    <motion.h2 variants={maskWords} initial="hidden" whileInView="visible" viewport={revealViewport} className={H2}>
-      <span className="sr-only">{text}</span>
-      <span aria-hidden="true">
+    <motion.h2 variants={maskWords} initial="hidden" whileInView="visible" viewport={revealViewport} className={`relative ${H2}`}>
+      <span className="text-transparent">{text}</span>
+      <span ref={layerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 select-none [contain:layout_size]">
         {text.split(' ').map((word, index) => (
           <Fragment key={index}>
             {index > 0 && ' '}

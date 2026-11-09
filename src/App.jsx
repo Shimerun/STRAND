@@ -13,6 +13,7 @@ import Intro from './components/Intro.jsx';
 import MobileBar from './components/MobileBar.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
 import ScrollScale from './components/ScrollScale.jsx';
+import ScrollWeight from './components/ScrollWeight.jsx';
 import Reviews from './components/reviews/Reviews.jsx';
 import Services from './components/services/Services.jsx';
 import Team from './components/team/Team.jsx';
@@ -45,11 +46,21 @@ function useLenis() {
   useEffect(() => {
     if (prefersReducedMotion()) return undefined;
     const lenis = new Lenis({ duration: 1.1 });
-    let frame = requestAnimationFrame(function loop(time) {
+    // Lenis needs frames only while it animates a scroll: after a wheel turn or a scrollTo. A loop that never
+    // stops makes the browser run a whole rendering pass 60 times a second on a page standing still, and on
+    // touch screens, where the scroll is native, Lenis has nothing to animate at all.
+    let frame = 0;
+    const loop = (time) => {
       lenis.raf(time);
+      frame = lenis.animate.isRunning ? requestAnimationFrame(loop) : 0;
+    };
+    const wake = () => {
+      if (frame) return;
+      lenis.raf(performance.now()); // restarts Lenis's clock, so its first step does not span the pause
       frame = requestAnimationFrame(loop);
-    });
-    setLenis(lenis);
+    };
+    lenis.on('virtual-scroll', ({ event }) => event.type === 'wheel' && wake());
+    setLenis(lenis, wake);
     return () => {
       cancelAnimationFrame(frame);
       lenis.destroy();
@@ -63,9 +74,11 @@ export default function App() {
   useLivePrices(); // re-renders the page when prices from the Google Sheet arrive
   const showScissors = useAfterFirstPaint();
   const [showCursor] = useState(hasMouse);
+  const [scrollWeight] = useState(() => !prefersReducedMotion());
 
   return (
     <>
+      {scrollWeight && <ScrollWeight />}
       <Intro />
       <Header />
       <main>

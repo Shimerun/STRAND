@@ -11,22 +11,18 @@ const POINTER = { max: 8 * (Math.PI / 180), lerp: 0.08, settle: 1e-4 };
 const LAG = 8; // 1/s: the shears trail the scroll, as in the reference demo
 const LAG_SETTLE = 0.5; // px
 const MAX_DT = 0.05;
-const END_SELECTOR = '[data-scissors-end]';
 
 /**
  * Scroll range of the track in scrollY px. It starts when the shears have docked and ends END_OFFSET
  * viewports before the [data-scissors-end] element scrolls into view, or at the page bottom when there is none.
- * endTop is that element's viewport top (Infinity without one).
+ * endTop is that element's viewport top (Infinity without one). Pure arithmetic on what useScissorsSignals
+ * measured: this runs every frame, and reading the DOM here would force a layout each time.
  */
-function readTrack({ heroHeight, cutPin }) {
+function readTrack({ heroHeight, cutPin, endTop, pageHeight }, scrollY) {
   const viewport = window.innerHeight;
   const start = dockRange(heroHeight, cutPin).to;
-  const endEl = document.querySelector(END_SELECTOR);
-  const endTop = endEl ? endEl.getBoundingClientRect().top : Infinity;
-  const end = endEl
-    ? endTop + window.scrollY - viewport * (1 + END_OFFSET)
-    : document.documentElement.scrollHeight - viewport;
-  return { start, span: Math.max(end - start, 1), endTop };
+  const end = endTop === null ? pageHeight - viewport : endTop - viewport * (1 + END_OFFSET);
+  return { start, span: Math.max(end - start, 1), endTop: endTop === null ? Infinity : endTop - scrollY };
 }
 
 /**
@@ -81,10 +77,10 @@ export function createRigMotion() {
     if (smoothY === null || Math.abs(scrollY - smoothY) <= LAG_SETTLE) smoothY = scrollY;
     else smoothY += (scrollY - smoothY) * (1 - Math.exp(-LAG * dt));
 
-    const range = readTrack(signals);
+    const range = readTrack(signals, scrollY);
     const p = clamp((smoothY - range.start) / range.span, 0, 1);
     const track = screen.width >= DESKTOP_MIN_PX ? TRACK.desktop : TRACK.mobile;
-    const point = trackPoint(p, { width: document.documentElement.clientWidth, height: screen.height }, signals.gutter, track);
+    const point = trackPoint(p, { width: signals.pageWidth, height: screen.height }, signals.gutter, track);
 
     const k = 1 - (1 - POINTER.lerp) ** (dt * 60); // frame-rate independent lerp
     const leanX = signals.pointer.y * POINTER.max;
@@ -99,7 +95,7 @@ export function createRigMotion() {
     // Hero cut: raw scroll (no lag) keeps the tip on the line the hero draws.
     const phases = heroCutPhases(scrollY, signals.cutPin);
     const aim = easeInOut(phases.aim);
-    const cut = cutPose(phases.along, document.documentElement.clientWidth, signals.heroHeight, maxOpen);
+    const cut = cutPose(phases.along, signals.pageWidth, signals.heroHeight, maxOpen);
     const before = {
       x: lerp(hero.x, cut.x, aim),
       y: lerp(hero.y, cut.y, aim),

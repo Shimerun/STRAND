@@ -1,15 +1,15 @@
-import { useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { formatRating } from '../../lib/format.js';
 import { hoverLift } from '../../lib/motion.js';
 import Img from '../Img.jsx';
 import InstagramIcon from '../InstagramIcon.jsx';
-import { barberPhoto } from './photo.js';
 import Reveal from '../Reveal.jsx';
 import StarIcon from '../StarIcon.jsx';
+import { barberPhoto, PHOTO_RADIUS, PHOTO_TRANSITION, photoLayoutId } from './photo.js';
 
-
-// The name button stretches over the whole card; the Instagram link sits above it.
+// The name button stretches over the whole card and opens the barber's profile, into which the photo morphs
+// (see photo.js); the Instagram link sits above it.
 export default function BarberCard({ barber, index, onOpen }) {
   const reduce = useReducedMotion();
   const { team } = site.ui;
@@ -22,9 +22,14 @@ export default function BarberCard({ barber, index, onOpen }) {
       whileHover={reduce ? undefined : hoverLift}
       className="group relative w-[72%] shrink-0 snap-start sm:w-[44%] md:w-auto"
     >
-      <div className="overflow-hidden rounded border border-line bg-surface">
+      <motion.div
+        layoutId={reduce ? undefined : photoLayoutId(slug)}
+        transition={PHOTO_TRANSITION}
+        style={{ borderRadius: PHOTO_RADIUS }}
+        className="overflow-hidden border border-line bg-surface"
+      >
         <Img src={barberPhoto(slug)} alt={name} width={800} height={1000} className="aspect-[4/5] w-full object-cover" />
-      </div>
+      </motion.div>
 
       <div className="mt-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -57,7 +62,7 @@ export default function BarberCard({ barber, index, onOpen }) {
 
       <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
         <span className="text-xs font-medium uppercase tracking-heading text-concrete transition-colors duration-300 group-hover:text-text">
-          {team.prices} <span aria-hidden="true">→</span>
+          {team.profile} <span aria-hidden="true">→</span>
         </span>
         {instagram && (
           <a

@@ -5,7 +5,7 @@ import { site } from '../../data/site.js';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
 import BarberCard from './BarberCard.jsx';
-import PriceDrawer from './PriceDrawer.jsx';
+import BarberProfile from './BarberProfile.jsx';
 
 export default function Team() {
   const [openSlug, setOpenSlug] = useState(null);
@@ -23,10 +23,10 @@ export default function Team() {
         ))}
       </ul>
 
-      {/* Portaled so transformed ancestors never become the drawer's containing block. */}
+      {/* Portaled so transformed ancestors never become the profile's containing block. */}
       {createPortal(
         <AnimatePresence>
-          {openBarber && <PriceDrawer key={openBarber.slug} barber={openBarber} onClose={close} />}
+          {openBarber && <BarberProfile key={openBarber.slug} barber={openBarber} onClose={close} />}
         </AnimatePresence>,
         document.body,
       )}
