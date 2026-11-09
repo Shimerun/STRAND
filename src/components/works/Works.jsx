@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
+import { assetUrl } from '../../lib/assetUrl.js';
 import { hoverLift } from '../../lib/motion.js';
 import Button from '../Button.jsx';
 import PhotoReveal from '../PhotoReveal.jsx';
@@ -58,7 +59,15 @@ export default function Works() {
                     className="block w-full rounded"
                   >
                     {/* Keyed by side: the column is known only after layout, and the clip is set up once per mount. */}
-                    <PhotoReveal key={from} from={from} src={work.src} alt={work.alt} {...PHOTO_SIZE} className="rounded" />
+                    <PhotoReveal
+                      key={from}
+                      from={from}
+                      src={assetUrl(work.src)}
+                      alt={work.alt}
+                      width={work.width ?? PHOTO_SIZE.width}
+                      height={work.height ?? PHOTO_SIZE.height}
+                      className="rounded"
+                    />
                   </motion.button>
                 </motion.li>
               );

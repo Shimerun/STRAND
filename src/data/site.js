@@ -107,7 +107,16 @@ export const site = {
     { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/rmn_mkhlvski/" },
     { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/puhach.dm/" }
   ],
-  works: [], // TODO: [{ src: "/images/works/work-01.jpg", alt: "Чоловіча стрижка, Strand" }]
+  // width / height: the photo's own size, so the masonry keeps its place before the photo loads.
+  // TODO: alt texts name only the barber; describe each cut (and convert to WebP <= ~200 KB) when possible.
+  works: [
+    { src: "/images/works/work-01.jpg", width: 1448, height: 1931, alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-02.jpg", width: 1200, height: 1600, alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-03.png", width: 612, height: 654, alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-04.jpg", width: 1720, height: 2293, alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-05.jpg", width: 1720, height: 2293, alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-06.jpg", width: 1290, height: 1720, alt: "Робота барбера Люби Зайнчковської, Strand" },
+  ],
   reviews: [
     { name: "Анонімно", date: "2026-09-05", text: "Дуже атмосферно і професійно" },
     { name: "Сергій", date: "2026-08-23", text: "Майстер свого діла" }

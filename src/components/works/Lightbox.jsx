@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { site } from '../../data/site.js';
+import { assetUrl } from '../../lib/assetUrl.js';
 import { EASE_REVEAL } from '../../lib/motion.js';
 import { lockScroll, unlockScroll } from '../../lib/scroll.js';
 import Img from '../Img.jsx';
@@ -107,10 +108,10 @@ export default function Lightbox({ works, index, onIndexChange, onClose }) {
         >
           <motion.div key={work.src} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={transition} className="w-full">
             <Img
-              src={work.src}
+              src={assetUrl(work.src)}
               alt={work.alt}
-              width={1200}
-              height={1500}
+              width={work.width ?? 1200}
+              height={work.height ?? 1500}
               priority
               draggable={false}
               className="mx-auto h-auto max-h-[calc(100svh-9rem)] w-full select-none object-contain"
