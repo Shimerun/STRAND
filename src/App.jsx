@@ -72,8 +72,8 @@ export default function App() {
         <Hero />
         <About />
         <Team />
-        <Services />
         <Works />
+        <Services />
         <Reviews />
         <Booking />
         <Contacts />
