@@ -73,16 +73,17 @@ export const site = {
     "Назва походить від англійського strand — «пасмо волосся». Це символ професіоналізму, точності та поваги до кожної деталі: з одного пасма починається новий образ, а з майстерності барбера — впевненість у собі.",
     "Ми дбаємо про комфортну атмосферу, стерильність інструментів і професійну косметику від перевірених світових брендів. Кожен візит — це персональний підхід і консультація."
   ],
+  // featured: shown as a large card in Services (the cuts); the rest make up the compact price menu below them.
   services: [
-    { id: "haircut", name: "Стрижка", durationMin: 60, description: "Класична чоловіча стрижка: верх опрацьовується ножицями, боки та потилиця — машинкою. Точність, акуратність і сучасний вигляд.",
+    { id: "haircut", featured: true, name: "Стрижка", durationMin: 60, description: "Класична чоловіча стрижка: верх опрацьовується ножицями, боки та потилиця — машинкою. Точність, акуратність і сучасний вигляд.",
       prices: { "oleh-dok": 900, "liubov-zainchkovska": 1000, "liliia-pavlenko": 800, "daryna-badio": 650, "roman-mykhailovskyi": 400, "dmytro-puhach": 400 } },
-    { id: "scissors", name: "Стрижка ножицями", durationMin: 60, description: "Повне виконання стрижки виключно ножицями, без використання машинки.",
+    { id: "scissors", featured: true, name: "Стрижка ножицями", durationMin: 60, description: "Повне виконання стрижки виключно ножицями, без використання машинки.",
       prices: { "oleh-dok": 1000, "liubov-zainchkovska": 1300 } },
-    { id: "clipper", name: "Коротка стрижка під насадку", durationMin: 60, description: "Стрижка машинкою з однією або кількома насадками. Для тих, хто цінує практичність, акуратність і мінімум догляду.",
+    { id: "clipper", featured: true, name: "Коротка стрижка під насадку", durationMin: 60, description: "Стрижка машинкою з однією або кількома насадками. Для тих, хто цінує практичність, акуратність і мінімум догляду.",
       prices: { "oleh-dok": 800, "liubov-zainchkovska": 900, "liliia-pavlenko": 700, "daryna-badio": 600, "roman-mykhailovskyi": 350, "dmytro-puhach": 350 } },
-    { id: "beard", name: "Стрижка бороди", durationMin: 60, description: "Моделювання бороди з урахуванням рис обличчя: розпарювання гарячими рушниками, підрівнювання довжини, гоління лезом для чітких контурів.",
+    { id: "beard", featured: true, name: "Стрижка бороди", durationMin: 60, description: "Моделювання бороди з урахуванням рис обличчя: розпарювання гарячими рушниками, підрівнювання довжини, гоління лезом для чітких контурів.",
       prices: { "oleh-dok": 800, "liubov-zainchkovska": 900, "liliia-pavlenko": 700, "daryna-badio": 600, "roman-mykhailovskyi": 350, "dmytro-puhach": 350 } },
-    { id: "kids", name: "Дитяча стрижка", durationMin: 60, note: "Для дітей від 5 до 12 років", description: "Стильна та акуратна стрижка для наймолодших клієнтів.",
+    { id: "kids", featured: true, name: "Дитяча стрижка", durationMin: 60, note: "Для дітей від 5 до 12 років", description: "Стильна та акуратна стрижка для наймолодших клієнтів.",
       prices: { "oleh-dok": 800, "liubov-zainchkovska": 1000, "liliia-pavlenko": 700, "daryna-badio": 600, "roman-mykhailovskyi": 350, "dmytro-puhach": 350 } },
     { id: "gray-head", name: "Камуфляж сивини голови", durationMin: 60, description: "Делікатне тонування, яке природно маскує сивину без ефекту фарбованого волосся.",
       prices: { "oleh-dok": 600, "liubov-zainchkovska": 600, "liliia-pavlenko": 600, "daryna-badio": 600 } },
@@ -150,7 +151,7 @@ export const site = {
     hero: { subline: "Барбершоп у Житомирі" }, // component appends " · " + site.addressShort
     alt: { hero: "Барбершоп Strand у Житомирі", about: "Майстер Strand за роботою" }, // barber photos use the barber's name
     sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", booking: "Запис онлайн", contacts: "Контакти" },
-    services: { priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
+    services: { more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },
     team: { prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
     works: { prev: "Попереднє фото", next: "Наступне фото" },

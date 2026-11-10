@@ -21,7 +21,7 @@ function onOutline(d, w, h) {
  * outline; then the seam to its neighbours opens, the piece lifts with a shadow and the concrete skin falls away.
  * The plate reaches half a grid gap past the card, so neighbouring plates meet into one slab.
  */
-export default function SlabCard({ index, children }) {
+export default function SlabCard({ index, className = '', children }) {
   const ref = useRef(null);
   const width = useMotionValue(0);
   const height = useMotionValue(0);
@@ -58,7 +58,7 @@ export default function SlabCard({ index, children }) {
   const shearsVisibility = useTransform(cut, (c) => (c > 0 && c < 1 ? 'visible' : 'hidden'));
 
   return (
-    <li className="relative">
+    <li className={`relative ${className}`}>
       <motion.div aria-hidden="true" style={{ opacity: plate }} className="slab absolute -inset-2 lg:-inset-3" />
       <motion.div ref={ref} style={{ y: lift }} className="relative h-full">
         <motion.div aria-hidden="true" style={{ opacity: shadow }} className="absolute inset-0 rounded shadow-[0_18px_40px_rgba(0,0,0,0.6)]" />

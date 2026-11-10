@@ -16,6 +16,8 @@ const TAGLINE =
  * (none under reduced motion). copy: the duplicate drawn for the lower half of the cut, kept out of the
  * accessibility tree by its parent, so it carries no h1 and no alt text. Its buttons still take clicks (the
  * top piece is clipped away under them while the flap sags) but are left out of the tab order.
+ * Both sets of buttons are marked data-own-cta, which keeps the mobile bar away while either is on screen
+ * (each is partly clipped away during the cut, so neither alone covers the whole of it).
  */
 export default function HeroContent({ parallaxY, copy = false }) {
   const { cta, hero } = site.ui;
@@ -49,7 +51,7 @@ export default function HeroContent({ parallaxY, copy = false }) {
           <p className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base">
             {hero.subline} · {site.addressShort}
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div data-own-cta className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Button tabIndex={tabIndex} track={{ name: EVENTS.bookClick, where: 'hero' }} onClick={() => scrollToId(BOOKING_ID)}>
               {cta.book}
             </Button>

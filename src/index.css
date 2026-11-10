@@ -95,6 +95,27 @@
   z-index: 5;
 }
 
+/* PriceMenu: a row opens smoothly where the browser can animate to an auto height; elsewhere it just opens. */
+@supports (interpolate-size: allow-keywords) {
+  @media (prefers-reduced-motion: no-preference) {
+    .price-menu {
+      interpolate-size: allow-keywords;
+    }
+
+    .price-menu details::details-content {
+      height: 0;
+      overflow: clip;
+      transition:
+        height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        content-visibility 0.3s allow-discrete;
+    }
+
+    .price-menu details[open]::details-content {
+      height: auto;
+    }
+  }
+}
+
 /* SectionTitle: sections are numbered 01, 02, … in page order. */
 main {
   counter-reset: section;

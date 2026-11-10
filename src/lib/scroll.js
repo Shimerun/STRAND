@@ -35,11 +35,15 @@ export function unlockScroll() {
 export function scrollToId(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  // A section that is held on screen part of the time (the one pinned under the hero) is not where it looks:
+  // its holder names the page position it comes to rest at, and that is the place to scroll to.
+  const rest = el.parentElement?.dataset.restTop;
   if (lenis) {
     wakeLenis?.();
-    lenis.scrollTo(el, { offset: HEADER_OFFSET });
+    if (rest) lenis.scrollTo(Number(rest));
+    else lenis.scrollTo(el, { offset: HEADER_OFFSET });
     return;
   }
-  const top = el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET;
+  const top = rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET;
   window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
 }

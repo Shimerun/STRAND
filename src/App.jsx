@@ -82,8 +82,10 @@ export default function App() {
       <Intro />
       <Header />
       <main>
-        <Hero />
-        <About />
+        {/* The section inside the hero is what shows through its cut. */}
+        <Hero>
+          <About />
+        </Hero>
         <Team />
         <Works />
         <Services />

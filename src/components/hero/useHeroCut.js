@@ -21,10 +21,11 @@ const started = (points) => points?.length > 1; // the cut has entered the frame
 /**
  * Motion values for the hero cut. The top piece keeps everything above the line plus the part not cut yet;
  * the flap is the cut-off part below it, hinged at the cutting point and sagging as the cut grows, so the gap
- * between them opens onto the next section, which stays pinned under the frame for the whole pin. Afterwards
- * the halves fly apart while that section grows to full size.
+ * between them opens onto the underlay: the content after the hero, which CSS holds under the frame for the
+ * whole pin (see Hero.jsx). Afterwards the halves fly apart while the underlay grows to full size.
+ * underlayRef: the sticky element holding that content (absent under reduced motion).
  */
-export function useHeroCut(sectionRef, frameRef, enabled) {
+export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const { scrollY } = useScroll();
   const width = useMotionValue(0);
   const height = useMotionValue(0);
@@ -33,12 +34,17 @@ export function useHeroCut(sectionRef, frameRef, enabled) {
   useEffect(() => {
     const section = sectionRef.current;
     const frame = frameRef.current;
-    const next = section.nextElementSibling;
+    const underlay = underlayRef.current;
+    const wrapper = underlay?.parentElement;
     const measure = () => {
+      const pinPx = Math.max(section.offsetHeight - frame.offsetHeight, 0);
       width.set(frame.offsetWidth);
       height.set(frame.offsetHeight);
-      pin.set(Math.max(section.offsetHeight - frame.offsetHeight, 0));
-      if (enabled && next) next.style.marginTop = `-${frame.offsetHeight}px`;
+      pin.set(pinPx);
+      if (!enabled || !underlay) return;
+      // Up to the top of the hero, beneath it; where the content comes to rest once the pin is over.
+      wrapper.style.marginTop = `-${section.offsetHeight}px`;
+      underlay.dataset.restTop = String(section.offsetTop + pinPx);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -46,9 +52,12 @@ export function useHeroCut(sectionRef, frameRef, enabled) {
     observer.observe(frame);
     return () => {
       observer.disconnect();
-      if (next) Object.assign(next.style, { marginTop: '', transform: '', transformOrigin: '' });
+      if (!underlay) return;
+      wrapper.style.marginTop = '';
+      delete underlay.dataset.restTop;
+      Object.assign(underlay.style, { transform: '', transformOrigin: '' });
     };
-  }, [sectionRef, frameRef, enabled, width, height, pin]);
+  }, [sectionRef, frameRef, underlayRef, enabled, width, height, pin]);
 
   const phases = useTransform([scrollY, pin], ([y, p]) => heroCutPhases(y, p));
   const state = useTransform([phases, width, height], ([phase, w, h]) => (w ? cutState(phase.along, w, h) : null));
@@ -64,17 +73,17 @@ export function useHeroCut(sectionRef, frameRef, enabled) {
     return { x: `${w / 2}px`, y: `${points[points.length >> 1].y}px` };
   });
 
-  // The next section is pulled up under the frame (marginTop above) and held at the viewport top for the whole
-  // pin, a bit smaller, so the gap shows it; it grows to full size as the halves part and is back in place
-  // when the pin ends. A string, so the style is only written when it changes.
-  const underlay = useTransform([scrollY, pin, split], ([y, p, s]) =>
-    p > 0 && y < p ? `translateY(${y - p}px) scale(${UNDERLAY_FROM + (1 - UNDERLAY_FROM) * s})` : '',
+  // Under the frame the underlay is a bit smaller, so the gap shows it at a distance; it grows to full size as
+  // the halves part. Only the scale is scripted (its place is held by CSS), and as a string, so the style is
+  // written when the scale changes, not on every scroll frame.
+  const underlayScale = useTransform([scrollY, pin, split], ([y, p, s]) =>
+    p > 0 && y < p ? `scale(${UNDERLAY_FROM + (1 - UNDERLAY_FROM) * s})` : '',
   );
-  useMotionValueEvent(underlay, 'change', (transform) => {
-    const next = sectionRef.current?.nextElementSibling;
-    if (!next) return;
-    next.style.transform = transform;
-    next.style.transformOrigin = transform ? `50% ${height.get() / 2}px` : '';
+  useMotionValueEvent(underlayScale, 'change', (transform) => {
+    const underlay = underlayRef.current;
+    if (!underlay) return;
+    underlay.style.transform = transform;
+    underlay.style.transformOrigin = transform ? `50% ${height.get() / 2}px` : '';
   });
 
   const swell = useTransform(split, (s) => 1 + PART.zoom * s);

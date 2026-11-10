@@ -9,8 +9,8 @@ const DRAW = 0.9; // s: the line runs from the shears to the left edge
 const SOLID_AT = 0.8; // share of DRAW after which the solid line fades in
 const FADE = 1.2; // s: then both lines fade out
 const SECTION_THRESHOLD = 0.2;
-// The hero and the section right after it are cut by the hero cut (components/hero), not here.
-const SECTIONS = `main section[id]:not(#${TOP_ID}):not(#${TOP_ID} + section):not([data-scissors-end])`;
+// The hero and the section seen through it are cut by the hero cut (components/hero), not here.
+const SECTIONS = `main section[id]:not(#${TOP_ID}):not([data-hero-underlay] section):not([data-scissors-end])`;
 const END = '[data-scissors-end]';
 
 let lastId = 0;

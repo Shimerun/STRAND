@@ -4,23 +4,32 @@ import { BOOKING_ID, scrollToId } from '../lib/scroll.js';
 import { EVENTS } from '../lib/track.js';
 import Button from './Button.jsx';
 
-// Hidden while the booking form is on screen: the bar would only cover it.
-function useBookingVisible() {
-  const [visible, setVisible] = useState(false);
+// Wherever the page shows a booking button of its own (marked data-own-cta), and over the form itself.
+const OWN_CTA = `#${BOOKING_ID}, [data-own-cta]`;
+
+// The bar steps aside while one of those is on screen: there it would only repeat the button, and on the first
+// screen it covered the second one. Starts hidden, so it never flashes over the hero while the page loads.
+function useOwnCtaOnScreen() {
+  const [onScreen, setOnScreen] = useState(true);
 
   useEffect(() => {
-    const target = document.getElementById(BOOKING_ID);
-    if (!target) return undefined;
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
-    observer.observe(target);
+    const visible = new Set();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visible.add(entry.target);
+        else visible.delete(entry.target);
+      }
+      setOnScreen(visible.size > 0);
+    });
+    document.querySelectorAll(OWN_CTA).forEach((target) => observer.observe(target));
     return () => observer.disconnect();
   }, []);
 
-  return visible;
+  return onScreen;
 }
 
 export default function MobileBar() {
-  const hidden = useBookingVisible();
+  const hidden = useOwnCtaOnScreen();
   const { cta } = site.ui;
 
   return (
