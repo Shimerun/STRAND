@@ -51,7 +51,7 @@ export default function Works() {
               const from = sideOf(index);
               return (
                 <li key={index} aria-hidden="true">
-                  <PhotoReveal key={from} from={from} width={4} height={5} className={FRAME} />
+                  <PhotoReveal key={from} from={from} openBy="inView" width={4} height={5} className={FRAME} />
                 </li>
               );
             })
@@ -72,6 +72,7 @@ export default function Works() {
                       <PhotoReveal
                         key={from}
                         from={from}
+                        openBy="inView"
                         src={assetUrl(work.src)}
                         // Phones (two columns) take the 600px copy; from md the full photo, which the WebGL
                         // layer loads anyway, so a desktop never downloads both.

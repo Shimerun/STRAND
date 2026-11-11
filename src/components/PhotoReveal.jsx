@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { fadeReveal, revealViewport } from '../lib/motion.js';
 import Img from './Img.jsx';
@@ -19,15 +19,35 @@ const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visib
 
 /**
  * Photo that opens with the scroll (clip-path from `from`) while the image inside settles from a zoom,
- * then drifts slower than the page. Reduced motion: plain fade-in, no clip, zoom or drift.
+ * then drifts slower than the page. openBy: 'center' opens it fully when its centre reaches the centre of the
+ * screen, 'inView' as soon as the whole frame is on screen. Reduced motion: plain fade-in, no clip, zoom or drift.
  */
-export default function PhotoReveal({ from = 'sides', className = '', ...imgProps }) {
+export default function PhotoReveal({ from = 'sides', openBy = 'center', className = '', ...imgProps }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
-  // One scroll target per photo (framer measures every target on every scroll frame). From 'start end' to
-  // 'center center' is exactly half of the whole pass, so the opening is the first half of it.
+  // Share of the whole pass the opening takes. 'center': from 'start end' to 'center center', exactly half.
+  // 'inView': from 'start end' to 'end end', which depends on the frame and screen heights, so it is measured
+  // on resize rather than read on every scroll frame.
+  const openShare = useRef(0.5);
+  // One scroll target per photo (framer measures every target on every scroll frame).
   const { scrollYProgress: pass } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const open = useTransform(pass, (progress) => Math.min(progress * 2, 1));
+  const open = useTransform(pass, (progress) => Math.min(progress / openShare.current, 1));
+
+  useEffect(() => {
+    if (openBy !== 'inView' || reduce) return undefined;
+    const element = ref.current;
+    const measure = () => {
+      const height = element.offsetHeight;
+      if (height > 0) openShare.current = height / (window.innerHeight + height);
+    };
+    const resized = new ResizeObserver(measure);
+    resized.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      resized.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [openBy, reduce]);
   const insets = OPEN_FROM[from] ?? OPEN_FROM.sides;
 
   const clipPath = useTransform(open, (progress) => {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
 import { cutGeometry, cutSoFar, cutState, heroCutPhases } from '../../lib/heroCut.js';
 
@@ -31,7 +31,9 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const height = useMotionValue(0);
   const pin = useMotionValue(0);
 
-  useEffect(() => {
+  // A layout effect: the underlay is pulled up before the first paint. Done after it, the whole next section
+  // jumped into the screen (hidden under the hero, but a layout shift of 1.0 to Core Web Vitals).
+  useLayoutEffect(() => {
     const section = sectionRef.current;
     const frame = frameRef.current;
     const underlay = underlayRef.current;
@@ -55,7 +57,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
       if (!underlay) return;
       wrapper.style.marginTop = '';
       delete underlay.dataset.restTop;
-      Object.assign(underlay.style, { transform: '', transformOrigin: '' });
+      Object.assign(underlay.style, { transform: '', transformOrigin: '', willChange: '' });
     };
   }, [sectionRef, frameRef, underlayRef, enabled, width, height, pin]);
 
@@ -75,7 +77,9 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
 
   // Under the frame the underlay is a bit smaller, so the gap shows it at a distance; it grows to full size as
   // the halves part. Only the scale is scripted (its place is held by CSS), and as a string, so the style is
-  // written when the scale changes, not on every scroll frame.
+  // written when the scale changes, not on every scroll frame. While scaled it is a layer of its own (otherwise
+  // every frame of the split repaints the whole screen, which Safari on a phone cannot keep up with); once the
+  // pin is over the layer goes, so the text comes back crisp at full size.
   const underlayScale = useTransform([scrollY, pin, split], ([y, p, s]) =>
     p > 0 && y < p ? `scale(${UNDERLAY_FROM + (1 - UNDERLAY_FROM) * s})` : '',
   );
@@ -84,6 +88,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     if (!underlay) return;
     underlay.style.transform = transform;
     underlay.style.transformOrigin = transform ? `50% ${height.get() / 2}px` : '';
+    underlay.style.willChange = transform ? 'transform' : '';
   });
 
   const swell = useTransform(split, (s) => 1 + PART.zoom * s);

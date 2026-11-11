@@ -77,8 +77,8 @@ export default function WorkPlane({ src, height, index, frames, strength }) {
     plane.position.set(rect.left + rect.width / 2 - size.width / 2, size.height / 2 - rect.top - rect.height / 2, 0);
     plane.scale.set(rect.width, rect.height, 1);
 
-    const open = clamp01((size.height - rect.top) / (size.height / 2 + rect.height / 2));
     const pass = clamp01((size.height - rect.top) / (size.height + rect.height));
+    const open = clamp01((size.height - rect.top) / rect.height); // as PhotoReveal openBy="inView"
     const closed = 1 - open;
     const [top, right, bottom, left] = OPEN_FROM[frame.dataset.from] ?? OPEN_FROM.sides;
     uniforms.uSize.value.set(rect.width, rect.height);

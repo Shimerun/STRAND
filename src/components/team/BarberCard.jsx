@@ -15,7 +15,7 @@ import WorksOrbit from './WorksOrbit.jsx';
 export default function BarberCard({ barber, index, onOpen }) {
   const reduce = useReducedMotion();
   const { team } = site.ui;
-  const { slug, name, role, junior, rating, instagram } = barber;
+  const { slug, name, role, rating, instagram } = barber;
 
   return (
     <Reveal
@@ -23,7 +23,7 @@ export default function BarberCard({ barber, index, onOpen }) {
       index={index}
       whileHover={reduce ? undefined : hoverLift}
       // Raised while its works orbit (hover, focus, or in view on touch), so they pass over the neighbouring cards.
-      className="group relative w-[72%] shrink-0 snap-start hover:z-10 has-[:focus-visible]:z-10 has-[[data-active]]:z-10 sm:w-[44%] md:w-auto"
+      className="group relative flex w-[72%] shrink-0 snap-start flex-col hover:z-10 has-[:focus-visible]:z-10 has-[[data-active]]:z-10 sm:w-[44%] md:w-auto"
     >
       {/* One 3D scene: the browser depth-sorts the orbiting works against the portrait (WorksOrbit). */}
       <div className="relative [perspective:1000px] [transform-style:preserve-3d]">
@@ -45,7 +45,8 @@ export default function BarberCard({ barber, index, onOpen }) {
         <WorksOrbit slug={slug} />
       </div>
 
-      <div className="mt-4 flex items-start justify-between gap-3">
+      {/* Grows so the profile button lines up across cards whatever the name/role height. */}
+      <div className="mt-4 flex flex-1 items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm leading-snug">
             <button
@@ -57,13 +58,9 @@ export default function BarberCard({ barber, index, onOpen }) {
               {name}
             </button>
           </h3>
-          {junior ? (
-            <span className="mt-2 inline-block rounded border border-line px-2 py-0.5 text-xs font-medium uppercase tracking-heading text-concrete">
-              {role}
-            </span>
-          ) : (
-            <p className="mt-1 text-xs text-concrete">{role}</p>
-          )}
+          <span className="mt-2 inline-block rounded border border-line px-2 py-0.5 text-xs font-medium uppercase tracking-heading text-concrete">
+            {role}
+          </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {rating != null && (
