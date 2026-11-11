@@ -16,9 +16,9 @@ export default function BookingSummary({ form, className = '' }) {
   ];
 
   return (
-    <aside aria-label={summary.title} className={`rounded border border-line p-5 ${className}`}>
+    <aside aria-label={summary.title} className={`rounded border border-line p-4 ${className}`}>
       <p className="text-xs font-medium uppercase tracking-heading text-concrete">{summary.title}</p>
-      <dl className="mt-4 space-y-3 text-sm">
+      <dl className="mt-3 space-y-2 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4">
             <dt className="shrink-0 text-concrete">{label}</dt>
@@ -34,7 +34,7 @@ export default function BookingSummary({ form, className = '' }) {
           </div>
         ))}
       </dl>
-      <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-line pt-4">
+      <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-line pt-3">
         <span className="text-xs font-medium uppercase tracking-heading text-concrete">{summary.total}</span>
         <span className="text-2xl font-extrabold">
           {form.price ? formatPrice(form.price.value, { from: form.price.from }) : summary.empty}

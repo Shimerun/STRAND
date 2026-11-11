@@ -51,7 +51,8 @@ export default function SectionTitle({ className = '', children }) {
         aria-hidden="true"
         className="section-index mb-4 flex items-center gap-3 text-xs font-medium tracking-heading text-concrete"
       >
-        <motion.span style={reduce ? undefined : { scaleX: scrollYProgress }} className="h-px w-16 origin-left bg-concrete/50 md:w-24" />
+        {/* Its own layer: the scroll-linked scale would otherwise repaint the page around it every frame. */}
+        <motion.span style={reduce ? undefined : { scaleX: scrollYProgress }} className="h-px w-16 origin-left bg-concrete/50 will-change-transform md:w-24" />
       </Reveal>
       {reduce || typeof children !== 'string' ? (
         <Reveal as="h2" className={H2}>

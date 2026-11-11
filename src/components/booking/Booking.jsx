@@ -18,7 +18,7 @@ export default function Booking() {
 
   return (
     <Section id={BOOKING_ID} data-scissors-end>
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
         <div>
           <div className="lg:sticky lg:top-[calc(theme(spacing.header)+2rem)]">
             <SectionTitle>{title}</SectionTitle>

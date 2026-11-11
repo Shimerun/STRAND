@@ -22,11 +22,16 @@ export default function About() {
         <PhotoReveal src={assetUrl(site.images.about)} alt={site.ui.alt.about} width={1200} height={1500} className="aspect-[4/5] rounded" />
       </div>
 
-      <Reveal as="ul" className="mt-12 flex flex-wrap gap-2 md:mt-16">
+      {/* Phones: one line to swipe, bleeding to the left edge and fading out on the right (the end padding lets the
+          last item clear the fade), instead of seven stacked rows. Wraps from md up. */}
+      <Reveal
+        as="ul"
+        className="-ml-5 mt-12 flex gap-2 overflow-x-auto pl-5 pr-12 [mask-image:linear-gradient(to_right,#000_80%,transparent)] [scrollbar-width:none] md:ml-0 md:mt-16 md:flex-wrap md:overflow-visible md:p-0 md:[mask-image:none]"
+      >
         {site.amenities.map((amenity) => (
           <li
             key={amenity}
-            className="rounded border border-line px-4 py-2 text-xs font-medium uppercase tracking-heading text-concrete"
+            className="shrink-0 whitespace-nowrap rounded border border-line px-4 py-2 text-xs font-medium uppercase tracking-heading text-concrete"
           >
             {amenity}
           </li>

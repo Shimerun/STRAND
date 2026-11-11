@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
@@ -11,52 +11,54 @@ import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
 import Lightbox from './Lightbox.jsx';
-import { useColumnDrift } from './useColumnDrift.js';
+import { useColumnSides } from './useColumnSides.js';
 import { useWorksGL } from './useWorksGL.js';
 
 // three.js and R3F: loaded only where WebGL is on and only once the grid comes near the screen.
 const WorksGL = lazy(() => import('./gl/WorksGL.jsx'));
 
-// Varied ratios keep the masonry rhythm while real photos are missing.
-const PLACEHOLDER_RATIOS = [
-  [4, 5],
-  [1, 1],
-  [3, 4],
-  [1, 1],
-  [4, 5],
-  [3, 4],
-];
 const PHOTO_SIZE = { width: 1200, height: 1500 };
-const ITEM = 'mb-4 break-inside-avoid md:mb-6';
+// An even grid of 4:5 frames (photos are cropped to fit): six works, three rows of two on phones and two rows
+// of three from md, then a button for the rest. The lightbox still pages through all of them.
+const LIMIT = 6;
+const FRAME = 'aspect-[4/5] rounded';
 
 export default function Works() {
   const [openIndex, setOpenIndex] = useState(null);
   const close = useCallback(() => setOpenIndex(null), []);
   const reduce = useReducedMotion();
   const listRef = useRef(null);
-  const column = useColumnDrift(listRef);
+  const sideOf = useColumnSides(listRef);
   const { works, social, ui } = site;
   const gl = useWorksGL(listRef, works.length > 0);
+  const [expanded, setExpanded] = useState(false);
+  const collapsed = !expanded && works.length > LIMIT;
+  const shown = collapsed ? works.slice(0, LIMIT) : works;
+
+  // The button goes away once pressed, so focus moves on to the first work it brought in.
+  useEffect(() => {
+    if (expanded) listRef.current?.children[LIMIT]?.querySelector('button')?.focus({ preventScroll: true });
+  }, [expanded]);
 
   return (
     <Section id="works">
       <SectionTitle>{ui.sections.works}</SectionTitle>
 
-      <ul ref={listRef} className="mt-10 columns-2 gap-4 md:columns-3 md:gap-6">
+      <ul ref={listRef} className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
         {works.length === 0
           ? // TODO: fill site.works with real photos; placeholders until then.
-            PLACEHOLDER_RATIOS.map(([width, height], index) => {
-              const { y, from } = column(index);
+            Array.from({ length: LIMIT }, (_, index) => {
+              const from = sideOf(index);
               return (
-                <motion.li key={index} aria-hidden="true" style={reduce ? undefined : { y }} className={ITEM}>
-                  <PhotoReveal key={from} from={from} width={width} height={height} className="rounded" />
-                </motion.li>
+                <li key={index} aria-hidden="true">
+                  <PhotoReveal key={from} from={from} width={4} height={5} className={FRAME} />
+                </li>
               );
             })
-          : works.map((work, index) => {
-              const { y, from } = column(index);
+          : shown.map((work, index) => {
+              const from = sideOf(index);
               return (
-                <motion.li key={work.src} style={reduce ? undefined : { y }} className={ITEM}>
+                <li key={work.src}>
                   <motion.button
                     type="button"
                     aria-haspopup="dialog"
@@ -71,17 +73,28 @@ export default function Works() {
                         key={from}
                         from={from}
                         src={assetUrl(work.src)}
+                        // Phones (two columns) take the 600px copy; from md the full photo, which the WebGL
+                        // layer loads anyway, so a desktop never downloads both.
+                        srcSet={work.thumb ? `${assetUrl(work.thumb)} 600w, ${assetUrl(work.src)} ${work.width}w` : undefined}
+                        sizes={work.thumb ? `(min-width: 768px) ${work.width}px, 50vw` : undefined}
                         alt={work.alt}
                         width={work.width ?? PHOTO_SIZE.width}
                         height={work.height ?? PHOTO_SIZE.height}
-                        className="rounded"
+                        className={FRAME}
                       />
                     </div>
                   </motion.button>
-                </motion.li>
+                </li>
               );
             })}
       </ul>
+
+      {collapsed && (
+        <Button variant="ghost" onClick={() => setExpanded(true)} className="mt-6 w-full">
+          {ui.works.showAll}
+          <span className="tabular-nums text-concrete">{works.length}</span>
+        </Button>
+      )}
 
       {social.instagram && (
         <Reveal className="mt-6 md:mt-8">
@@ -94,7 +107,8 @@ export default function Works() {
       {gl.active && (
         <ErrorBoundary>
           <Suspense fallback={null}>
-            <WorksGL works={works} frames={gl.frames} running={gl.near} onLost={gl.disable} />
+            {/* Only the works shown: a plane mounted before its frame exists never hides that photo later. */}
+            <WorksGL works={shown} frames={gl.frames} running={gl.near} onLost={gl.disable} />
           </Suspense>
         </ErrorBoundary>
       )}

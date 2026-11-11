@@ -110,16 +110,27 @@ export const site = {
   ],
   // width / height: the photo's own size, so the masonry keeps its place before the photo loads.
   // New photos: WebP, at most 1200 px wide (a phone at 3x fills the lightbox with that), about 100-250 KB.
-  // work-02 stays a JPEG: it is 1200 px wide already and comes out larger as WebP.
+  // work-02 is a grainy photo that WebP compresses badly at 1200 px: it is 1000 px wide instead.
   // TODO: alt texts name only the barber; describe each cut when possible.
-  // barber: team slug; the barber's profile lists their works.
+  // barber: team slug; the barber's profile lists their works. thumb: a 600px copy for phones and the orbit
+  // (photos that are small already have none).
   works: [
-    { src: "/images/works/work-01.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-02.jpg", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-01.webp", thumb: "/images/works/thumbs/work-01.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-02.webp", thumb: "/images/works/thumbs/work-02.webp", width: 1000, height: 1333, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
     { src: "/images/works/work-03.webp", width: 612, height: 654, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
-    { src: "/images/works/work-04.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-05.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
-    { src: "/images/works/work-06.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-04.webp", thumb: "/images/works/thumbs/work-04.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-05.webp", thumb: "/images/works/thumbs/work-05.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-06.webp", thumb: "/images/works/thumbs/work-06.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    // TODO: work-07, 09, 11, 13–15 are ~400px screenshots, soft on retina and in the lightbox; swap for originals.
+    { src: "/images/works/work-07.webp", width: 426, height: 391, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-08.webp", thumb: "/images/works/thumbs/work-08.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-09.webp", width: 399, height: 351, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-10.webp", thumb: "/images/works/thumbs/work-10.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-11.webp", width: 398, height: 415, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-12.webp", thumb: "/images/works/thumbs/work-12.webp", width: 1200, height: 1600, barber: "liubov-zainchkovska", alt: "Робота барбера Люби Зайнчковської, Strand" },
+    { src: "/images/works/work-13.webp", width: 462, height: 401, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-14.webp", width: 404, height: 333, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
+    { src: "/images/works/work-15.webp", width: 480, height: 462, barber: "oleh-dok", alt: "Робота барбера Олега Дока, Strand" },
   ],
   reviews: [
     { name: "Анонімно", date: "2026-09-05", text: "Дуже атмосферно і професійно" },
@@ -154,7 +165,7 @@ export const site = {
     services: { more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },
     team: { prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
-    works: { prev: "Попереднє фото", next: "Наступне фото" },
+    works: { prev: "Попереднє фото", next: "Наступне фото", showAll: "Показати всі роботи" },
     brand: { sub: "Barbershop" },
     reviews: {
       verified: ["перевірений відгук", "перевірені відгуки", "перевірених відгуків"],
@@ -173,6 +184,7 @@ export const site = {
       today: "Сьогодні",
       map: "Strand на карті Google",
       closed: "Вихідний",
+      everyDay: "Щодня", // one row instead of seven when every day has the same hours
       days: { mon: "Понеділок", tue: "Вівторок", wed: "Середа", thu: "Четвер", fri: "П'ятниця", sat: "Субота", sun: "Неділя" }
     },
     form: {

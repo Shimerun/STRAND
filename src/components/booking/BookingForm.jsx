@@ -29,7 +29,7 @@ export default function BookingForm({ form, availability }) {
   const submitLabel = price ? `${copy.submit} · ${formatPrice(price.value, { from: price.from })}` : copy.submit;
 
   return (
-    <form ref={form.formRef} noValidate onSubmit={form.submit} className="space-y-8">
+    <form ref={form.formRef} noValidate onSubmit={form.submit} className="space-y-6">
       <Step index={1} title={copy.steps.choice}>
         <BarberPicker barbers={barbers} value={barber} error={errors.barber} onChange={form.chooseBarber} />
         <ServicePicker
@@ -63,7 +63,7 @@ export default function BookingForm({ form, availability }) {
       </Step>
 
       <Step index={3} title={copy.steps.contacts}>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <NameField value={values.name} error={errors.name} onChange={(name) => form.setField('name', name)} />
           <PhoneField value={values.phone} error={errors.phone} onChange={(phone) => form.setField('phone', phone)} />
         </div>
@@ -72,7 +72,7 @@ export default function BookingForm({ form, availability }) {
           <textarea
             {...controlProps(COMMENT_ID)}
             name="comment"
-            rows={3}
+            rows={2}
             maxLength={COMMENT_MAX}
             placeholder={copy.placeholders.comment}
             value={values.comment}

@@ -28,6 +28,10 @@ export function useScissorsSignals(requestFrame) {
     gutter: 0,
     pageWidth: document.documentElement.clientWidth,
     pageHeight: document.documentElement.scrollHeight,
+    // The window, measured on resize: reading innerWidth / innerHeight in per-frame code made the browser
+    // recompute the layout first, every frame.
+    viewWidth: window.innerWidth,
+    viewHeight: window.innerHeight,
     endTop: null, // page-space top of the [data-scissors-end] element, px; null without one
     heroHeight: window.innerHeight, // the hero's visible frame (pinned while it is cut)
     cutPin: 0, // px of scroll the hero stays pinned for the cut; 0 = no cut
@@ -59,6 +63,8 @@ export function useScissorsSignals(requestFrame) {
       signals.current.gutter = readGutter();
       signals.current.pageWidth = document.documentElement.clientWidth;
       signals.current.pageHeight = document.documentElement.scrollHeight;
+      signals.current.viewWidth = window.innerWidth;
+      signals.current.viewHeight = window.innerHeight;
       signals.current.endTop = end ? end.getBoundingClientRect().top + window.scrollY : null;
       signals.current.heroHeight = frame?.offsetHeight || window.innerHeight;
       signals.current.cutPin = hero && frame ? Math.max(hero.offsetHeight - frame.offsetHeight, 0) : 0;
@@ -103,8 +109,8 @@ export function useScissorsSignals(requestFrame) {
   useEffect(() => {
     if (!window.matchMedia('(pointer: fine)').matches) return undefined;
     const onMove = (event) => {
-      signals.current.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-      signals.current.pointer.y = (event.clientY / window.innerHeight) * 2 - 1;
+      signals.current.pointer.x = (event.clientX / signals.current.viewWidth) * 2 - 1;
+      signals.current.pointer.y = (event.clientY / signals.current.viewHeight) * 2 - 1;
       wake();
     };
     window.addEventListener('pointermove', onMove, { passive: true });

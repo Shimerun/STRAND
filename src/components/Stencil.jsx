@@ -8,7 +8,11 @@ const WORD = site.name.toUpperCase();
 const VIEW = { width: 1000, height: 240 };
 const SNIPS_PER_LETTER = 3;
 const FADE = 0.04; // share of the cut over which the borrowed shears come and go
-const PIN = 1.2; // extra scroll, in screen heights, while the stencil stays centred and gets cut
+// The pinned stage in screen heights: its height, and the extra scroll it is held for while the word is cut.
+// Phones get a lower stage and a shorter pin: the word is small there, and a full screen held over two screens
+// of scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends.
+const STAGE = { full: { height: 1, pin: 1.2 }, compact: { height: 0.7, pin: 0.6 } };
+const COMPACT = '(max-width: 767px)';
 const CUT_RANGE = [0.05, 0.65]; // share of the pin: the letters get cut
 const DROP_RANGE = [0.65, 0.95]; // share of the pin: the cut-out letters drop away
 const CLOSING_RANGE = [0.4, 1]; // share of the drop: what stands under the word comes in
@@ -36,8 +40,9 @@ export default function Stencil({ children }) {
   const rootRef = useRef(null);
   const wordRef = useRef(null);
   const [boxes, setBoxes] = useState(null);
-  // Progress over the pin: from the stencil settling in the middle of the screen to the end of its scroll room.
-  const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', 'end end'] });
+  const [stage] = useState(() => (window.matchMedia(COMPACT).matches ? STAGE.compact : STAGE.full));
+  // Progress over the pin: from the stage reaching the top of the screen to its release.
+  const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', `end ${stage.height}`] });
   const cut = useTransform(scrollYProgress, CUT_RANGE, [0, 1]);
   const drop = useTransform(scrollYProgress, DROP_RANGE, [0, 1]);
   const closing = useTransform(drop, CLOSING_RANGE, [0, 1]);
@@ -92,8 +97,8 @@ export default function Stencil({ children }) {
   }, [publish, scrollYProgress]);
 
   return (
-    <div ref={trackRef} className="relative" style={reduce ? undefined : { height: `${(1 + PIN) * 100}svh` }}>
-      <div className={reduce ? 'py-6' : 'sticky top-0 flex h-svh items-center'}>
+    <div ref={trackRef} className="relative" style={reduce ? undefined : { height: `${(stage.height + stage.pin) * 100}svh` }}>
+      <div className={reduce ? 'py-6' : 'sticky top-0 flex items-center'} style={reduce ? undefined : { height: `${stage.height * 100}svh` }}>
         <div className="mx-auto w-full max-w-6xl pl-5 pr-[var(--gutter)]">
           <div ref={rootRef} aria-hidden="true" className="relative">
             <svg viewBox={`0 0 ${VIEW.width} ${VIEW.height}`} className="block h-auto w-full overflow-visible">

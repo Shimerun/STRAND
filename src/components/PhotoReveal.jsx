@@ -24,8 +24,10 @@ const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visib
 export default function PhotoReveal({ from = 'sides', className = '', ...imgProps }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
-  const { scrollYProgress: open } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  // One scroll target per photo (framer measures every target on every scroll frame). From 'start end' to
+  // 'center center' is exactly half of the whole pass, so the opening is the first half of it.
   const { scrollYProgress: pass } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const open = useTransform(pass, (progress) => Math.min(progress * 2, 1));
   const insets = OPEN_FROM[from] ?? OPEN_FROM.sides;
 
   const clipPath = useTransform(open, (progress) => {
@@ -39,11 +41,13 @@ export default function PhotoReveal({ from = 'sides', className = '', ...imgProp
   return (
     <motion.div
       ref={ref}
-      className={`overflow-hidden ${className}`}
+      // Layers for the clip and for the zoomed photo: as the clip opens and the photo drifts on each scroll
+      // frame, only the clip's mask is redrawn, not the photo and everything painted with it.
+      className={`overflow-hidden ${reduce ? '' : 'will-change-transform'} ${className}`}
       style={reduce ? undefined : { clipPath }}
       {...(reduce ? fadeProps : undefined)}
     >
-      <motion.div className="h-full w-full" style={reduce ? undefined : { scale, y }}>
+      <motion.div className={`h-full w-full ${reduce ? '' : 'will-change-transform'}`} style={reduce ? undefined : { scale, y }}>
         <Img {...imgProps} className="h-full w-full object-cover" />
       </motion.div>
     </motion.div>

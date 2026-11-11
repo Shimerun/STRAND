@@ -18,8 +18,7 @@ const MAX_DT = 0.05;
  * endTop is that element's viewport top (Infinity without one). Pure arithmetic on what useScissorsSignals
  * measured: this runs every frame, and reading the DOM here would force a layout each time.
  */
-function readTrack({ heroHeight, cutPin, endTop, pageHeight }, scrollY) {
-  const viewport = window.innerHeight;
+function readTrack({ heroHeight, cutPin, endTop, pageHeight, viewHeight: viewport }, scrollY) {
   const start = dockRange(heroHeight, cutPin).to;
   const end = endTop === null ? pageHeight - viewport : endTop - viewport * (1 + END_OFFSET);
   return { start, span: Math.max(end - start, 1), endTop: endTop === null ? Infinity : endTop - scrollY };
@@ -41,6 +40,16 @@ export function heroPose(screen, unit, length, time = 0) {
 
 const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 const easeInOut = (t) => t * t * (3 - 2 * t);
+
+// Below desktop the About text fills the screen while it shows through the hero cut. Rather than fly across it
+// from the end of the cut (left edge) to the track (right edge), the shears fade out early in the dock and fade
+// back in at its end, already on the track.
+const DOCK_DIP = { out: 0.1, in: 0.92 };
+function dockVisibility(dock) {
+  const gone = easeInOut(clamp(dock / DOCK_DIP.out, 0, 1));
+  const back = easeInOut(clamp((dock - DOCK_DIP.in) / (1 - DOCK_DIP.in), 0, 1));
+  return 1 - gone + back;
+}
 const SCENE_SCALE = 0.8; // a borrowed pair is a little smaller than on the track
 
 // Blends the frame towards a scene that borrowed the shears (rig.setScene): tips on its point, flat to the camera.
@@ -110,13 +119,14 @@ export function createRigMotion() {
     const rotation = mix(before.rotation, trackRotation, dock);
     const burst = burstElapsed();
     const now = performance.now();
-    const pastCut = range.endTop < window.innerHeight * CUT_LINE;
+    const pastCut = range.endTop < signals.viewHeight * CUT_LINE;
     if (!pastCut) cutAt = null;
     else if (cutAt === null) cutAt = now;
     const holding = pastCut && (now - cutAt) / 1000 < BURST_DURATION; // the final snips play before the fade
     const target = pastCut && !holding ? 0 : 1;
     shown = shown === null ? target : clamp(shown + Math.sign(target - shown) * (dt / CUT_FADE), 0, 1);
-    const opacity = Math.round(easeFade(shown) * 1000) / 1000;
+    const docking = track === TRACK.mobile ? dockVisibility(dock) : 1;
+    const opacity = Math.round(easeFade(shown) * docking * 1000) / 1000;
     const leaning = Math.abs(leanX - lean.x) + Math.abs(leanY - lean.y) > POINTER.settle;
 
     const frame = {

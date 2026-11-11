@@ -11,18 +11,22 @@ import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
 import PriceMenu from './PriceMenu.jsx';
-import SlabCard from './SlabCard.jsx';
 
 const LABEL = 'text-xs font-medium uppercase tracking-heading text-concrete';
 const CARD = 'flex h-full flex-col rounded border border-line bg-bg p-6 transition-colors duration-300 hover:border-concrete';
+// Phones: one row of cards to swipe instead of a column three screens tall. It bleeds to both screen edges (over
+// the right gutter too), so the next card runs off the screen instead of being cut short mid-page. A grid from sm up.
+const ROW =
+  '-ml-5 -mr-[var(--gutter)] mt-10 flex snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto pb-2 pl-5 pr-[var(--gutter)] pt-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:p-0 lg:grid-cols-6 lg:gap-6';
+// max-sm:h-auto: a percentage height stops the row from stretching the cards to one height.
+const ITEM = 'w-[80%] shrink-0 snap-start max-sm:h-auto sm:w-auto';
 // The first two cards lead: half the row each from lg (the first a whole row at sm); the rest take a third.
 const SPANS = ['sm:col-span-2 lg:col-span-3', 'lg:col-span-3'];
 const SPAN = 'lg:col-span-2';
 
 /**
- * The featured services (site.js) are cards cut out of one concrete slab as they scroll in (SlabCard; reduced
- * motion: plain fade-in). Everything else follows as a compact price menu, so the list of twelve does not
- * become twelve equal cards.
+ * The featured services (site.js) are static cards. Everything else follows as a compact price menu, so the list
+ * of twelve does not become twelve equal cards.
  */
 export default function Services() {
   const { openBooking } = useBooking();
@@ -37,7 +41,7 @@ export default function Services() {
       <p className="mt-3 text-sm leading-relaxed text-concrete">{service.description}</p>
       {service.note && <p className="mt-2 text-xs font-medium text-text/80">{service.note}</p>}
 
-      <dl className="mt-auto flex items-end gap-8 pt-6">
+      <dl className="mt-auto flex flex-wrap items-end gap-x-8 gap-y-4 pt-6">
         <div>
           <dt className={LABEL}>{labels.price}</dt>
           <dd className="mt-2 text-2xl font-extrabold leading-none">{formatPrice(minPrice(service), { from: isFromPrice(service) })}</dd>
@@ -64,20 +68,12 @@ export default function Services() {
     <Section id="services" tone="surface">
       <SectionTitle>{sections.services}</SectionTitle>
 
-      <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-6 lg:gap-6">
-        {featured.map((service, index) =>
-          reduce ? (
-            <Reveal as="li" key={service.id} className={`${CARD} ${SPANS[index] ?? SPAN}`}>
-              {content(service)}
-            </Reveal>
-          ) : (
-            <SlabCard key={service.id} index={index} className={SPANS[index] ?? SPAN}>
-              <motion.div whileHover={hoverLift} className={CARD}>
-                {content(service)}
-              </motion.div>
-            </SlabCard>
-          ),
-        )}
+      <ul className={ROW}>
+        {featured.map((service, index) => (
+          <motion.li key={service.id} whileHover={reduce ? undefined : hoverLift} className={`${CARD} ${ITEM} ${SPANS[index] ?? SPAN}`}>
+            {content(service)}
+          </motion.li>
+        ))}
       </ul>
 
       {rest.length > 0 && (

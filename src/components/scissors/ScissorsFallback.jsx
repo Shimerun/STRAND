@@ -41,9 +41,15 @@ function MovingShears() {
     const current = loop.current;
     const start = performance.now();
     let opacity = -1;
+    // The layer's size is read when it changes, never in the frame loop (that forced a layout every frame).
+    let screen = screenOf(layerRef.current);
+    const resized = new ResizeObserver(() => {
+      screen = screenOf(layerRef.current);
+      requestFrame();
+    });
+    resized.observe(layerRef.current);
     current.tick = (now) => {
       const layer = layerRef.current;
-      const screen = screenOf(layer);
       const frame = step({
         time: (now - start) / 1000,
         dt: current.last ? (now - current.last) / 1000 : 0,
@@ -64,6 +70,7 @@ function MovingShears() {
     };
     requestFrame();
     return () => {
+      resized.disconnect();
       cancelAnimationFrame(current.raf);
       current.raf = 0;
       current.tick = null;

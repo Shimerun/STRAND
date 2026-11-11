@@ -21,7 +21,10 @@ export const HERO_CUT = {
   bite: 3, // power of the closing ease: the blades press slowly, then snap shut
 };
 
-const SAMPLES = 160;
+// Points along the line: one per SAMPLE_PX of width, within these bounds. Every point goes into the two clip
+// paths and the cut marks redrawn on each scroll frame, so a phone gets ~70 instead of a fixed 160.
+const SAMPLE_PX = 6;
+const SAMPLES = { min: 48, max: 160 };
 const TAU = Math.PI * 2;
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const ease = (t) => t * t * (3 - 2 * t);
@@ -58,9 +61,10 @@ export function cutGeometry(width, height) {
   if (cached && cached.width === width && cached.height === height) return cached;
   const { overshoot } = HERO_CUT;
   const points = [];
+  const samples = Math.min(Math.max(Math.round(width / SAMPLE_PX), SAMPLES.min), SAMPLES.max);
   let d = 0;
-  for (let i = 0; i <= SAMPLES; i++) {
-    const point = curvePoint(-overshoot + ((1 + 2 * overshoot) * i) / SAMPLES, width, height);
+  for (let i = 0; i <= samples; i++) {
+    const point = curvePoint(-overshoot + ((1 + 2 * overshoot) * i) / samples, width, height);
     if (i > 0) d += Math.hypot(point.x - points[i - 1].x, point.y - points[i - 1].y);
     points.push({ ...point, d });
   }

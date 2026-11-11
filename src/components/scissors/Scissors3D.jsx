@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
-import { CAMERA } from './pose.js';
+import { CAMERA, DESKTOP_MIN_PX } from './pose.js';
 import Shears, { CONFIG } from './Shears.jsx';
 import { SHEET_Z } from './sheet.js';
 import Studio from './Studio.jsx';
@@ -12,7 +12,9 @@ const ScissorsDebug = import.meta.env.DEV ? lazy(() => import('./ScissorsDebug.j
 const isDebug = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug');
 
 const SHADOW_PLANE = [40, 40]; // world units, wider than any viewport
-const DPR = [1, 1.75];
+// Pixel density of the full-screen canvas, which redraws on every scroll frame while the shears move. Below
+// desktop the shears are at most ~240px long, so 1.25 looks the same as 1.75 and halves the pixels per frame.
+const DPR = window.matchMedia(`(min-width: ${DESKTOP_MIN_PX}px)`).matches ? [1, 1.75] : [1, 1.25];
 const EXPOSURE = 1.05;
 const PROBE = { frames: 30, skip: 5, slowMs: 30 };
 

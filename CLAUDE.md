@@ -63,3 +63,6 @@ Font Montserrat 400/500/700/800 (family `Montserrat Variable`). Headings upperca
 10. If blocked, ask ONE short question; otherwise decide and note the decision in one line.
 11. When the context gets long, tell the user to run `/compact`; between stages suggest `/clear` (everything needed is in this file and the stage files).
 12. After the build passes: update the Progress block, then `git add -A && git commit -m "Stage <id>: <title>"`. Never push.
+
+## Plugins, connectors, skills, subagents (allowed)
+Use any installed plugin, MCP connector, skill and subagent whenever it helps the task, without asking first. This does not lift the other rules: no new npm dependencies without asking, never open model/image files, never push, and anything outward-facing or irreversible (sending messages, publishing, deleting remote data) still needs confirmation.

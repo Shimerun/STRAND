@@ -12,9 +12,17 @@ const MAP_EMBED_URL = `https://www.google.com/maps?q=${lat},${lng}&output=embed`
 const ROUTE_URL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 const TERM = 'text-xs font-medium uppercase tracking-heading text-concrete';
 
+// Rows of the hours table: one "every day" row while all days share the hours, otherwise a row per day.
+function hoursRows({ closed, everyDay, days }) {
+  const rows = Object.entries(site.hours).map(([key, hours]) => ({ key, label: days[key], hours: formatHours(hours, closed) }));
+  const same = rows.every((row) => row.hours === rows[0].hours);
+  return same ? [{ key: 'every-day', label: everyDay, hours: rows[0].hours }] : rows;
+}
+
 export default function Contacts() {
   const { contacts, cta, sections } = site.ui;
   const today = kyivNow().weekday;
+  const rows = hoursRows(contacts);
 
   return (
     <Section id="contacts" tone="surface">
@@ -45,23 +53,25 @@ export default function Contacts() {
             <h3 className={TERM}>{contacts.hours}</h3>
             <table className="mt-3 w-full max-w-sm text-sm">
               <tbody>
-                {Object.entries(site.hours).map(([key, hours]) => {
+                {rows.map(({ key, label, hours }) => {
                   const isToday = key === today;
+                  // A single "every day" row holds today's hours too, so it reads like today's row.
+                  const strong = isToday || rows.length === 1;
                   return (
                     <tr
                       key={key}
                       aria-current={isToday ? 'date' : undefined}
-                      className={`border-b border-line ${isToday ? 'font-bold text-text' : 'text-concrete'}`}
+                      className={`border-b border-line ${strong ? 'font-bold text-text' : 'text-concrete'}`}
                     >
                       <th scope="row" className="py-2.5 text-left font-[inherit]">
-                        {contacts.days[key]}
+                        {label}
                         {isToday && (
                           <span className="ml-2 rounded border border-accent px-1.5 py-0.5 text-xs uppercase tracking-heading text-text">
                             {contacts.today}
                           </span>
                         )}
                       </th>
-                      <td className="py-2.5 text-right tabular-nums">{formatHours(hours, contacts.closed)}</td>
+                      <td className="py-2.5 text-right tabular-nums">{hours}</td>
                     </tr>
                   );
                 })}

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { prefersReducedMotion } from '../../lib/scroll.js';
-import { hasWebGL, isWebGLOff, rememberWebGLOff } from '../../lib/webgl.js';
+import { hasWebGL, isLowEndDevice, isWebGLOff, rememberWebGLOff } from '../../lib/webgl.js';
 import ErrorBoundary from '../ErrorBoundary.jsx';
 import CutReveal from './CutReveal.jsx';
 import ScissorsFallback from './ScissorsFallback.jsx';
@@ -12,7 +12,7 @@ const MODE = { webgl: 'webgl', flat: 'flat', still: 'still' };
 
 function pickMode() {
   if (prefersReducedMotion()) return MODE.still;
-  if (navigator.connection?.saveData || isWebGLOff() || !hasWebGL()) return MODE.flat;
+  if (navigator.connection?.saveData || isLowEndDevice() || isWebGLOff() || !hasWebGL()) return MODE.flat;
   return MODE.webgl;
 }
 

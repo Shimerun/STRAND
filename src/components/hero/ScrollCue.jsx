@@ -1,4 +1,8 @@
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+
+// Faded out it is taken out of the layout (display: none), which also stops the glint's endless animation:
+// hidden by opacity alone it kept the browser restyling it on every frame for the rest of the visit.
+const shownAs = (value) => (value > 0 ? 'flex' : 'none');
 
 /**
  * "Scroll down" without words: a hairline in the right gutter (the shears' track) with a glint running down it
@@ -6,10 +10,13 @@ import { motion } from 'framer-motion';
  * (none under reduced motion, where the glint stands still too; see .scroll-cue-glint in index.css).
  */
 export default function ScrollCue({ opacity }) {
+  const fallback = useMotionValue(1); // hooks run unconditionally; reduced motion passes no opacity
+  const display = useTransform(opacity ?? fallback, shownAs);
+
   return (
     <motion.div
       aria-hidden="true"
-      style={opacity ? { opacity } : undefined}
+      style={opacity ? { opacity, display } : undefined}
       className="pointer-events-none absolute bottom-[calc(6rem+env(safe-area-inset-bottom))] right-[calc(var(--gutter)/2_-_5.5px)] z-10 flex w-[11px] flex-col items-center gap-1.5 lg:bottom-10"
     >
       <span className="relative block h-12 w-px overflow-hidden bg-concrete/40 lg:h-16">

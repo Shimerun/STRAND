@@ -5,7 +5,12 @@ import { hasWebGL, isWebGLOff } from '../../lib/webgl.js';
 const NEAR_MARGIN = '100% 0px'; // the grid counts as near from one screen away
 const REST_MS = 200; // no scroll events for this long: the page is at rest
 
-const canRun = () => !prefersReducedMotion() && !navigator.connection?.saveData && !isWebGLOff() && hasWebGL();
+// Mouse devices only. The bend answers scroll speed, which phones hardly show under native momentum scrolling,
+// while the layer costs a second WebGL context next to the shears and a texture per photo; and iOS Safari drew
+// one photo stretched over a whole column. On touch screens the DOM photos (PhotoReveal) look the same.
+const HOVER_DEVICE = '(hover: hover) and (pointer: fine)';
+const canRun = () =>
+  window.matchMedia(HOVER_DEVICE).matches && !prefersReducedMotion() && !navigator.connection?.saveData && !isWebGLOff() && hasWebGL();
 
 /**
  * Whether the works grid is drawn in WebGL (gl/WorksGL.jsx). `active`: the device can, and the page has come

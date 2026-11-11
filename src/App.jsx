@@ -44,7 +44,9 @@ function useAfterFirstPaint() {
 
 function useLenis() {
   useEffect(() => {
-    if (prefersReducedMotion()) return undefined;
+    // Touch screens scroll natively and Lenis would only listen to every scroll event there; anchors then use
+    // the browser's smooth scroll (scrollToId) and dialogs lock the root element (lockScroll).
+    if (prefersReducedMotion() || !hasMouse()) return undefined;
     const lenis = new Lenis({ duration: 1.1 });
     // Lenis needs frames only while it animates a scroll: after a wheel turn or a scrollTo. A loop that never
     // stops makes the browser run a whole rendering pass 60 times a second on a page standing still, and on

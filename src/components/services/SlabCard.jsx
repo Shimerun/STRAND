@@ -59,9 +59,14 @@ export default function SlabCard({ index, className = '', children }) {
 
   return (
     <li className={`relative ${className}`}>
-      <motion.div aria-hidden="true" style={{ opacity: plate }} className="slab absolute -inset-2 lg:-inset-3" />
+      <motion.div aria-hidden="true" style={{ opacity: plate }} className="slab pointer-events-none absolute -inset-2 lg:-inset-3" />
       <motion.div ref={ref} style={{ y: lift }} className="relative h-full">
-        <motion.div aria-hidden="true" style={{ opacity: shadow }} className="absolute inset-0 rounded shadow-[0_18px_40px_rgba(0,0,0,0.6)]" />
+        {/* Positioned, so it paints over the (static) card: it must let clicks and hover through. */}
+        <motion.div
+          aria-hidden="true"
+          style={{ opacity: shadow }}
+          className="pointer-events-none absolute inset-0 rounded shadow-[0_18px_40px_rgba(0,0,0,0.6)]"
+        />
         {children}
         <motion.div aria-hidden="true" style={{ opacity: skin }} className="slab pointer-events-none absolute inset-0 rounded" />
         <motion.svg aria-hidden="true" style={{ opacity: lineOpacity }} className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">

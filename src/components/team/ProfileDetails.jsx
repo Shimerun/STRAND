@@ -1,12 +1,11 @@
 import { site } from '../../data/site.js';
-import { assetUrl } from '../../lib/assetUrl.js';
 import { formatDuration, formatPrice, formatRating } from '../../lib/format.js';
 import { priceFor, servicesFor } from '../../lib/pricing.js';
 import { EVENTS } from '../../lib/track.js';
 import Button from '../Button.jsx';
-import Img from '../Img.jsx';
 import InstagramIcon from '../InstagramIcon.jsx';
 import StarIcon from '../StarIcon.jsx';
+import ProfileWorks from './ProfileWorks.jsx';
 
 const LABEL = 'text-xs font-medium tracking-heading text-concrete';
 
@@ -56,14 +55,7 @@ export default function ProfileDetails({ barber, titleId, onBook }) {
 
       {works.length > 0 && (
         <section aria-label={team.works} className="mt-10">
-          <h3 className={LABEL}>{team.works}</h3>
-          <ul className="-mx-5 mt-4 flex snap-x gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] lg:mx-0 lg:px-0">
-            {works.map((work) => (
-              <li key={work.src} className="w-36 shrink-0 snap-start overflow-hidden rounded bg-surface sm:w-44">
-                <Img src={assetUrl(work.src)} alt={work.alt} width={work.width} height={work.height} className="aspect-[4/5] h-auto w-full object-cover" />
-              </li>
-            ))}
-          </ul>
+          <ProfileWorks works={works} heading={<h3 className={LABEL}>{team.works}</h3>} />
         </section>
       )}
 

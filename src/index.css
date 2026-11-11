@@ -33,6 +33,9 @@
 /* Right gutter keeps text and controls clear of the scissors track. */
 :root {
   --gutter: 40px;
+  /* Concrete grain: sparse light specks (alpha 0…~6%, ~1% on average) from tileable fractal noise. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0 0.95 0 0 0 0.24 -0.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-size: 180px;
 }
 
 @media (min-width: 1024px) {
@@ -50,6 +53,8 @@
 
   body {
     @apply bg-bg font-sans text-text antialiased;
+    background-image: var(--grain);
+    background-size: var(--grain-size);
   }
 
   h1,
@@ -175,6 +180,146 @@ main {
     radial-gradient(rgb(0 0 0 / 0.35) 1px, transparent 1.2px);
   background-size: 5px 5px, 7px 7px;
   background-position: 0 0, 2px 3px;
+}
+
+/* Section bands: a soft pool of light on the wall, like the strip lamps over the chairs, alternating sides down
+   the page. It fades out before the band's top edge, so two bands of one tone never show a seam. The lighter
+   band carries its own grain (it covers the body's), drawn over the light to dither its banding.
+   Static backgrounds that scroll with the page: painted once, never per frame. */
+.band {
+  --light-x: 24%;
+  --light: radial-gradient(70% 300px at var(--light-x) 300px, rgb(242 242 242 / 0.055), transparent);
+  background-image: var(--light);
+}
+
+.band:nth-of-type(even) {
+  --light-x: 76%;
+}
+
+.band-grain {
+  background-image: var(--grain), var(--light);
+  background-size: var(--grain-size), auto;
+}
+
+/* BarberCard (WorksOrbit): the works fly out of the portrait onto a ring tilted 70° away from the viewer and
+   circle it, staggered on the way out, all together on the way back. While off, the ring sits pushed back
+   behind the portrait, so the works slide out from behind it as it opens. Only transforms and opacity, so the
+   compositor runs it; the spin is paused, never running, while the orbit is off. Opacity sits on the
+   face only: on an element with 3D children it would flatten them. Reduced motion: the works fade in on the
+   ring and stand still. */
+.works-orbit {
+  --orbit-radius: 42%; /* of the photo width: the swipe row on phones has little room beside the card */
+  transform: translateZ(-120px) rotateX(70deg);
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 768px) {
+  .works-orbit {
+    --orbit-radius: 50%;
+  }
+}
+
+.works-orbit,
+.works-orbit-spin,
+.works-orbit-arm,
+.works-orbit-counter {
+  transform-style: preserve-3d;
+}
+
+.works-orbit-spin {
+  animation: works-orbit-spin 14s linear infinite paused;
+}
+
+.works-orbit-arm {
+  transform: rotateZ(var(--orbit-angle)) translateX(calc(var(--orbit-radius) * 0.4));
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.works-orbit-counter {
+  transform: rotateZ(calc(var(--orbit-angle) * -1)) scale3d(0.75, 0.75, 0.75);
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.works-orbit-face {
+  opacity: 0;
+  animation: works-orbit-face 14s linear infinite paused;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* On: the card is hovered or keyboard-focused, or (touch screens) its photo is in view. */
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-spin,
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-face {
+  animation-play-state: running;
+}
+
+.group:hover .works-orbit,
+.group:has(:focus-visible) .works-orbit,
+.works-orbit[data-active] {
+  transform: translateZ(0) rotateX(70deg);
+  transition: transform 1.6s cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-arm {
+  transform: rotateZ(var(--orbit-angle)) translateX(var(--orbit-radius));
+  transition: transform 1.6s cubic-bezier(0.45, 0, 0.25, 1) var(--orbit-delay);
+}
+
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-counter {
+  transform: rotateZ(calc(var(--orbit-angle) * -1)) scale3d(1, 1, 1);
+  transition: transform 1.6s cubic-bezier(0.45, 0, 0.25, 1) var(--orbit-delay);
+}
+
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-face {
+  opacity: 1;
+  /* Late and slow: a card that ends in front of the portrait passes through it fading in, not fully drawn. */
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1) calc(var(--orbit-delay) + 0.35s);
+}
+
+@keyframes works-orbit-spin {
+  to {
+    transform: rotateZ(360deg);
+  }
+}
+
+/* Undoes the spin, then the ring's tilt (-70deg, matching .works-orbit), so the card faces the viewer. */
+@keyframes works-orbit-face {
+  from {
+    transform: rotateZ(0deg) rotateX(-70deg);
+  }
+  to {
+    transform: rotateZ(-360deg) rotateX(-70deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .works-orbit,
+  .group:hover .works-orbit,
+  .group:has(:focus-visible) .works-orbit,
+  .works-orbit[data-active] {
+    transform: rotateX(70deg);
+    transition: none;
+  }
+
+  .works-orbit-spin,
+  .works-orbit-face {
+    animation: none;
+  }
+
+  .works-orbit-face {
+    transform: rotateX(-70deg);
+  }
+
+  .works-orbit-arm,
+  :is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-arm {
+    transform: rotateZ(var(--orbit-angle)) translateX(var(--orbit-radius));
+    transition: none;
+  }
+
+  .works-orbit-counter,
+  :is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-counter {
+    transform: rotateZ(calc(var(--orbit-angle) * -1));
+    transition: none;
+  }
 }
 
 /* Marquee: every other word drawn as an outline. */

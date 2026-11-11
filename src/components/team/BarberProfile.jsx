@@ -65,7 +65,8 @@ export default function BarberProfile({ barber, onClose }) {
             </button>
           </motion.div>
 
-          <div className="mx-auto grid w-full max-w-6xl flex-1 gap-8 px-5 pb-10 pt-2 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-16 lg:pt-6">
+          {/* grid-cols-1: an auto track would grow to the works row's full scroll width and blow the photo up. */}
+          <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-8 px-5 pb-10 pt-2 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-16 lg:pt-6">
             <div className="lg:sticky lg:top-[calc(theme(spacing.header)+1.5rem)] lg:self-start">
               <motion.div
                 layoutId={reduce ? undefined : photoLayoutId(barber.slug)}

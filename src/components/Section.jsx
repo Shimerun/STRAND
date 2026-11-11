@@ -1,5 +1,5 @@
 // tone="surface" lifts the section onto a lighter band so neighbouring sections read apart.
-const TONES = { base: '', surface: 'bg-surface' };
+const TONES = { base: 'band', surface: 'band band-grain bg-surface' };
 
 export default function Section({ id, tone = 'base', className = '', children, ...rest }) {
   return (

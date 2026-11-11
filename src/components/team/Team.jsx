@@ -13,7 +13,8 @@ export default function Team() {
   const openBarber = site.team.find((barber) => barber.slug === openSlug);
 
   return (
-    <Section id="team">
+    // Clips the orbiting works of a right-hand card at the screen edge instead of widening the page.
+    <Section id="team" className="overflow-x-clip">
       <SectionTitle>{site.ui.sections.team}</SectionTitle>
 
       {/* Horizontal scroll-snap on mobile, bleeding to the left edge; grid from md up. */}

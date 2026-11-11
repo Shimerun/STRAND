@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { Box3, LoopOnce, MathUtils, Matrix4, Quaternion, Vector3 } from 'three';
+import { DESKTOP_MIN_PX } from './pose.js';
 
 export const CONFIG = {
   ORIENTATION: [0, 0, -Math.PI / 2], // Euler radians: blades point +Y, rings -Y, shears flat in the XY plane
@@ -11,7 +12,11 @@ export const CONFIG = {
   SIGN_A: 1, SIGN_B: -1,  // flip a sign if a half opens the wrong way (unused while the built-in Snip clip drives the halves)
 };
 
-const MODEL_URL = `${import.meta.env.BASE_URL}models/scissors.glb`;
+// Below desktop the shears are at most ~240px long, so phones load a copy made from scissors.glb with
+// @gltf-transform/cli (dequantize → simplify 0.5 → resize 1024 → meshopt): 344 KB instead of 894 KB and
+// about a quarter of the texture memory, same nodes, bounds and Snip clip. Chosen once, at load.
+const MODEL_FILE = window.matchMedia(`(min-width: ${DESKTOP_MIN_PX}px)`).matches ? 'scissors.glb' : 'scissors-mobile.glb';
+const MODEL_URL = `${import.meta.env.BASE_URL}models/${MODEL_FILE}`;
 const USE_DRACO = false; // model is meshopt-compressed; never fetch a Draco decoder from a CDN
 const SAMPLES = 120;
 
