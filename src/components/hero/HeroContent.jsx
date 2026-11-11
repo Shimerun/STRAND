@@ -26,7 +26,10 @@ export default function HeroContent({ parallaxY, copy = false }) {
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
       {/* Oversized to 120% so the parallax shift never reveals a gap. */}
-      <motion.div className="absolute inset-x-0 top-0 h-[120%]" style={parallaxY ? { y: parallaxY } : undefined}>
+      <motion.div
+        className={`absolute inset-x-0 top-0 h-[120%] ${parallaxY ? 'will-change-transform' : ''}`}
+        style={parallaxY ? { y: parallaxY } : undefined}
+      >
         <Img src={assetUrl(site.images.hero)} alt={copy ? '' : site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
       </motion.div>
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/40 to-bg" />

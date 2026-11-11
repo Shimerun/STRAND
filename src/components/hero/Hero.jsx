@@ -59,8 +59,13 @@ export default function Hero({ children }) {
           style={{ visibility: cut.frameVisibility }}
           className="pointer-events-auto sticky top-0 overflow-hidden"
         >
-          <motion.div style={{ y: jolt, scale: cut.swell, originX: cut.origin.x, originY: cut.origin.y }} className="relative">
-            <motion.div style={{ y: top.y, rotate: top.rotate, clipPath: top.clip }} className="relative">
+          {/* will-change: each piece gets its own layer, so the per-frame clip path re-masks it on the GPU
+              instead of repainting the photo (Safari repainted the whole screen on every scroll frame). */}
+          <motion.div
+            style={{ y: jolt, scale: cut.swell, originX: cut.origin.x, originY: cut.origin.y }}
+            className="relative will-change-transform"
+          >
+            <motion.div style={{ y: top.y, rotate: top.rotate, clipPath: top.clip }} className="relative will-change-transform">
               <HeroContent parallaxY={parallaxY} />
             </motion.div>
 
@@ -75,7 +80,7 @@ export default function Hero({ children }) {
                 clipPath: flap.clip,
                 visibility: flap.visibility,
               }}
-              className="absolute inset-0"
+              className="absolute inset-0 will-change-transform"
             >
               <HeroContent parallaxY={parallaxY} copy />
             </motion.div>
