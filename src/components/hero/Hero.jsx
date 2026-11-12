@@ -10,6 +10,7 @@ import { useHeroCut } from './useHeroCut.js';
 import { useSnipJolt } from './useSnipJolt.js';
 
 const CUE_GONE_AT = 0.5; // share of the aim: the scroll cue has faded out
+const FLAP_SHADE = 'linear-gradient(90deg, transparent 30%, rgb(10 10 10 / 0.5))'; // bg token, see tailwind.config
 // The scroll the hero stays pinned for. Used twice: as the hero's own scroll room, and after the underlay.
 const PIN_ROOM = {
   className: 'h-[calc(var(--pin)*100svh)] lg:h-[calc(var(--pin-lg)*100svh)]',
@@ -83,6 +84,13 @@ export default function Hero({ children }) {
               className="absolute inset-0 will-change-transform"
             >
               <HeroContent parallaxY={parallaxY} copy />
+              {/* Shade over the strip, darker the further it droops from the cut; only its opacity moves, on
+                  its own layer so the strip is not repainted. */}
+              <motion.div
+                aria-hidden="true"
+                style={{ opacity: flap.shade, backgroundImage: FLAP_SHADE, willChange: 'opacity' }}
+                className="absolute inset-0"
+              />
             </motion.div>
 
             <CutMarks cut={cut} />

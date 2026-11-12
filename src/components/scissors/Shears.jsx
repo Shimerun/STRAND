@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useAnimations, useGLTF } from '@react-three/drei';
-import { Box3, LoopOnce, MathUtils, Matrix4, Quaternion, Vector3 } from 'three';
+import { LoopOnce, MathUtils, Quaternion, Vector3 } from 'three';
 import { DESKTOP_MIN_PX } from './pose.js';
+import { boxInRoot, findUnderHalf } from './sheet.js';
 
 export const CONFIG = {
   ORIENTATION: [0, 0, -Math.PI / 2], // Euler radians: blades point +Y, rings -Y, shears flat in the XY plane
@@ -22,17 +23,7 @@ const SAMPLES = 120;
 
 // Bounding box in the model's own space, independent of where the scene is mounted.
 function modelBox(root) {
-  root.updateWorldMatrix(true, true);
-  const toRoot = new Matrix4().copy(root.matrixWorld).invert();
-  const relative = new Matrix4();
-  const box = new Box3();
-  const part = new Box3();
-  root.traverse((object) => {
-    if (!object.isMesh) return;
-    if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
-    part.copy(object.geometry.boundingBox).applyMatrix4(relative.multiplyMatrices(toRoot, object.matrixWorld));
-    box.union(part);
-  });
+  const box = boxInRoot(root);
   const size = box.getSize(new Vector3());
   return { center: box.getCenter(new Vector3()).toArray(), maxSize: Math.max(size.x, size.y, size.z) };
 }
@@ -79,6 +70,13 @@ export default function Shears({ config = CONFIG, openRef, onInfo }) {
   const timeline = useMemo(() => (clip ? buildSnipTimeline(clip) : null), [clip]);
   const box = useMemo(() => modelBox(scene), [scene]);
   const pivot = config.PIVOT ?? box.center;
+  const half = useMemo(() => (clip ? findUnderHalf(scene, clip) : null), [scene, clip]);
+  const scale = config.SCALE / box.maxSize;
+
+  // For sheet.js: the half under the paper and the plane between the halves, in the rig group's space.
+  useEffect(() => {
+    scene.userData.sheet = half ? { under: half.under, z: (half.z - pivot[2]) * scale, tip: config.SCALE / 2 } : null;
+  }, [scene, half, pivot, scale, config.SCALE]);
 
   useEffect(() => {
     const action = clip && actions[clip.name];
@@ -115,7 +113,7 @@ export default function Shears({ config = CONFIG, openRef, onInfo }) {
   });
 
   return (
-    <group rotation={config.ORIENTATION} scale={config.SCALE / box.maxSize}>
+    <group rotation={config.ORIENTATION} scale={scale}>
       <primitive object={scene} position={[-pivot[0], -pivot[1], -pivot[2]]} />
     </group>
   );

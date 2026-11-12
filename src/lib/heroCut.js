@@ -25,6 +25,7 @@ export const HERO_CUT = {
 // paths and the cut marks redrawn on each scroll frame, so a phone gets ~70 instead of a fixed 160.
 const SAMPLE_PX = 6;
 const SAMPLES = { min: 48, max: 160 };
+const KINK_PX = 1.2; // how far off the line one snip can run
 const TAU = Math.PI * 2;
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const ease = (t) => t * t * (3 - 2 * t);
@@ -69,7 +70,12 @@ export function cutGeometry(width, height) {
     points.push({ ...point, d });
   }
   const snips = Math.min(Math.max(Math.round(width / HERO_CUT.snipWidth), HERO_CUT.minSnips), HERO_CUT.maxSnips);
-  cached = { width, height, points, total: d, snips, step: d / snips };
+  const step = d / snips;
+  // Each snip runs a hair off the last one, so the edge steps a little at every closing, as a hand-held cut does.
+  points.forEach((point) => {
+    point.y += KINK_PX * ((((Math.floor(point.d / step) * 0.618) % 1) * 2) - 1);
+  });
+  cached = { width, height, points, total: d, snips, step };
   return cached;
 }
 

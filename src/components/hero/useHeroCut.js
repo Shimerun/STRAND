@@ -8,6 +8,9 @@ const PART = { top: { y: -0.75, rotate: -3 }, flap: { y: 1, rotate: 6 }, zoom: 0
 // While the cut runs, the flap below it sags from the cutting point: by `drop` of the frame height at the right
 // edge once the cut is through (growing with the square of the cut, so it starts gently), never steeper than maxTan.
 const SAG = { drop: 0.04, maxTan: 0.1 };
+// At the blades the strip is pushed aside by the lower blade's body: the gap opens as a wedge `px` wide at the
+// cutting point that closes over `ramp` px back along the cut.
+const WEDGE = { px: 3, ramp: 140 };
 // The top piece reaches `overlap` px under the flap along their shared edge (from `below` px under the cutting
 // point down), so no hairline shows between the two.
 const SEAM = { overlap: 1.5, below: 4 };
@@ -17,6 +20,19 @@ const DEG = 180 / Math.PI;
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const polygon = (points) => `polygon(${points.map(({ x, y }) => `${x}px ${y}px`).join(', ')})`;
 const started = (points) => points?.length > 1; // the cut has entered the frame
+
+// The strip's edge: the cut so far pushed down by the wedge near its last point (the cutting point).
+function wedged(points) {
+  const n = points.length;
+  const out = new Array(n);
+  let back = 0;
+  for (let i = n - 1; i >= 0; i--) {
+    if (i < n - 1) back += Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+    const t = Math.max(1 - back / WEDGE.ramp, 0);
+    out[i] = t ? { x: points[i].x, y: points[i].y + WEDGE.px * t * t } : points[i];
+  }
+  return out;
+}
 
 /**
  * Motion values for the hero cut. The top piece keeps everything above the line plus the part not cut yet;
@@ -66,6 +82,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const split = useTransform(phases, (phase) => phase.split);
   const soFar = useTransform([state, width, height], ([s, w, h]) => (s ? cutSoFar(cutGeometry(w, h), s.cutEnd) : null));
   const share = useTransform(state, (s) => s?.share ?? 0);
+  const flapEdge = useTransform(soFar, (points) => (started(points) ? wedged(points) : points));
   const sag = useTransform([soFar, share, width, height], ([points, sh, w, h]) =>
     started(points) ? Math.min((SAG.drop * h * sh * sh) / Math.max(w - points.at(-1).x, 1), SAG.maxTan) : 0,
   );
@@ -99,6 +116,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     share,
     split,
     soFar,
+    flapEdge,
     sag,
     aim: useTransform(phases, (phase) => phase.aim),
     // Gone once the halves have parted, so the invisible frame never covers the section beneath.
@@ -118,9 +136,11 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
       rotate: useTransform(split, (s) => s * PART.top.rotate),
     },
     flap: {
-      clip: useTransform([soFar, width, height], ([points, w, h]) =>
+      clip: useTransform([flapEdge, width, height], ([points, w, h]) =>
         points ? polygon([...[...points].reverse(), { x: w, y: h }, ...hinge(points, h)]) : 'none',
       ),
+      // The strip bends away from the light as it sags: the shade over it (Hero.jsx) comes up with the sag.
+      shade: useTransform(sag, (tan) => Math.min(tan / SAG.maxTan, 1)),
       originX: useTransform(soFar, (points) => (points ? `${points.at(-1).x}px` : '100%')),
       originY: useTransform(soFar, (points) => (points ? `${points.at(-1).y}px` : '50%')),
       y: useTransform([split, height], ([s, h]) => s * s * PART.flap.y * h),
