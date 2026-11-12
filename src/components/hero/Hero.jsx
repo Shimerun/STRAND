@@ -3,13 +3,14 @@ import { motion, useReducedMotion, useTransform } from 'framer-motion';
 import { HERO_CUT } from '../../lib/heroCut.js';
 import { TOP_ID } from '../../lib/scroll.js';
 import CutDebris from './CutDebris.jsx';
-import CutMarks from './CutMarks.jsx';
+import CutMarks, { FlapEdge, useCutMarks } from './CutMarks.jsx';
 import HeroContent from './HeroContent.jsx';
 import ScrollCue from './ScrollCue.jsx';
 import { useHeroCut } from './useHeroCut.js';
 import { useSnipJolt } from './useSnipJolt.js';
 
 const CUE_GONE_AT = 0.5; // share of the aim: the scroll cue has faded out
+const FALL_ORIGIN_Y = '75%'; // the strip turns about its middle as it falls
 const FLAP_SHADE = 'linear-gradient(90deg, transparent 30%, rgb(10 10 10 / 0.5))'; // bg token, see tailwind.config
 // The scroll the hero stays pinned for. Used twice: as the hero's own scroll room, and after the underlay.
 const PIN_ROOM = {
@@ -32,6 +33,7 @@ export default function Hero({ children }) {
   const cut = useHeroCut(sectionRef, frameRef, underlayRef, !reduce);
   const jolt = useSnipJolt(cut.state);
   const cueOpacity = useTransform(cut.aim, [0, CUE_GONE_AT], [1, 0]);
+  const paths = useCutMarks(cut);
 
   if (reduce) {
     return (
@@ -70,30 +72,30 @@ export default function Hero({ children }) {
               <HeroContent parallaxY={parallaxY} />
             </motion.div>
 
+            {/* The cut-off strip: the wrapper carries its fall, the inner piece its sag and fold about the cutting
+                point. */}
             <motion.div
               aria-hidden="true"
-              style={{
-                y: flap.y,
-                rotate: flap.rotate,
-                skewY: flap.skewY,
-                originX: flap.originX,
-                originY: flap.originY,
-                clipPath: flap.clip,
-                visibility: flap.visibility,
-              }}
+              style={{ ...flap.fall, originX: '50%', originY: FALL_ORIGIN_Y, visibility: flap.visibility }}
               className="absolute inset-0 will-change-transform"
             >
-              <HeroContent parallaxY={parallaxY} copy />
-              {/* Shade over the strip, darker the further it droops from the cut; only its opacity moves, on
-                  its own layer so the strip is not repainted. */}
               <motion.div
-                aria-hidden="true"
-                style={{ opacity: flap.shade, backgroundImage: FLAP_SHADE, willChange: 'opacity' }}
-                className="absolute inset-0"
-              />
+                style={{ transform: flap.transform, transformOrigin: flap.origin, clipPath: flap.clip }}
+                className="absolute inset-0 will-change-transform"
+              >
+                <HeroContent parallaxY={parallaxY} copy />
+                {/* Shade over the strip, darker the further it lifts; only its opacity moves, on its own
+                    layer so the strip is not repainted. */}
+                <motion.div
+                  aria-hidden="true"
+                  style={{ opacity: flap.shade, backgroundImage: FLAP_SHADE, willChange: 'opacity' }}
+                  className="absolute inset-0"
+                />
+              </motion.div>
+              <FlapEdge paths={paths} />
             </motion.div>
 
-            <CutMarks cut={cut} />
+            <CutMarks cut={cut} paths={paths} />
           </motion.div>
 
           <CutDebris state={cut.state} />

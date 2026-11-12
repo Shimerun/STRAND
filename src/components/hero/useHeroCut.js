@@ -1,38 +1,22 @@
 import { useLayoutEffect } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
 import { cutGeometry, cutSoFar, cutState, heroCutPhases } from '../../lib/heroCut.js';
+import { FOLD, fallAt, foldAt, foldTransform, folded, wedged } from './paper.js';
 
-// Once the cut is through, the halves fly apart (shift in frame heights) and swell a little: the top springs up
-// (ease-out), the flap drops (ease-in, like falling). Both are off screen when the pin ends.
-const PART = { top: { y: -0.75, rotate: -3 }, flap: { y: 1, rotate: 6 }, zoom: 0.2 };
+// Once the cut is through, the halves part and swell a little: the top springs up (ease-out, shift in frame
+// heights), the flap falls like paper (paper.js). Both are off screen when the pin ends.
+const PART = { top: { y: -0.75, rotate: -3 }, zoom: 0.2 };
 // While the cut runs, the flap below it sags from the cutting point: by `drop` of the frame height at the right
 // edge once the cut is through (growing with the square of the cut, so it starts gently), never steeper than maxTan.
 const SAG = { drop: 0.04, maxTan: 0.1 };
-// At the blades the strip is pushed aside by the lower blade's body: the gap opens as a wedge `px` wide at the
-// cutting point that closes over `ramp` px back along the cut.
-const WEDGE = { px: 3, ramp: 140 };
 // The top piece reaches `overlap` px under the flap along their shared edge (from `below` px under the cutting
 // point down), so no hairline shows between the two.
 const SEAM = { overlap: 1.5, below: 4 };
 const UNDERLAY_FROM = 0.9; // the next section grows from this scale to 1 as the halves part
 const PARALLAX = 20; // % of the photo height over the whole hero scroll
-const DEG = 180 / Math.PI;
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const polygon = (points) => `polygon(${points.map(({ x, y }) => `${x}px ${y}px`).join(', ')})`;
 const started = (points) => points?.length > 1; // the cut has entered the frame
-
-// The strip's edge: the cut so far pushed down by the wedge near its last point (the cutting point).
-function wedged(points) {
-  const n = points.length;
-  const out = new Array(n);
-  let back = 0;
-  for (let i = n - 1; i >= 0; i--) {
-    if (i < n - 1) back += Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
-    const t = Math.max(1 - back / WEDGE.ramp, 0);
-    out[i] = t ? { x: points[i].x, y: points[i].y + WEDGE.px * t * t } : points[i];
-  }
-  return out;
-}
 
 /**
  * Motion values for the hero cut. The top piece keeps everything above the line plus the part not cut yet;
@@ -83,6 +67,8 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const soFar = useTransform([state, width, height], ([s, w, h]) => (s ? cutSoFar(cutGeometry(w, h), s.cutEnd) : null));
   const share = useTransform(state, (s) => s?.share ?? 0);
   const flapEdge = useTransform(soFar, (points) => (started(points) ? wedged(points) : points));
+  const fold = useTransform(share, foldAt);
+  const fall = useTransform([split, width, height], ([s, w, h]) => fallAt(s, w, h));
   const sag = useTransform([soFar, share, width, height], ([points, sh, w, h]) =>
     started(points) ? Math.min((SAG.drop * h * sh * sh) / Math.max(w - points.at(-1).x, 1), SAG.maxTan) : 0,
   );
@@ -108,21 +94,19 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     underlay.style.willChange = transform ? 'transform' : '';
   });
 
-  const swell = useTransform(split, (s) => 1 + PART.zoom * s);
   const hinge = (points, h) => [{ x: points.at(-1).x, y: h }];
 
   return {
     state,
-    share,
     split,
     soFar,
-    flapEdge,
-    sag,
+    // The strip's edge on screen, sagged and folded, for the cut marks.
+    flapLine: useTransform([flapEdge, soFar, sag, fold], ([points, cut, tan, deg]) => (started(cut) ? folded(points, cut, tan, deg) : null)),
     aim: useTransform(phases, (phase) => phase.aim),
     // Gone once the halves have parted, so the invisible frame never covers the section beneath.
     frameVisibility: useTransform(split, (s) => (s >= 1 ? 'hidden' : 'visible')),
     origin: { x: useTransform(zoomOrigin, (o) => o.x), y: useTransform(zoomOrigin, (o) => o.y) },
-    swell,
+    swell: useTransform(split, (s) => 1 + PART.zoom * s),
     top: {
       // Unclipped until measured and until the cut enters the frame, so the first paint and the LCP photo never
       // come out empty.
@@ -139,17 +123,23 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
       clip: useTransform([flapEdge, width, height], ([points, w, h]) =>
         points ? polygon([...[...points].reverse(), { x: w, y: h }, ...hinge(points, h)]) : 'none',
       ),
-      // The strip bends away from the light as it sags: the shade over it (Hero.jsx) comes up with the sag.
-      shade: useTransform(sag, (tan) => Math.min(tan / SAG.maxTan, 1)),
-      originX: useTransform(soFar, (points) => (points ? `${points.at(-1).x}px` : '100%')),
-      originY: useTransform(soFar, (points) => (points ? `${points.at(-1).y}px` : '50%')),
-      y: useTransform([split, height], ([s, h]) => s * s * PART.flap.y * h),
-      rotate: useTransform(split, (s) => s * PART.flap.rotate),
-      // A skew about the cutting point bends the flap down without moving its edge under the uncut part.
-      skewY: useTransform(sag, (tan) => Math.atan(tan) * DEG),
+      // The strip turns away from the light as it lifts: the shade over it (Hero.jsx) comes up with the fold.
+      shade: useTransform(fold, (deg) => deg / FOLD.deg),
+      // About the cutting point: a skew bends the flap down without moving its edge under the uncut part, and
+      // the fold lifts it towards the viewer.
+      origin: useTransform(soFar, (points) => (points ? `${points.at(-1).x}px ${points.at(-1).y}px` : '100% 50%')),
+      transform: useTransform([soFar, sag, fold], ([cut, tan, deg]) => (started(cut) ? foldTransform(cut, tan, deg) : 'none')),
       visibility: useTransform(soFar, (points) => (started(points) ? 'visible' : 'hidden')),
+      // The fall, on a wrapper turning about the strip's middle.
+      fall: {
+        x: useTransform(fall, (f) => f.x),
+        y: useTransform(fall, (f) => f.y),
+        rotate: useTransform(fall, (f) => f.rotate),
+        rotateX: useTransform(fall, (f) => f.rotateX),
+        rotateY: useTransform(fall, (f) => f.rotateY),
+        transformPerspective: useTransform(fall, (f) => f.perspective),
+      },
     },
     parallaxY: useTransform([scrollY, height, pin], ([y, h, p]) => `${clamp01(y / (h + p || 1)) * PARALLAX}%`),
-    geometry: useTransform([width, height], ([w, h]) => (w ? cutGeometry(w, h) : null)),
   };
 }
