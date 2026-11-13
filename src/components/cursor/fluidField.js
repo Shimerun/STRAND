@@ -2,21 +2,31 @@
 // presses into it like a finger into thick paint, pushing the material it displaces into a swell around itself;
 // dragged along it ploughs a groove with ridges at its sides, which flows back together and levels out once the
 // pointer has passed (or the page has scrolled on under it). A damped wave equation on a grid, heights in px.
+// The surface steps 60 times a second (GrainDent.jsx), so "per step" below is per 1/60 s.
+
+// Everything that sets how the surface moves; tune here.
+export const FLOW = {
+  relax: 0.88, // height kept per step: how fast a groove fades. 0.88 → gone in about 0.4 s; 0.988 → over a second
+  damp: 0.8, // speed kept per step: lower kills the ripples sooner (0.92 let them roll on)
+  dampReduced: 0.6, // the same under prefers-reduced-motion
+  wave: 0.015, // pull of a cell towards its neighbours per step: how far the surface spreads and ripples (≤ 0.5)
+  radius: 24, // px: width of the dent under the pointer
+  sharpness: 3, // falloff of its edge: 2 is a soft Gaussian, higher is a firmer edge
+  grip: 0.85, // share of the way to the full dent the cells under the pointer move per step: how fast it follows
+  maxDig: 4, // px a cell can be pressed down per step: caps what a fast stroke churns up
+  ring: 1.6, // the swell of pushed-aside material sits this many radii out…
+  ringWidth: 0.55, // …and is this many radii wide
+  reach: 3, // radii around the pointer it presses and piles over
+  still: 0.002, // px: below this change per step everywhere the surface is at rest and stops
+};
 
 export const FIELD = { cells: 72, cell: 5 }; // the field covers cells × cell px around the pointer
-const WAVE = 0.04; // pull of a cell towards its neighbours per step (at most 0.5, or the grid blows up): low is thick
-const DAMP = { flow: 0.92, reduced: 0.6 }; // velocity kept per step: lower is thicker; reduced motion: no ripples
-const RELAX = 0.988; // height kept per step: a groove left behind levels out over about a second
-// The pointer presses a dent `radius` px wide, pulling the cells a share `grip` of the way down to it per step,
-// and piles what it pressed out into a swell `ring` radii out and `ringWidth` radii wide.
-const PRESS = { radius: 34, grip: 0.55, ring: 1.6, ringWidth: 0.55, reach: 3 };
-const STILL = 0.002; // px: below this change per step everywhere the surface is at rest
 
 /** reduced: prefers-reduced-motion. Returns { h, ox, oy, moveTo(x, y), step(x, y, depth) } in page px. */
 export function createField(reduced) {
   const n = FIELD.cells;
   const { cell } = FIELD;
-  const damp = reduced ? DAMP.reduced : DAMP.flow;
+  const damp = reduced ? FLOW.dampReduced : FLOW.damp;
   const h = new Float32Array(n * n);
   const v = new Float32Array(n * n);
   const spare = new Float32Array(n * n);
@@ -64,23 +74,23 @@ export function createField(reduced) {
     for (let j = 1; j < n - 1; j++) {
       for (let i = 1; i < n - 1; i++) {
         const k = j * n + i;
-        v[k] = (v[k] + WAVE * (h[k - 1] + h[k + 1] + h[k - n] + h[k + n] - 4 * h[k])) * damp;
+        v[k] = (v[k] + FLOW.wave * (h[k - 1] + h[k + 1] + h[k - n] + h[k + n] - 4 * h[k])) * damp;
       }
     }
-    for (let k = 0; k < n * n; k++) h[k] = (h[k] + v[k]) * RELAX;
+    for (let k = 0; k < n * n; k++) h[k] = (h[k] + v[k]) * FLOW.relax;
     if (depth > 0) press((x - field.ox) / cell, (y - field.oy) / cell, depth);
     let change = 0;
     for (let k = 0; k < n * n; k++) change = Math.max(change, Math.abs(h[k] - before[k]));
-    return change > STILL;
+    return change > FLOW.still;
   };
 
   // Presses the cells under the pointer (grid units) towards a dent `depth` px deep and adds the volume pressed
   // out to the swell around it, so nothing is lost: it has to flow back.
   function press(cx, cy, depth) {
-    const r = PRESS.radius / cell;
-    const ring = PRESS.ring * r;
-    const ringWidth = PRESS.ringWidth * r;
-    const reach = Math.ceil(r * PRESS.reach);
+    const r = FLOW.radius / cell;
+    const ring = FLOW.ring * r;
+    const ringWidth = FLOW.ringWidth * r;
+    const reach = Math.ceil(r * FLOW.reach);
     const [j0, j1] = [Math.max(Math.round(cy) - reach, 1), Math.min(Math.round(cy) + reach, n - 2)];
     const [i0, i1] = [Math.max(Math.round(cx) - reach, 1), Math.min(Math.round(cx) + reach, n - 2)];
     let pressed = 0;
@@ -88,9 +98,9 @@ export function createField(reduced) {
     for (let j = j0; j <= j1; j++) {
       for (let i = i0; i <= i1; i++) {
         const d = Math.hypot(i + 0.5 - cx, j + 0.5 - cy); // from cell centres
-        const w = Math.exp(-((d / r) ** 2));
+        const w = Math.exp(-((d / r) ** FLOW.sharpness));
         const k = j * n + i;
-        const down = Math.max(h[k] + depth * w, 0) * PRESS.grip * w; // only ever deeper, towards the dent
+        const down = Math.min(Math.max(h[k] + depth * w, 0) * FLOW.grip * w, FLOW.maxDig); // only deeper, capped
         h[k] -= down;
         pressed += down;
         swell += Math.exp(-(((d - ring) / ringWidth) ** 2));
