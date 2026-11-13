@@ -1,147 +1,143 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { prefersReducedMotion } from '../../lib/scroll.js';
-import { dentImages } from './dentImages.js';
+import { createField } from './fluidField.js';
+import { bandLook, describeBand, loadGrain } from './bandLook.js';
+import { LENS_PX, createLens } from './fluidLens.js';
 
-const RADIUS = 100; // px
-// Depth of the dent as a share of the full one: while the pointer rests on the page, and with the button held.
-// It eases towards the target by EASE of the way per frame.
-const DEPTH = { rest: 0.6, pressed: 1 };
-const EASE = 0.2;
-const SETTLE = 0.005;
-const PULL_PX = 10; // at full depth the grain is pulled up to this far towards the middle of the dent
-const FILTER_ID = 'grain-dent';
-// Near the edge of a band the dent spans two of them; each draws its own part.
-const LENSES = 2;
+const DEPTH = { rest: 11, pressed: 20 }; // px the pointer presses into the wall: resting on it, button held
+const STEP_MS = 1000 / 60; // the surface steps at 60 Hz whatever the display's rate
+const MAX_STEPS = 3; // after a stall it catches up at most this many steps
+const LENSES = 2; // near the edge of a band the surface spans two of them; each draws its own part
 const UNDERLAY = '[data-hero-underlay] > .sticky'; // scaled (and covered by the hero) while the hero is pinned
-
-function createLens(shade) {
-  const element = document.createElement('div');
-  element.className = 'grain-dent';
-  Object.assign(element.style, { width: `${2 * RADIUS}px`, height: `${2 * RADIUS}px` });
-  const surface = document.createElement('div');
-  surface.className = 'grain-dent-surface';
-  surface.style.filter = `url(#${FILTER_ID})`;
-  const shading = document.createElement('div');
-  shading.className = 'grain-dent-shade';
-  shading.style.backgroundImage = `url(${shade})`;
-  element.append(surface, shading);
-  return { element, surface, shading, host: null };
-}
-
-// The band layer the lens sits in, painted the way the page paints it there: the body's grain under the light on
-// a base band, the band's own color and grain on a surface band (index.css .band-bg, .band-grain).
-function moveInto(lens, host) {
-  host.append(lens.element);
-  lens.host = host;
-  lens.surface.style.backgroundColor = getComputedStyle(host.classList.contains('band-grain') ? host : document.body).backgroundColor;
-  lens.surface.dataset.tone = host.classList.contains('band-grain') ? 'surface' : 'base';
-}
-
-function place(lens, host, rect, pointer, depth) {
-  if (lens.host !== host) moveInto(lens, host);
-  const x = pointer.x - rect.left - RADIUS; // lens corner in the band
-  const y = pointer.y - rect.top - RADIUS;
-  const light = `${-x}px ${-y}px`;
-  // The body's grain starts at the top left of the page, a band's own at the top left of the band.
-  const grain = lens.surface.dataset.tone === 'surface' ? light : `${-(x + rect.left + window.scrollX)}px ${-(y + rect.top + window.scrollY)}px`;
-  lens.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-  // Cut off where the lens leaves its band (the band layer itself does not clip).
-  const size = 2 * RADIUS;
-  const cut = [-y, x + size - rect.width, y + size - rect.height, -x].map((px) => `${Math.max(px, 0)}px`);
-  lens.element.style.clipPath = `inset(${cut.join(' ')})`;
-  lens.surface.style.setProperty('--dent-light-size', `${rect.width}px ${rect.height}px`);
-  lens.surface.style.setProperty('--dent-light-at', light);
-  lens.surface.style.setProperty('--dent-grain-at', grain);
-  lens.shading.style.opacity = String(depth);
-  lens.element.classList.add('is-on');
-}
-
 /**
- * Under the custom cursor the grainy wall of the section bands gives like a soft surface: a dent that follows the
- * pointer and deepens while the button is held. It is drawn inside the band's background layer, so the content
- * above stays flat. Mounted with the custom cursor (mouse devices only).
+ * Under the custom cursor the grainy wall of the section bands behaves like a thick liquid: the pointer presses a
+ * dent into it (deeper with the button held) and as it moves on, or the page scrolls under it, the surface flows
+ * back and ripples out (fluidField.js). Drawn inside the bands' background layer by WebGL lenses (fluidLens.js),
+ * so the content above stays flat. Mounted with the custom cursor (mouse devices only); nothing without WebGL2.
  */
 export default function GrainDent() {
-  const [images] = useState(() => dentImages(RADIUS, window.devicePixelRatio || 1));
-  const displaceRef = useRef(null);
-
   useEffect(() => {
-    const displace = displaceRef.current;
-    const instant = prefersReducedMotion();
-    const lenses = Array.from({ length: LENSES }, () => createLens(images.shade));
-    let bands = [...document.querySelectorAll('.band > .band-bg')];
+    let lenses = null; // made on the first mouse move, so a page nobody points at holds no WebGL contexts
+    let unsupported = false;
+    const field = createField(prefersReducedMotion());
+    const bandInfo = new Map();
     const underlay = document.querySelector(UNDERLAY);
-    let pointer = null;
+    let bands = [...document.querySelectorAll('.band > .band-bg')];
+    let pointer = null; // viewport px and whether it is on the page
     let pressed = false;
-    let depth = 0;
+    let moving = false;
     let frame = 0;
+    let last = 0;
+    let carry = 0;
 
-    const render = () => {
+    const paint = (lens, host, rect) => {
+      if (lens.host !== host) {
+        host.append(lens.element);
+        lens.host = host;
+      }
+      if (!bandInfo.has(host)) bandInfo.set(host, describeBand(host));
+      const page = [rect.left + window.scrollX, rect.top + window.scrollY];
+      const origin = [field.ox - page[0], field.oy - page[1]]; // lens corner in the band
+      const cut = [-origin[1], origin[0] + LENS_PX - rect.width, origin[1] + LENS_PX - rect.height, -origin[0]];
+      Object.assign(lens.element.style, {
+        transform: `translate3d(${origin[0]}px, ${origin[1]}px, 0)`,
+        clipPath: `inset(${cut.map((px) => `${Math.max(px, 0)}px`).join(' ')})`, // the band layer does not clip
+        visibility: 'visible',
+      });
+      lens.draw(field.h, bandLook(bandInfo.get(host), rect, origin, page));
+    };
+
+    const tick = (now) => {
       frame = 0;
-      const target = pointer ? (pressed ? DEPTH.pressed : DEPTH.rest) : 0;
-      depth = instant || Math.abs(target - depth) < SETTLE ? target : depth + (target - depth) * EASE;
-      displace.setAttribute('scale', String((PULL_PX * depth) / RADIUS)); // in shares of the lens (objectBoundingBox)
+      carry += last ? Math.min(now - last, STEP_MS * MAX_STEPS) : STEP_MS;
+      last = now;
+      const [x, y] = [pointer.x + window.scrollX, pointer.y + window.scrollY];
+      field.moveTo(x, y);
       if (bands.some((band) => !band.isConnected)) bands = [...document.querySelectorAll('.band > .band-bg')];
-      let used = 0;
-      for (const host of pointer ? bands : []) {
-        if (used === LENSES) break;
+      const [left, top] = [field.ox - window.scrollX, field.oy - window.scrollY]; // the surface's corner on screen
+      let inside = false;
+      const hits = [];
+      for (const host of bands) {
         if (underlay?.style.transform && underlay.contains(host)) continue;
         const rect = host.getBoundingClientRect();
-        const near = pointer.x + RADIUS > rect.left && pointer.x - RADIUS < rect.right;
-        if (near && pointer.y + RADIUS > rect.top && pointer.y - RADIUS < rect.bottom) place(lenses[used++], host, rect, pointer, depth);
+        if (pointer.x >= rect.left && pointer.x < rect.right && pointer.y >= rect.top && pointer.y < rect.bottom) inside = true;
+        const near = left < rect.right && left + LENS_PX > rect.left && top < rect.bottom && top + LENS_PX > rect.top;
+        if (near && hits.length < LENSES) hits.push([host, rect]);
       }
-      lenses.slice(used).forEach((lens) => lens.element.classList.remove('is-on'));
-      if (depth !== target) frame = requestAnimationFrame(render);
+      const depth = pointer.on && inside ? (pressed ? DEPTH.pressed : DEPTH.rest) : 0;
+      for (; carry >= STEP_MS; carry -= STEP_MS) moving = field.step(x, y, depth);
+      hits.forEach(([host, rect], i) => paint(lenses[i], host, rect));
+      lenses.slice(hits.length).forEach((lens) => {
+        lens.element.style.visibility = 'hidden';
+      });
+      if (moving) frame = requestAnimationFrame(tick);
+      else last = 0; // at rest: no loop until the pointer or the page moves again
     };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(render);
+    const nudge = () => {
+      if (!pointer || !lenses) return;
+      moving = true;
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      try {
+        lenses = Array.from({ length: LENSES }, createLens);
+      } catch (error) {
+        console.warn('GrainDent: no WebGL lens', error);
+      }
+      if (!lenses || lenses.some((lens) => !lens)) {
+        lenses?.forEach((lens) => lens?.dispose());
+        lenses = null;
+        unsupported = true; // no WebGL2: the bands stay flat
+        return;
+      }
+      const ready = lenses;
+      loadGrain(ready[0].element.width / LENS_PX).then(
+        ({ grain, tile }) => {
+          ready.forEach((lens) => lens.setGrain(grain, tile));
+          nudge();
+        },
+        (error) => console.warn(error.message),
+      );
     };
 
     const onMove = (event) => {
-      if (event.pointerType !== 'mouse') return;
-      pointer = { x: event.clientX, y: event.clientY };
-      schedule();
+      if (event.pointerType !== 'mouse' || unsupported) return;
+      pointer = { x: event.clientX, y: event.clientY, on: true };
+      if (!lenses) start();
+      nudge();
     };
-    const onScroll = () => pointer && schedule();
     const onDown = (event) => {
       pressed = event.button === 0 || pressed;
-      schedule();
+      nudge();
     };
     const onUp = () => {
       pressed = false;
-      schedule();
+      nudge();
     };
     const onOut = (event) => {
-      if (event.relatedTarget) return;
-      pointer = null;
-      schedule();
+      if (event.relatedTarget || !pointer) return;
+      pointer.on = false; // the surface flows back where the pointer left it
+      nudge();
     };
 
     window.addEventListener('pointermove', onMove, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', nudge, { passive: true });
     window.addEventListener('pointerdown', onDown, { passive: true });
     window.addEventListener('pointerup', onUp, { passive: true });
     window.addEventListener('blur', onUp);
     document.addEventListener('mouseout', onOut);
     return () => {
       cancelAnimationFrame(frame);
-      lenses.forEach((lens) => lens.element.remove());
+      lenses?.forEach((lens) => lens.dispose());
       window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', nudge);
       window.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('blur', onUp);
       document.removeEventListener('mouseout', onOut);
     };
-  }, [images]);
+  }, []);
 
-  // The filter works in shares of the lens box (objectBoundingBox), so the map always covers it exactly.
-  return (
-    <svg aria-hidden="true" className="grain-dent-defs" width="0" height="0">
-      <filter id={FILTER_ID} x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" colorInterpolationFilters="sRGB">
-        <feImage href={images.map} x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="map" />
-        <feDisplacementMap ref={displaceRef} in="SourceGraphic" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </svg>
-  );
+  return null;
 }
