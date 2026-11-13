@@ -9,13 +9,14 @@ import { useScissorsSignals } from './useScissorsSignals.js';
 const RIG_PRIORITY = -1; // runs before Shears reads openRef; negative keeps auto-rendering on
 
 /**
- * Drives the 3D shears from the shared motion (rigMotion.js): writes the transform into groupRef, the opening
- * (degrees per half) into openRef, the fade
+ * Drives the 3D shears from the shared motion (rigMotion.js): writes the transform into groupRef, the roll
+ * about the long axis into rollRef (a group inside it), the opening (degrees per half) into openRef, the fade
  * into layerRef and the projected tip into `rig`; while the hero is cut, the photo acts as a sheet (sheet.js)
  * with its shadow catcher in shadowRef. hold: null | 'open' | 'closed' — the debug helper pins the opening.
  */
 export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
   const groupRef = useRef(null);
+  const rollRef = useRef(null);
   const shadowRef = useRef(null);
   const openRef = useRef(0);
   const opacityRef = useRef(-1);
@@ -49,8 +50,9 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
     qHero.setFromEuler(euler.set(h.x, h.y, h.z));
     qTrack.setFromEuler(euler.set(t.x, t.y, t.z));
     group.quaternion.slerpQuaternions(qHero, qTrack, frame.dock);
+    if (rollRef.current) rollRef.current.rotation.y = frame.roll;
     group.updateMatrixWorld();
-    sheet({ group, paper: frame.paper, gl, shadow: shadowRef.current });
+    sheet({ group, paper: frame.paper, reach: frame.reach / unit, gl, shadow: shadowRef.current });
 
     if (hold === 'open') openRef.current = maxOpen;
     else if (hold === 'closed') openRef.current = 0;
@@ -66,5 +68,5 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
     if (frame.active) invalidate();
   }, RIG_PRIORITY);
 
-  return { groupRef, shadowRef, openRef };
+  return { groupRef, rollRef, shadowRef, openRef };
 }

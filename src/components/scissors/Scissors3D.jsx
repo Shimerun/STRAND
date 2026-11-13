@@ -82,12 +82,14 @@ function FrameProbe({ onSlow }) {
 }
 
 function Rig({ config, hold, layerRef, showAxes, onInfo }) {
-  const { groupRef, shadowRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, length: config.SCALE, layerRef, hold });
+  const { groupRef, rollRef, shadowRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, length: config.SCALE, layerRef, hold });
 
   return (
     <>
       <group ref={groupRef}>
-        <Shears config={config} openRef={openRef} onInfo={onInfo} />
+        <group ref={rollRef}>
+          <Shears config={config} openRef={openRef} onInfo={onInfo} />
+        </group>
         {showAxes && <axesHelper args={[2.5]} />}
       </group>
       {/* Shadow catcher on the hero photo while it is cut; transparent everywhere else. */}
@@ -121,7 +123,7 @@ export default function Scissors3D({ onLost, onSlow }) {
           onCreated={({ gl }) => {
             gl.toneMapping = ACESFilmicToneMapping;
             gl.toneMappingExposure = EXPOSURE;
-            gl.localClippingEnabled = true; // sheet.js: the lower blade under the hero photo
+            gl.localClippingEnabled = true; // sheet.js: the blade under the hero photo
           }}
         >
           <ContextWatch onLost={onLost} />

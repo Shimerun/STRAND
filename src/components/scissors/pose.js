@@ -39,6 +39,11 @@ export const DOCK_END = 0.6; // fraction of the hero height scrolled when the sh
 const DOCK_FROM_PIN = HERO_CUT.cutEnd + 0.08;
 const CUT_TILT = 0.18; // rad the shears pitch with the blades wide open
 const CUT_WOBBLE = 0.05; // rad of side wobble mid-snip
+// While cutting, the shears turn on their long axis so the blades open into the screen: one above the photo,
+// one under it (the 3D rig hides what is under the photo), the way paper sits between real blades. Near edge-on,
+// as a hand holds them: the upper blade then runs along the cut instead of lying open across the photo, while
+// the rings still read as shears.
+export const CUT_ROLL = 70 * DEG;
 
 /** Scroll range in px over which the shears dock onto the track; the track starts at `to`. */
 export function dockRange(heroHeight, pin) {
@@ -53,7 +58,7 @@ export const nearAngle = (angle, ref) => angle + TAU * Math.round((ref - angle) 
  * they cut, the blades one snip step long and opening as cutState says. width / height: hero frame in CSS px.
  */
 export function cutPose(along, width, height, maxOpen) {
-  const { pivot, dir, blade, open } = cutState(along, width, height);
+  const { pivot, dir, blade, open, cutEnd } = cutState(along, width, height);
   // Effort while the blades move: a slight wobble and tilt, zero when they are shut so the tips meet the cut.
   const effort = 4 * open * (1 - open);
   return {
@@ -62,6 +67,7 @@ export function cutPose(along, width, height, maxOpen) {
     length: 2 * blade,
     rotation: { x: CUT_TILT * open, y: 0, z: Math.atan2(-dir.x, -dir.y) + CUT_WOBBLE * effort },
     open: maxOpen * HERO_CUT.openShare * open,
+    reach: Math.hypot(cutEnd.x - pivot.x, cutEnd.y - pivot.y), // px from the pivot to where the blades cross
   };
 }
 export const END_OFFSET = 0.3; // track ends this many viewports before the end element scrolls into view
