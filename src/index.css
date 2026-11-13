@@ -55,6 +55,8 @@
     @apply bg-bg font-sans text-text antialiased;
     background-image: var(--grain);
     background-size: var(--grain-size);
+    /* A stacking context, so the section bands (.band-bg, z-index -1) paint over this background, under content. */
+    isolation: isolate;
   }
 
   h1,
@@ -185,10 +187,18 @@ main {
 /* Section bands: a soft pool of light on the wall, like the strip lamps over the chairs, alternating sides down
    the page. It fades out before the band's top edge, so two bands of one tone never show a seam. The lighter
    band carries its own grain (it covers the body's), drawn over the light to dither its banding.
-   Static backgrounds that scroll with the page: painted once, never per frame. */
+   Static backgrounds that scroll with the page: painted once, never per frame. The section (.band) sets the
+   light; a layer under its content (.band-bg) paints it, so the cursor's grain dent can sit between the two. */
 .band {
   --light-x: 24%;
   --light: radial-gradient(70% 300px at var(--light-x) 300px, rgb(242 242 242 / 0.055), transparent);
+}
+
+.band-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none; /* no overflow clip: on every band it cost the hero cut ~2 ms a frame on a phone */
   background-image: var(--light);
 }
 

@@ -90,3 +90,56 @@
     transition: none;
   }
 }
+
+/* Grain dent (GrainDent.jsx): a lens inside a band's background layer that repaints the band there, its grain
+   pulled towards the middle by an SVG filter, under a shading of the bowl's walls. It fades out at the rim, where
+   the grain is no longer pulled and matches the band around it. */
+.grain-dent-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.grain-dent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  will-change: transform;
+}
+
+.grain-dent.is-on {
+  opacity: 1;
+}
+
+.grain-dent-surface,
+.grain-dent-shade {
+  position: absolute;
+  inset: 0;
+}
+
+.grain-dent-surface {
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent);
+}
+
+.grain-dent-surface[data-tone='surface'] {
+  background-image: var(--grain), var(--light);
+  background-size: var(--grain-size), var(--dent-light-size);
+  background-position: var(--dent-grain-at), var(--dent-light-at);
+  background-repeat: repeat, no-repeat;
+}
+
+.grain-dent-surface[data-tone='base'] {
+  background-image: var(--light), var(--grain);
+  background-size: var(--dent-light-size), var(--grain-size);
+  background-position: var(--dent-light-at), var(--dent-grain-at);
+  background-repeat: no-repeat, repeat;
+}
+
+.grain-dent-shade {
+  background-size: 100% 100%;
+}
