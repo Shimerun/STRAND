@@ -1,12 +1,17 @@
 // Pure math for the hero cut behaving as a sheet of paper: the wedge the blades push open, the cut-off strip
 // lifting off the page about the cutting point, and its fall once the cut is through.
 
+import { pointAt } from '../../lib/heroCut.js';
+
 const TAU = Math.PI * 2;
 const RAD = Math.PI / 180;
 
 // At the blades the strip is pushed aside by the lower blade's body: the gap opens as a wedge `px` wide at the
-// cutting point that closes over `ramp` px back along the cut.
-const WEDGE = { px: 3, ramp: 140 };
+// cutting point (`press` px more while the blades bear down) that closes over `ramp` px back along the cut.
+const WEDGE = { px: 3, press: 2, ramp: 140 };
+// The blades bear on the paper only where they cross: the dent reaches `ahead` px past the cutting point (no
+// further than where the blades will meet) and `behind` px back along the cut, deepest at the cutting point.
+const CREASE = { ahead: 56, behind: 14, step: 5 };
 // The lower blade lifts the strip as it passes under it: the strip folds up towards the viewer by up to `deg`
 // once the cut is through (growing with share^power), seen through a perspective of `perspective` px. It folds
 // about the chord of the cut so far (cutting point to frame edge), so the whole strip comes forward and still
@@ -19,16 +24,37 @@ export const FOLD = { deg: 8, power: 1.5, perspective: 2400 };
 const FALL = { y: 1.05, drag: 1.6, swings: 1.25, sway: 0.05, tilt: 7, yaw: 14, pitch: 22, spin: 6, settle: 0.25, perspective: 1600 };
 
 /** The strip's edge: the cut so far (cutting order) pushed down by the wedge near its last point. */
-export function wedged(points) {
+export function wedged(points, press = 0) {
+  const px = WEDGE.px + WEDGE.press * press;
   const n = points.length;
   const out = new Array(n);
   let back = 0;
   for (let i = n - 1; i >= 0; i--) {
     if (i < n - 1) back += Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
     const t = Math.max(1 - back / WEDGE.ramp, 0);
-    out[i] = t ? { x: points[i].x, y: points[i].y + WEDGE.px * t * t } : points[i];
+    out[i] = t ? { x: points[i].x, y: points[i].y + px * t * t } : points[i];
   }
   return out;
+}
+
+/**
+ * The paper the closing blades press around the cutting point, along the line: { points, depth } with depth 0..1
+ * per point (the press, falling off away from the cutting point), or null while they do not press.
+ */
+export function creaseAt(geometry, { cut, shut, press }) {
+  const ahead = Math.min(CREASE.ahead, shut - cut);
+  if (press <= 0 || ahead < 1) return null;
+  const from = Math.max(cut - CREASE.behind, 0);
+  const n = Math.max(2, Math.ceil((cut + ahead - from) / CREASE.step));
+  const points = [];
+  const depth = [];
+  for (let i = 0; i <= n; i++) {
+    const d = from + ((cut + ahead - from) * i) / n;
+    const away = d < cut ? (cut - d) / CREASE.behind : (d - cut) / ahead;
+    points.push(pointAt(geometry, d));
+    depth.push(press * (1 - Math.min(away, 1)) ** 2);
+  }
+  return { points, depth };
 }
 
 /** Fold of the strip in degrees at cut share `share` (0..1); positive: its far edge comes towards the viewer. */

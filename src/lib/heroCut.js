@@ -26,6 +26,7 @@ export const HERO_CUT = {
 const SAMPLE_PX = 6;
 const SAMPLES = { min: 48, max: 160 };
 const KINK_PX = 1.2; // how far off the line one snip can run
+const PRESS_BUILD = 0.3; // share of a closing over which the blades come to bear on the paper
 const TAU = Math.PI * 2;
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const ease = (t) => t * t * (3 - 2 * t);
@@ -118,6 +119,10 @@ export function cutState(along, width, height) {
     dir: { x: (ahead.x - pivot.x) / chord, y: (ahead.y - pivot.y) / chord },
     blade: chord,
     closings: Math.min(Math.floor(progress + 0.5), snips),
+    // 0..1: how hard the closing blades bear on the paper ahead of the cut (nothing while they open), and where
+    // along the line they will meet.
+    press: closing ? ease(Math.min((phase * 2) / PRESS_BUILD, 1)) : 0,
+    shut: Math.min((snip + 1) * step, total),
   };
 }
 

@@ -7,15 +7,63 @@ const EDGE = { top: { width: 1, opacity: 0.5 }, flap: { width: 1.75, opacity: 0.
 // shadow onto it, drawn as bands `px` deep from its edge, each darkening by `opacity`.
 const SHADOW = { base: 0.3, wide: { px: 14, opacity: 0.2 }, near: { px: 6, opacity: 0.25 } };
 const SHADOW_GONE_BY = 0.15; // share of the split: the halves have parted, the shadow under them is gone
-const EMPTY = { top: '', flap: '', dim: '', wide: '', near: '' };
+// Where the closing blades cross, they bear on the paper: the upper one presses the top side into a dent (shadow
+// bands `px` wide), the lower one lifts the other side into a ridge catching the light, with a shade beyond it.
+// All are scaled by the depth of the press at each point (creaseAt).
+const CREASE = {
+  dent: { px: 12, opacity: 0.3 },
+  dentNear: { px: 5, opacity: 0.35 },
+  ridge: { from: 1, px: 3, opacity: 0.2 },
+  shade: { px: 12, opacity: 0.35 },
+};
+const NO_EDGES = { top: '', flap: '', dim: '', wide: '', near: '' };
+const NO_CREASE = { dent: '', dentNear: '', ridge: '', shade: '' };
 
 const round = (value) => Math.round(value * 10) / 10;
 const fmt = (x, y) => `${round(x)} ${round(y)}`;
 
+const band = (inner, outer) => `M${inner.join('L')}L${outer.reverse().join('L')}Z`;
+
+// The pressed paper around the cutting point ({ points, depth } from creaseAt), as fill paths.
+function creaseMarks(crease) {
+  if (!crease) return NO_CREASE;
+  const { points, depth } = crease;
+  const n = points.length;
+  const [line, dent, dentNear, ridgeIn, ridgeOut, shade] = [[], [], [], [], [], []];
+  const { ridge } = CREASE;
+  for (let i = 0; i < n; i++) {
+    const a = points[Math.max(i - 1, 0)];
+    const b = points[Math.min(i + 1, n - 1)];
+    const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    let [nx, ny] = [-(b.y - a.y) / length, (b.x - a.x) / length];
+    if (ny < 0) [nx, ny] = [-nx, -ny]; // towards the strip, down the screen
+    const k = depth[i];
+    const { x, y } = points[i];
+    const at = (d) => fmt(x + nx * d * k, y + ny * d * k);
+    line.push(fmt(x, y));
+    dent.push(at(-CREASE.dent.px));
+    dentNear.push(at(-CREASE.dentNear.px));
+    ridgeIn.push(at(ridge.from));
+    ridgeOut.push(at(ridge.from + ridge.px));
+    shade.push(at(ridge.from + ridge.px + CREASE.shade.px));
+  }
+  return {
+    dent: band(line, dent),
+    dentNear: band([...line], dentNear),
+    ridge: band(ridgeIn, [...ridgeOut]),
+    shade: band(ridgeOut, shade),
+  };
+}
+
 // All the marks in one pass, every point formatted once (they are redrawn on each scroll frame): the top edge, the
-// strip's edge (same points, same order) and the gap between them, whole and down to each shadow band.
-function marks(top, flap) {
-  if (!top || top.length < 2 || flap?.length !== top.length) return EMPTY;
+// strip's edge (same points, same order), the gap between them, whole and down to each shadow band, and the paper
+// pressed around the cutting point.
+function marks(top, flap, crease) {
+  return { ...edgeMarks(top, flap), ...creaseMarks(crease) };
+}
+
+function edgeMarks(top, flap) {
+  if (!top || top.length < 2 || flap?.length !== top.length) return NO_EDGES;
   const n = top.length;
   const [upper, lower, wide, near] = [new Array(n), new Array(n), new Array(n), new Array(n)];
   for (let i = 0; i < n; i++) {
@@ -39,15 +87,19 @@ function marks(top, flap) {
 
 /** Path data for the cut marks, from the hero cut's motion values (useHeroCut). */
 export function useCutMarks(cut) {
-  const { soFar, flapLine } = cut;
-  // flapLine follows soFar on every frame of the cut, so it alone drives the update.
-  const all = useTransform(flapLine, (flap) => marks(soFar.get(), flap));
+  const { soFar, flapLine, crease } = cut;
+  // flapLine follows soFar on every frame of the cut, so with the crease it drives the update.
+  const all = useTransform([flapLine, crease], ([flap, pressed]) => marks(soFar.get(), flap, pressed));
   return {
     top: useTransform(all, (m) => m.top),
     flap: useTransform(all, (m) => m.flap),
     dim: useTransform(all, (m) => m.dim),
     wide: useTransform(all, (m) => m.wide),
     near: useTransform(all, (m) => m.near),
+    dent: useTransform(all, (m) => m.dent),
+    dentNear: useTransform(all, (m) => m.dentNear),
+    ridge: useTransform(all, (m) => m.ridge),
+    shade: useTransform(all, (m) => m.shade),
     shadow: useTransform(cut.split, [0, SHADOW_GONE_BY], [1, 0]),
   };
 }
@@ -62,6 +114,12 @@ export default function CutMarks({ cut, paths }) {
           <motion.path d={paths.wide} fillOpacity={SHADOW.wide.opacity} />
           <motion.path d={paths.near} fillOpacity={SHADOW.near.opacity} />
         </motion.g>
+        <g className="fill-bg">
+          <motion.path d={paths.dent} fillOpacity={CREASE.dent.opacity} />
+          <motion.path d={paths.dentNear} fillOpacity={CREASE.dentNear.opacity} />
+          <motion.path d={paths.shade} fillOpacity={CREASE.shade.opacity} />
+        </g>
+        <motion.path d={paths.ridge} fillOpacity={CREASE.ridge.opacity} className="fill-text" />
         <motion.path d={paths.top} fill="none" strokeWidth={EDGE.top.width} strokeOpacity={EDGE.top.opacity} className="stroke-text" />
       </svg>
     </motion.div>

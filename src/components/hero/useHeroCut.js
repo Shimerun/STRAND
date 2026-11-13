@@ -1,7 +1,7 @@
 import { useLayoutEffect } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
 import { cutGeometry, cutSoFar, cutState, heroCutPhases } from '../../lib/heroCut.js';
-import { FOLD, fallAt, foldAt, foldTransform, folded, wedged } from './paper.js';
+import { FOLD, creaseAt, fallAt, foldAt, foldTransform, folded, wedged } from './paper.js';
 
 // Once the cut is through, the halves part and swell a little: the top springs up (ease-out, shift in frame
 // heights), the flap falls like paper (paper.js). Both are off screen when the pin ends.
@@ -66,7 +66,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const split = useTransform(phases, (phase) => phase.split);
   const soFar = useTransform([state, width, height], ([s, w, h]) => (s ? cutSoFar(cutGeometry(w, h), s.cutEnd) : null));
   const share = useTransform(state, (s) => s?.share ?? 0);
-  const flapEdge = useTransform(soFar, (points) => (started(points) ? wedged(points) : points));
+  const flapEdge = useTransform([soFar, state], ([points, s]) => (started(points) ? wedged(points, s.press) : points));
   const fold = useTransform(share, foldAt);
   const fall = useTransform([split, width, height], ([s, w, h]) => fallAt(s, w, h));
   const sag = useTransform([soFar, share, width, height], ([points, sh, w, h]) =>
@@ -100,6 +100,8 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     state,
     split,
     soFar,
+    // The paper the closing blades press around the cutting point (CutMarks).
+    crease: useTransform([state, width, height], ([s, w, h]) => (s && w ? creaseAt(cutGeometry(w, h), s) : null)),
     // The strip's edge on screen, sagged and folded, for the cut marks.
     flapLine: useTransform([flapEdge, soFar, sag, fold], ([points, cut, tan, deg]) => (started(cut) ? folded(points, cut, tan, deg) : null)),
     aim: useTransform(phases, (phase) => phase.aim),
