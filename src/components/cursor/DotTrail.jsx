@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { prefersReducedMotion } from '../../lib/scroll.js';
-import { DOTS, createDots } from './dotGrid.js';
+import { DOTS, SHADES, createDots } from './dotGrid.js';
+import { lightIn } from './bandLight.js';
 
 const LENS_PX = 600; // each canvas covers this square around the pointer; a trail fades out at its edge
 const EDGE_PX = 80; // over this far in from the canvas edge
@@ -40,12 +41,14 @@ function draw(lens, host, rect, dots, pointer) {
   context.setTransform(1, 0, 0, 1, 0, 0);
   context.clearRect(0, 0, lens.element.width, lens.element.height);
   context.setTransform(scale, 0, 0, scale, -corner[0] * scale, -corner[1] * scale);
-  context.fillStyle = DOTS.color;
+  const lit = lightIn(host, rect);
   for (const dot of dots.values()) {
     const [x, y] = [dot.homeX + dot.ox, dot.homeY + dot.oy];
     const edge = Math.min(x - corner[0], y - corner[1], corner[0] + LENS_PX - x, corner[1] + LENS_PX - y);
     if (edge <= 0 || dot.shown <= 0) continue;
-    context.globalAlpha = DOTS.opacity * dot.shown * Math.min(edge / EDGE_PX, 1);
+    const glow = DOTS.shade + (1 - DOTS.shade) * lit(x, y); // brighter in the band's light spot
+    context.globalAlpha = DOTS.opacity * glow * dot.shown * Math.min(edge / EDGE_PX, 1);
+    context.fillStyle = SHADES[Math.round(Math.min(dot.tint, 1) * (SHADES.length - 1))];
     context.beginPath();
     context.arc(x, y, DOTS.size, 0, TAU);
     context.fill();
@@ -54,10 +57,11 @@ function draw(lens, host, rect, dots, pointer) {
 }
 
 /**
- * Under the custom cursor, dots show up on the section bands around the pointer, shy away from it (harder with
- * the button held) and spring back home, fading out behind it, also when the page scrolls under it
- * (dotGrid.js). Drawn inside the bands' background layer (index.css .band-bg), so the content above is
- * untouched, and only while something moves. Mounted with the custom cursor (mouse devices only).
+ * Under the custom cursor, concrete-grey dots show up on the section bands around the pointer, shy away from it
+ * (harder with the button held, both turning them green) and ease back home, fading out behind it, also when the
+ * page scrolls under it (dotGrid.js); they are brighter in the band's light spot (bandLight.js). Drawn inside the
+ * bands' background layer (index.css .band-bg), so the content above is untouched, and only while something
+ * moves. Mounted with the custom cursor (mouse devices only).
  */
 export default function DotTrail() {
   useEffect(() => {
@@ -89,9 +93,7 @@ export default function DotTrail() {
       const active = pointer.on && inside ? page : null; // dots show up only over a band
       for (; carry >= STEP_MS; carry -= STEP_MS) moving = grid.step(active, pressed);
       hits.forEach(([host, rect], i) => draw(lenses[i], host, rect, grid.dots, page));
-      lenses.slice(hits.length).forEach((lens) => {
-        lens.element.style.visibility = 'hidden';
-      });
+      for (const lens of lenses.slice(hits.length)) lens.element.style.visibility = 'hidden';
       if (moving) frame = requestAnimationFrame(tick);
       else last = 0; // at rest: no loop until the pointer or the page moves again
     };
