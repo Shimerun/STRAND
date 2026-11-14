@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { prefersReducedMotion } from '../../lib/scroll.js';
-import GrainDent from './GrainDent.jsx';
+import DotTrail from './DotTrail.jsx';
 import './cursor.css';
 
 // Speed: share of the remaining distance the ring covers per frame (0.15–0.2 = soft lag, 1 = no lag).
@@ -87,7 +87,7 @@ export default function Cursor() {
       <div ref={dotRef} className="cursor-dot">
         <span className="cursor-dot-shape" />
       </div>
-      <GrainDent />
+      <DotTrail />
     </div>
   );
 }

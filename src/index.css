@@ -188,7 +188,7 @@ main {
    the page. It fades out before the band's top edge, so two bands of one tone never show a seam. The lighter
    band carries its own grain (it covers the body's), drawn over the light to dither its banding.
    Static backgrounds that scroll with the page: painted once, never per frame. The section (.band) sets the
-   light; a layer under its content (.band-bg) paints it, so the cursor's grain dent can sit between the two. */
+   light; a layer under its content (.band-bg) paints it, so the cursor's dot trail can sit between the two. */
 .band {
   --light-x: 24%;
   --light: radial-gradient(70% 300px at var(--light-x) 300px, rgb(242 242 242 / 0.055), transparent);

@@ -91,8 +91,8 @@
   }
 }
 
-/* Grain dent (GrainDent.jsx): a WebGL lens inside a band's background layer, moved and clipped from JS. */
-.grain-dent {
+/* Dot trail (DotTrail.jsx): a canvas inside a band's background layer, moved and clipped from JS. */
+.dot-trail {
   position: absolute;
   left: 0;
   top: 0;
