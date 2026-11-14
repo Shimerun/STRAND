@@ -4,25 +4,26 @@ import { site } from '../data/site.js';
 import { setScene } from './scissors/rig.js';
 import StencilLetter, { TEXT } from './StencilLetter.jsx';
 import { GLYPHS } from './stencilGlyphs.js';
-import { buildCutPlan, cutState } from './stencilCut.js';
+import { buildCutPlan, shearsAt } from './stencilCut.js';
+import { useFollow } from './useFollow.js';
 
 const WORD = site.name.toUpperCase();
 const VIEW = { width: 1000, height: 240 };
 const FADE = 0.04; // share of the cut over which the borrowed shears come and go
-// Held like a pen in a right hand: tips down and a little left (HOLD, rad clockwise from pointing right), leaning up
-// to LEAN as a dragged pen trails. Aimed along the cut they spun round every outline; aimed right, they looked
-// dragged backwards half the way.
-const [HOLD, LEAN] = [(115 * Math.PI) / 180, (12 * Math.PI) / 180];
-const SHEARS = 0.45; // share of the track length: about a letter long, so they do not sweep over the next ones
-// The pinned stage in screen heights: its height, and the extra scroll it is held for while the word is cut.
-// Phones get a lower stage and a shorter pin: the word is small there, and a full screen held over two screens
-// of scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends. step: view
-// units per bite (the nibbling rhythm); ~65 bites get ~16 px of scroll each on a desktop, ~8 on a phone.
-const STAGE = { full: { height: 1, pin: 2, step: 100 }, compact: { height: 0.7, pin: 1, step: 150 } };
+// The pinned stage in screen heights: its height, and the extra scroll it is held for while the word is cut. Phones
+// get a lower stage and a shorter pin: the word is small there, and a full screen held over two screens of
+// scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends.
+const STAGE = { full: { height: 1, pin: 2 }, compact: { height: 0.7, pin: 1 } };
+// The outlines are ~4x longer than the scroll that cuts them: tied to it, the tips lurched at every flick of the wheel.
+// So the scroll sets how far the cut may go and the scene follows at SPEED view units a second (the word in ~6 s).
+const [SPEED, FREE] = [900, 1.5]; // FREE: share of the pin a second, outside the cut
 const COMPACT = '(max-width: 767px)';
 const CUT_RANGE = [0.05, 0.65]; // share of the pin: the letters get cut
 const DROP_RANGE = [0.65, 0.95]; // share of the pin: the cut-out letters drop away
-const CLOSING_RANGE = [0.4, 1]; // share of the drop: what stands under the word comes in
+// Share of the pin, late in the drop: what stands under the word comes in, with the scroll rather than the scene.
+const CLOSING_RANGE = [0.77, 0.95];
+const followRate = (plan, p) =>
+  plan && p >= CUT_RANGE[0] && p < CUT_RANGE[1] ? (SPEED * (CUT_RANGE[1] - CUT_RANGE[0])) / plan.total : FREE;
 const WHITE_INSET = 4; // view units; the letters sit well inside
 const WORD_PROPS = {
   x: (VIEW.width - TEXT.length) / 2,
@@ -35,9 +36,8 @@ const WORD_PROPS = {
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 
 /**
- * Footer finale: the site's shears (borrowed from the rig, a little smaller) cut the letters of the name out of
- * the black ground one by one, snip by snip along their outlines; the cut-out letters drop away and leave white
- * holes.
+ * Footer finale: the site's shears (borrowed from the rig, smaller) cut the letters of the name out of the black
+ * ground one by one, tracing their outlines; the cut-out letters drop away and leave white holes.
  * children: what stands under the word once it is cut (the closing call to action); it rises in as the letters
  * drop and cannot be reached or read before that. Reduced motion: shown already cut, the children with it.
  */
@@ -51,16 +51,16 @@ export default function Stencil({ children }) {
   const [stage] = useState(() => (window.matchMedia(COMPACT).matches ? STAGE.compact : STAGE.full));
   // Progress over the pin: from the stage reaching the top of the screen to its release.
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', `end ${stage.height}`] });
-  const cut = useTransform(scrollYProgress, CUT_RANGE, [0, 1]);
-  const drop = useTransform(scrollYProgress, DROP_RANGE, [0, 1]);
-  const closing = useTransform(drop, CLOSING_RANGE, [0, 1]);
+  const planRef = useRef(null);
+  const shown = useFollow(scrollYProgress, (p) => followRate(planRef.current, p)); // the scene's progress
+  const cut = useTransform(shown, CUT_RANGE, [0, 1]);
+  const drop = useTransform(shown, DROP_RANGE, [0, 1]);
+  const closing = useTransform(scrollYProgress, CLOSING_RANGE, [0, 1]);
   const closingY = useTransform(closing, [0, 1], [24, 0]);
   const closingVisibility = useTransform(closing, (c) => (c > 0 ? 'visible' : 'hidden'));
 
-  // While the letters are being cut, the shears follow the outline being cut, snipping. Everything is read fresh
-  // (progress from the event, the plan from a ref): `cut` only catches up on the next frame and a stale value, or a
-  // plan made after the last scroll, would leave the shears away for good.
-  const planRef = useRef(null);
+  // While the letters are being cut, the shears trace the outline. Everything is read fresh (progress from the
+  // event, the plan from a ref): a stale value, or a plan made after the last change, would leave them away for good.
   const publish = useCallback(
     (progress) => {
       const c = clamp01((progress - CUT_RANGE[0]) / (CUT_RANGE[1] - CUT_RANGE[0]));
@@ -69,23 +69,22 @@ export default function Stencil({ children }) {
         setScene(null);
         return;
       }
-      const { at, dir, open } = cutState(plan, c * plan.total);
-      const angle = HOLD + LEAN * dir.x;
+      const { at, aim, open, size } = shearsAt(plan, c * plan.total);
       const rect = rootRef.current.getBoundingClientRect();
       const scale = rect.width / VIEW.width;
       setScene({
         weight: Math.min(c / FADE, (1 - c) / FADE, 1),
         tipX: rect.left + at.x * scale,
         tipY: rect.top + at.y * scale,
-        dirX: Math.cos(angle),
-        dirY: Math.sin(angle),
+        dirX: aim.x,
+        dirY: aim.y,
         open,
-        scale: SHEARS,
+        scale: size,
       });
     },
     [reduce],
   );
-  useMotionValueEvent(scrollYProgress, 'change', publish);
+  useMotionValueEvent(shown, 'change', publish);
 
   useEffect(() => {
     let alive = true;
@@ -94,16 +93,16 @@ export default function Stencil({ children }) {
       const word = wordRef.current;
       if (!alive || !word) return;
       const boxes = [...WORD].map((_, i) => ({ x: word.getStartPositionOfChar(i).x }));
-      const plan = buildCutPlan(WORD, boxes, TEXT.baseline, stage.step);
+      const plan = buildCutPlan(WORD, boxes, TEXT.baseline);
       planRef.current = plan;
       setLayout({ boxes, plan });
-      publish(scrollYProgress.get()); // the page may already be scrolled into the cut
+      publish(shown.get()); // the page may already be scrolled into the cut
     });
     return () => {
       alive = false;
       setScene(null);
     };
-  }, [publish, scrollYProgress, stage.step]);
+  }, [publish, shown]);
 
   return (
     <div ref={trackRef} className="relative" style={reduce ? undefined : { height: `${(stage.height + stage.pin) * 100}svh` }}>
