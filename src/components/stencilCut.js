@@ -2,12 +2,15 @@ import { GLYPHS } from './stencilGlyphs.js';
 
 // The footer stencil's cut as a timeline measured in view units travelled by the tips, so a steady clock moves
 // them at a steady speed. They trace each contour in one go (holes first: the letter hangs in the sheet until its
-// outline is through), then glide to the next start a little faster, through the air. The blades open and shut a
-// little as they go, slowly; a letter whose outline is through settles in its hole by SAG.
+// outline is through), snipping with their points the way a barber point-cuts: the blades open as the tips move on,
+// then press and snap shut, and the cut catches up with the tips. Between contours they glide shut, a little
+// faster; a letter whose outline is through settles in its hole by SAG.
 const AIR = 1.5; // how much faster the tips move between contours than along a cut
 const SETTLE = 160; // view units of time a freed letter takes to settle
 const TAIL = SETTLE; // view units of time after the last cut, so the last letter settles before the shears leave
-const SNIP = { every: 240, open: 0.25 }; // one slow open-and-shut of the blades per `every` units, this far open
+// A snip every ~`every` view units (evenly over each contour): the blades open to `open` over the first `opening`
+// of it, then shut, slowly at first and snapping at the end (`bite`: power of that ease).
+const SNIP = { every: 120, open: 0.6, opening: 0.55, bite: 3 };
 const LOOK = 40; // view units ahead along the cut that set which way it runs
 export const SAG = 3; // view units the cut-out letter drops in its hole once free
 
@@ -75,6 +78,7 @@ export function buildCutPlan(word, boxes, baseline) {
     const next = contours[g + 1];
     line.from = time;
     line.to = time + line.length;
+    line.snip = line.length / Math.max(1, Math.round(line.length / SNIP.every));
     freed[line.letter] = line.to;
     const gap = next ? Math.hypot(next.xs[0] - line.xs[0], next.ys[0] - line.ys[0]) / AIR : TAIL;
     segments.push({ kind: 'trace', g, t0: time, t1: line.to });
@@ -84,20 +88,29 @@ export function buildCutPlan(word, boxes, baseline) {
   return { contours, segments, total: time, freed };
 }
 
+// The snip the tips are in, s view units along a contour: how far it is cut (up to the last snap) and the opening.
+function snipAt(line, s) {
+  const k = Math.floor(s / line.snip);
+  const phase = s / line.snip - k;
+  const shut = phase < SNIP.opening ? 0 : ((phase - SNIP.opening) / (1 - SNIP.opening)) ** SNIP.bite;
+  const open = phase < SNIP.opening ? ease(phase / SNIP.opening) : 1 - shut;
+  return { cut: Math.min((k + shut) * line.snip, line.length), open: SNIP.open * open };
+}
+
 /**
- * The shears at `time`: the contour being cut (g), its cut length, where the tips are (at: the end of the cut, or
- * on the way to the next contour), which way the cut runs there (dir) and the opening 0..1.
+ * The shears at `time`: the contour being cut (g), its cut length, where the tips are (at: on the contour ahead of
+ * the cut until the blades snap, or on the way to the next contour), which way the cut runs there (dir) and the
+ * opening 0..1.
  */
 export function cutState(plan, time) {
   const seg = plan.segments.find((s) => time < s.t1) ?? plan.segments.at(-1);
   const line = plan.contours[seg.g];
-  const open = SNIP.open * (0.5 - 0.5 * Math.cos((2 * Math.PI * Math.max(time, 0)) / SNIP.every));
   if (seg.kind === 'trace') {
-    const cut = Math.min(Math.max(time - seg.t0, 0), line.length);
-    return { g: seg.g, cut, at: pointAt(line, cut), dir: runsAt(line, cut), open };
+    const s = Math.min(Math.max(time - seg.t0, 0), line.length);
+    return { g: seg.g, ...snipAt(line, s), at: pointAt(line, s), dir: runsAt(line, s) };
   }
-  // On to the next contour (after the last one: stay), turning the short way round.
-  const [end, next] = [pointAt(line, line.length), seg.kind === 'travel' ? plan.contours[seg.g + 1] : null];
+  // On to the next contour (after the last one: stay), shut, turning the short way round.
+  const [end, next, open] = [pointAt(line, line.length), seg.kind === 'travel' ? plan.contours[seg.g + 1] : null, 0];
   const from = runsAt(line, line.length);
   if (!next) return { g: seg.g, cut: line.length, at: end, dir: from, open };
   const to = runsAt(next, 0);
@@ -111,7 +124,7 @@ export function cutState(plan, time) {
 // right), leaning up to LEAN as a dragged pen trails. Aimed along the cut they spun round every outline; aimed one
 // way, they looked dragged backwards half the way round.
 const [HOLD, LEAN] = [(115 * Math.PI) / 180, (12 * Math.PI) / 180];
-const SIZE = 0.45; // share of the rig's track length: about a letter long, so they do not sweep over the next ones
+const SIZE = 0.6; // share of the rig's track length: big enough to see the snips, small enough not to sweep the word
 
 /** The shears at `time`: where the tips are, the way they point (aim), how far open and their size (rig scale). */
 export function shearsAt(plan, time) {
@@ -123,7 +136,8 @@ export function shearsAt(plan, time) {
 /** How much of contour g is cut at `time` (view units). */
 export function cutLength(plan, g, time) {
   const line = plan.contours[g];
-  return Math.min(Math.max(time - line.from, 0), line.length);
+  if (time <= line.from) return 0;
+  return time >= line.to ? line.length : snipAt(line, time - line.from).cut;
 }
 
 /** 0..1: how far the letter has settled into its hole after its outline was cut through. */

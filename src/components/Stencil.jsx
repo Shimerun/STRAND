@@ -15,8 +15,9 @@ const FADE = 0.04; // share of the cut over which the borrowed shears come and g
 // scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends.
 const STAGE = { full: { height: 1, pin: 2 }, compact: { height: 0.7, pin: 1 } };
 // The outlines are ~4x longer than the scroll that cuts them: tied to it, the tips lurched at every flick of the wheel.
-// So the scroll sets how far the cut may go and the scene follows at SPEED view units a second (the word in ~6 s).
-const [SPEED, FREE] = [900, 1.5]; // FREE: share of the pin a second, outside the cut
+// So the scroll sets how far the cut may go and the scene follows at SPEED view units a second: ~6 snips a second,
+// the word in ~7 s.
+const [SPEED, FREE] = [700, 1.5]; // FREE: share of the pin a second, outside the cut
 const COMPACT = '(max-width: 767px)';
 const CUT_RANGE = [0.05, 0.65]; // share of the pin: the letters get cut
 const DROP_RANGE = [0.65, 0.95]; // share of the pin: the cut-out letters drop away
