@@ -3,15 +3,17 @@ import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform 
 import { site } from '../data/site.js';
 import { setScene } from './scissors/rig.js';
 import StencilLetter, { TEXT } from './StencilLetter.jsx';
+import { GLYPHS } from './stencilGlyphs.js';
+import { buildCutPlan, cutState } from './stencilCut.js';
 
 const WORD = site.name.toUpperCase();
 const VIEW = { width: 1000, height: 240 };
-const SNIPS_PER_LETTER = 3;
 const FADE = 0.04; // share of the cut over which the borrowed shears come and go
 // The pinned stage in screen heights: its height, and the extra scroll it is held for while the word is cut.
 // Phones get a lower stage and a shorter pin: the word is small there, and a full screen held over two screens
-// of scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends.
-const STAGE = { full: { height: 1, pin: 1.2 }, compact: { height: 0.7, pin: 0.6 } };
+// of scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends. step: view
+// units per bite, about one blade of the borrowed shears; ~60 bites get ~17 px of scroll each (desktop), ~9 (phone).
+const STAGE = { full: { height: 1, pin: 2, step: 100 }, compact: { height: 0.7, pin: 1, step: 150 } };
 const COMPACT = '(max-width: 767px)';
 const CUT_RANGE = [0.05, 0.65]; // share of the pin: the letters get cut
 const DROP_RANGE = [0.65, 0.95]; // share of the pin: the cut-out letters drop away
@@ -29,7 +31,8 @@ const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 
 /**
  * Footer finale: the site's shears (borrowed from the rig, a little smaller) cut the letters of the name out of
- * the black ground one by one along their tops; the cut-out letters drop away and leave white holes.
+ * the black ground one by one, snip by snip along their outlines; the cut-out letters drop away and leave white
+ * holes.
  * children: what stands under the word once it is cut (the closing call to action); it rises in as the letters
  * drop and cannot be reached or read before that. Reduced motion: shown already cut, the children with it.
  */
@@ -39,7 +42,7 @@ export default function Stencil({ children }) {
   const trackRef = useRef(null);
   const rootRef = useRef(null);
   const wordRef = useRef(null);
-  const [boxes, setBoxes] = useState(null);
+  const [layout, setLayout] = useState(null); // { boxes, plan } once the font is in
   const [stage] = useState(() => (window.matchMedia(COMPACT).matches ? STAGE.compact : STAGE.full));
   // Progress over the pin: from the stage reaching the top of the screen to its release.
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', `end ${stage.height}`] });
@@ -49,30 +52,28 @@ export default function Stencil({ children }) {
   const closingY = useTransform(closing, [0, 1], [24, 0]);
   const closingVisibility = useTransform(closing, (c) => (c > 0 ? 'visible' : 'hidden'));
 
-  // While the letters are being cut, the shears ride along the top of the current one, snipping. Everything is
-  // read fresh (progress from the event, letter boxes from a ref): `cut` only catches up on the next frame and a
-  // stale value, or boxes measured after the last scroll, would leave the shears away for good.
-  const boxesRef = useRef(null);
+  // While the letters are being cut, the shears follow the outline being cut, snipping. Everything is read fresh
+  // (progress from the event, the plan from a ref): `cut` only catches up on the next frame and a stale value, or a
+  // plan made after the last scroll, would leave the shears away for good.
+  const planRef = useRef(null);
   const publish = useCallback(
     (progress) => {
       const c = clamp01((progress - CUT_RANGE[0]) / (CUT_RANGE[1] - CUT_RANGE[0]));
-      const measured = boxesRef.current;
-      if (reduce || !measured || c <= 0 || c >= 1) {
+      const plan = planRef.current;
+      if (reduce || !plan || c <= 0 || c >= 1) {
         setScene(null);
         return;
       }
-      const slot = Math.min(Math.floor(c * WORD.length), WORD.length - 1);
-      const local = c * WORD.length - slot;
-      const box = measured[slot];
+      const { tip, dir, open } = cutState(plan, c * plan.total);
       const rect = rootRef.current.getBoundingClientRect();
       const scale = rect.width / VIEW.width;
       setScene({
         weight: Math.min(c / FADE, (1 - c) / FADE, 1),
-        tipX: rect.left + (box.x + local * box.width) * scale,
-        tipY: rect.top + (TEXT.baseline - TEXT.cap) * scale,
-        dirX: 1,
-        dirY: 0,
-        open: 0.5 + 0.5 * Math.cos(2 * Math.PI * local * SNIPS_PER_LETTER),
+        tipX: rect.left + tip.x * scale,
+        tipY: rect.top + tip.y * scale,
+        dirX: dir.x,
+        dirY: dir.y,
+        open,
       });
     },
     [reduce],
@@ -85,16 +86,17 @@ export default function Stencil({ children }) {
     document.fonts.ready.then(() => {
       const word = wordRef.current;
       if (!alive || !word) return;
-      const measured = [...WORD].map((_, i) => ({ x: word.getStartPositionOfChar(i).x, width: word.getExtentOfChar(i).width }));
-      boxesRef.current = measured;
-      setBoxes(measured);
+      const boxes = [...WORD].map((_, i) => ({ x: word.getStartPositionOfChar(i).x }));
+      const plan = buildCutPlan(WORD, boxes, TEXT.baseline, stage.step);
+      planRef.current = plan;
+      setLayout({ boxes, plan });
       publish(scrollYProgress.get()); // the page may already be scrolled into the cut
     });
     return () => {
       alive = false;
       setScene(null);
     };
-  }, [publish, scrollYProgress]);
+  }, [publish, scrollYProgress, stage.step]);
 
   return (
     <div ref={trackRef} className="relative" style={reduce ? undefined : { height: `${(stage.height + stage.pin) * 100}svh` }}>
@@ -118,10 +120,14 @@ export default function Stencil({ children }) {
               <rect x={WHITE_INSET} y={WHITE_INSET} width={VIEW.width - 2 * WHITE_INSET} height={VIEW.height - 2 * WHITE_INSET} className="fill-text" />
               <rect width={VIEW.width} height={VIEW.height} mask={`url(#${id}-holes)`} className="fill-bg" />
               {!reduce &&
-                boxes &&
-                [...WORD].map((char, i) => (
-                  <StencilLetter key={`${char}-${i}`} char={char} box={boxes[i]} index={i} count={WORD.length} cut={cut} drop={drop} />
-                ))}
+                layout &&
+                [...WORD].map(
+                  (char, i) =>
+                    GLYPHS[char] && (
+                      <StencilLetter key={`${char}-${i}`} char={char} box={layout.boxes[i]} letter={i} count={WORD.length}
+                        plan={layout.plan} cut={cut} drop={drop} />
+                    ),
+                )}
             </svg>
           </div>
           {children && (
