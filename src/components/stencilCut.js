@@ -14,6 +14,8 @@ const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const ease = (t) => t * t * (3 - 2 * t);
 const lerp = (a, b, t) => a + (b - a) * t;
 const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) });
+const unit = (x, y) => ({ x: x / (Math.hypot(x, y) || 1), y: y / (Math.hypot(x, y) || 1) });
+const towards = (a, b) => unit(b.x - a.x, b.y - a.y);
 
 /** "M x y L … Z" for one flat contour [x, y, …]. */
 export function contourPath(flat) {
@@ -102,36 +104,35 @@ export function buildCutPlan(word, boxes, baseline, step) {
   return { contours, segments, total: time, freed };
 }
 
-/** The blades at `time` (snips): the contour being cut (g), its cut length, the tips, their direction, opening 0..1. */
+/**
+ * The blades at `time` (snips): the contour being cut (g), its cut length, where the blades cross (at, the end of
+ * the cut or on the way to the next contour), the way the cut runs there (dir) and the opening 0..1. dir is the
+ * chord of the bite (pivot to tips along the contour), so it turns smoothly, even round a corner.
+ */
 export function cutState(plan, time) {
   const seg = plan.segments.find((s) => time < s.t1) ?? plan.segments.at(-1);
   const q = clamp01((time - seg.t0) / (seg.t1 - seg.t0));
   const line = plan.contours[seg.g];
-  const { ends } = line;
-  const { k } = seg;
-  let [pivot, tips, cut, open] = [null, null, line.length, ease(q)];
+  const [{ ends }, { g, k }] = [line, seg];
+  const point = (s) => pointAt(line, s);
   if (seg.kind === 'close') {
     const bite = q ** HERO_CUT.bite; // the blades press slowly, then snap shut
-    cut = lerp(ends[k], ends[k + 1], bite);
-    pivot = pointAt(line, ends[k]);
-    tips = pointAt(line, ends[k + 1]);
-    open = 1 - bite;
-  } else if (seg.kind === 'open') {
-    cut = ends[k + 1];
-    pivot = pointAt(line, lerp(ends[k], ends[k + 1], open));
-    tips = pointAt(line, lerp(ends[k + 1], ends[k + 2], open));
-  } else {
-    const next = seg.kind === 'travel' ? plan.contours[seg.g + 1] : null;
-    pivot = pointAt(line, ends.at(-2));
-    tips = pointAt(line, line.length);
-    if (next) {
-      pivot = mix(pivot, pointAt(next, 0), open);
-      tips = mix(tips, pointAt(next, next.ends[1]), open);
-    }
+    const cut = lerp(ends[k], ends[k + 1], bite);
+    return { g, cut, at: point(cut), dir: towards(point(ends[k]), point(ends[k + 1])), open: 1 - bite };
   }
-  const [dx, dy] = [tips.x - pivot.x, tips.y - pivot.y];
-  const chord = Math.hypot(dx, dy);
-  return { g: seg.g, cut, tip: tips, dir: chord > 1e-3 ? { x: dx / chord, y: dy / chord } : { x: 1, y: 0 }, open };
+  const open = ease(q);
+  if (seg.kind === 'open') {
+    const dir = towards(point(lerp(ends[k], ends[k + 1], open)), point(lerp(ends[k + 1], ends[k + 2], open)));
+    return { g, cut: ends[k + 1], at: point(ends[k + 1]), dir, open };
+  }
+  // On to the next contour (after the last one: open in place), turning the short way round.
+  const [end, next] = [point(line.length), seg.kind === 'travel' ? plan.contours[g + 1] : null];
+  const from = towards(point(ends.at(-2)), end);
+  if (!next) return { g, cut: line.length, at: end, dir: from, open };
+  const to = towards(pointAt(next, 0), pointAt(next, next.ends[1]));
+  const [a, b] = [Math.atan2(from.y, from.x), Math.atan2(to.y, to.x)];
+  const angle = a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * open;
+  return { g, cut: line.length, at: mix(end, pointAt(next, 0), open), dir: { x: Math.cos(angle), y: Math.sin(angle) }, open };
 }
 
 /** How much of contour g is cut at `time` (view units). */

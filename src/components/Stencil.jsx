@@ -9,6 +9,9 @@ import { buildCutPlan, cutState } from './stencilCut.js';
 const WORD = site.name.toUpperCase();
 const VIEW = { width: 1000, height: 240 };
 const FADE = 0.04; // share of the cut over which the borrowed shears come and go
+// A hand turns the paper, not the shears: they keep pointing right and only lean up to TURN (rad) with a cut that
+// runs up or down, rather than spinning round every outline.
+const TURN = Math.PI / 6;
 // The pinned stage in screen heights: its height, and the extra scroll it is held for while the word is cut.
 // Phones get a lower stage and a shorter pin: the word is small there, and a full screen held over two screens
 // of scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends. step: view
@@ -64,19 +67,22 @@ export default function Stencil({ children }) {
         setScene(null);
         return;
       }
-      const { tip, dir, open } = cutState(plan, c * plan.total);
+      const { at, dir, open } = cutState(plan, c * plan.total);
+      const angle = TURN * dir.y;
+      // The blades cross at the end of the cut: shut, the tips are on it; open, they reach one bite past it.
+      const reach = stage.step * open;
       const rect = rootRef.current.getBoundingClientRect();
       const scale = rect.width / VIEW.width;
       setScene({
         weight: Math.min(c / FADE, (1 - c) / FADE, 1),
-        tipX: rect.left + tip.x * scale,
-        tipY: rect.top + tip.y * scale,
-        dirX: dir.x,
-        dirY: dir.y,
+        tipX: rect.left + (at.x + Math.cos(angle) * reach) * scale,
+        tipY: rect.top + (at.y + Math.sin(angle) * reach) * scale,
+        dirX: Math.cos(angle),
+        dirY: Math.sin(angle),
         open,
       });
     },
-    [reduce],
+    [reduce, stage.step],
   );
   useMotionValueEvent(scrollYProgress, 'change', publish);
 
