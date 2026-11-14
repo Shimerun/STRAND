@@ -1,13 +1,14 @@
-import { HERO_CUT } from '../lib/heroCut.js';
 import { GLYPHS } from './stencilGlyphs.js';
 
-// The footer stencil's cut as a timeline in snips. Each contour (holes first: the letter hangs in the sheet until
-// its outline is through) is cut in bites of about `step` view units, never across a corner. A snip closes the
-// blades in place (the cut grows from the pivot to the tips), then opens them while the shears push forward one
-// bite, as in the hero (lib/heroCut.js). Between contours they travel open; a freed letter settles by SAG.
+// The footer stencil's cut as a timeline in bites. Each contour (holes first: the letter hangs in the sheet until
+// its outline is through) is cut in bites of about `step` view units, never across a corner. The tips only ever
+// move forward along the cut: each bite they run on and slow down again, the blades nibbling (opening up to NIBBLE
+// between bites, shut mid-bite). Between contours they glide to the next start; a freed letter settles by SAG.
 const CORNER = (40 * Math.PI) / 180; // a turn sharper than this between two polyline steps is a corner
 const MIN_RUN = 12; // view units: a corner closer than this to the previous one is not a new bite
-const DURATION = { close: 0.5, open: 0.5, travel: 1, tail: 1 }; // in snips; tail: the blades open after the last
+const DURATION = { bite: 1, travel: 1, tail: 1 }; // in bites; tail: after the last bite, before the shears leave
+const NIBBLE = 0.35; // how far the blades open between bites, share of the opening
+const LOOK = 40; // view units ahead along the cut that set which way it runs
 export const SAG = 3; // view units the cut-out letter drops in its hole once free
 
 const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
@@ -73,7 +74,7 @@ function biteEnds(line, step) {
 
 /**
  * The cut of `word`, its letters drawn at boxes[i].x on `baseline` (view units). Letters with no outline in
- * stencilGlyphs.js are left out. Returns { contours, segments, total (snips), freed (per letter, snips) }.
+ * stencilGlyphs.js are left out. Returns { contours, segments, total (bites), freed (per letter, bites) }.
  */
 export function buildCutPlan(word, boxes, baseline, step) {
   const contours = [];
@@ -92,11 +93,7 @@ export function buildCutPlan(word, boxes, baseline, step) {
   const freed = [];
   contours.forEach((contour, g) => {
     contour.from = time;
-    const bites = contour.ends.length - 1;
-    for (let k = 0; k < bites; k++) {
-      add('close', g, k);
-      if (k < bites - 1) add('open', g, k);
-    }
+    for (let k = 0; k < contour.ends.length - 1; k++) add('bite', g, k);
     contour.to = time;
     freed[contour.letter] = time;
     add(contours[g + 1] ? 'travel' : 'tail', g);
@@ -104,35 +101,31 @@ export function buildCutPlan(word, boxes, baseline, step) {
   return { contours, segments, total: time, freed };
 }
 
+// Which way an outline runs at s: the chord LOOK ahead, wrapping round to its start, so it turns smoothly round a
+// corner and never jumps at the end of the outline.
+const runsAt = (line, s) => towards(pointAt(line, s), pointAt(line, (s + LOOK) % line.length));
+
 /**
- * The blades at `time` (snips): the contour being cut (g), its cut length, where the blades cross (at, the end of
- * the cut or on the way to the next contour), the way the cut runs there (dir) and the opening 0..1. dir is the
- * chord of the bite (pivot to tips along the contour), so it turns smoothly, even round a corner.
+ * The shears at `time` (bites): the contour being cut (g), its cut length, where the tips are (at: the end of the
+ * cut, or on the way to the next contour), which way the cut runs there (dir) and the opening 0..1.
  */
 export function cutState(plan, time) {
   const seg = plan.segments.find((s) => time < s.t1) ?? plan.segments.at(-1);
   const q = clamp01((time - seg.t0) / (seg.t1 - seg.t0));
   const line = plan.contours[seg.g];
-  const [{ ends }, { g, k }] = [line, seg];
-  const point = (s) => pointAt(line, s);
-  if (seg.kind === 'close') {
-    const bite = q ** HERO_CUT.bite; // the blades press slowly, then snap shut
-    const cut = lerp(ends[k], ends[k + 1], bite);
-    return { g, cut, at: point(cut), dir: towards(point(ends[k]), point(ends[k + 1])), open: 1 - bite };
+  const { g, k } = seg;
+  if (seg.kind === 'bite') {
+    const cut = lerp(line.ends[k], line.ends[k + 1], ease(q));
+    return { g, cut, at: pointAt(line, cut), dir: runsAt(line, cut), open: NIBBLE * (0.5 + 0.5 * Math.cos(2 * Math.PI * q)) };
   }
-  const open = ease(q);
-  if (seg.kind === 'open') {
-    const dir = towards(point(lerp(ends[k], ends[k + 1], open)), point(lerp(ends[k + 1], ends[k + 2], open)));
-    return { g, cut: ends[k + 1], at: point(ends[k + 1]), dir, open };
-  }
-  // On to the next contour (after the last one: open in place), turning the short way round.
-  const [end, next] = [point(line.length), seg.kind === 'travel' ? plan.contours[g + 1] : null];
-  const from = towards(point(ends.at(-2)), end);
-  if (!next) return { g, cut: line.length, at: end, dir: from, open };
-  const to = towards(pointAt(next, 0), pointAt(next, next.ends[1]));
-  const [a, b] = [Math.atan2(from.y, from.x), Math.atan2(to.y, to.x)];
-  const angle = a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * open;
-  return { g, cut: line.length, at: mix(end, pointAt(next, 0), open), dir: { x: Math.cos(angle), y: Math.sin(angle) }, open };
+  // On to the next contour (after the last one: stay), turning the short way round.
+  const [end, next] = [pointAt(line, line.length), seg.kind === 'travel' ? plan.contours[g + 1] : null];
+  const from = runsAt(line, line.length);
+  if (!next) return { g, cut: line.length, at: end, dir: from, open: NIBBLE };
+  const to = runsAt(next, 0);
+  const [a, b, e] = [Math.atan2(from.y, from.x), Math.atan2(to.y, to.x), ease(q)];
+  const angle = a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * e;
+  return { g, cut: line.length, at: mix(end, pointAt(next, 0), e), dir: { x: Math.cos(angle), y: Math.sin(angle) }, open: NIBBLE };
 }
 
 /** How much of contour g is cut at `time` (view units). */

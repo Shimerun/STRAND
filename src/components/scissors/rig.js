@@ -17,7 +17,8 @@ let scene = null;
 
 /**
  * Lets a DOM scene borrow the shears (e.g. the footer stencil). scene: { weight 0..1, tipX, tipY (viewport px),
- * dirX, dirY (unit vector the tips point along), open 0..1 } or null to give them back.
+ * dirX, dirY (unit vector the tips point along), open 0..1, scale (optional, share of the track length) } or null
+ * to give them back.
  */
 export function setScene(next) {
   scene = next;

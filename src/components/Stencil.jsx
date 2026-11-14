@@ -9,13 +9,15 @@ import { buildCutPlan, cutState } from './stencilCut.js';
 const WORD = site.name.toUpperCase();
 const VIEW = { width: 1000, height: 240 };
 const FADE = 0.04; // share of the cut over which the borrowed shears come and go
-// A hand turns the paper, not the shears: they keep pointing right and only lean up to TURN (rad) with a cut that
-// runs up or down, rather than spinning round every outline.
-const TURN = Math.PI / 6;
+// Held like a pen in a right hand: tips down and a little left (HOLD, rad clockwise from pointing right), leaning up
+// to LEAN as a dragged pen trails. Aimed along the cut they spun round every outline; aimed right, they looked
+// dragged backwards half the way.
+const [HOLD, LEAN] = [(115 * Math.PI) / 180, (12 * Math.PI) / 180];
+const SHEARS = 0.45; // share of the track length: about a letter long, so they do not sweep over the next ones
 // The pinned stage in screen heights: its height, and the extra scroll it is held for while the word is cut.
 // Phones get a lower stage and a shorter pin: the word is small there, and a full screen held over two screens
 // of scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends. step: view
-// units per bite, about one blade of the borrowed shears; ~60 bites get ~17 px of scroll each (desktop), ~9 (phone).
+// units per bite (the nibbling rhythm); ~65 bites get ~16 px of scroll each on a desktop, ~8 on a phone.
 const STAGE = { full: { height: 1, pin: 2, step: 100 }, compact: { height: 0.7, pin: 1, step: 150 } };
 const COMPACT = '(max-width: 767px)';
 const CUT_RANGE = [0.05, 0.65]; // share of the pin: the letters get cut
@@ -68,21 +70,20 @@ export default function Stencil({ children }) {
         return;
       }
       const { at, dir, open } = cutState(plan, c * plan.total);
-      const angle = TURN * dir.y;
-      // The blades cross at the end of the cut: shut, the tips are on it; open, they reach one bite past it.
-      const reach = stage.step * open;
+      const angle = HOLD + LEAN * dir.x;
       const rect = rootRef.current.getBoundingClientRect();
       const scale = rect.width / VIEW.width;
       setScene({
         weight: Math.min(c / FADE, (1 - c) / FADE, 1),
-        tipX: rect.left + (at.x + Math.cos(angle) * reach) * scale,
-        tipY: rect.top + (at.y + Math.sin(angle) * reach) * scale,
+        tipX: rect.left + at.x * scale,
+        tipY: rect.top + at.y * scale,
         dirX: Math.cos(angle),
         dirY: Math.sin(angle),
         open,
+        scale: SHEARS,
       });
     },
-    [reduce, stage.step],
+    [reduce],
   );
   useMotionValueEvent(scrollYProgress, 'change', publish);
 

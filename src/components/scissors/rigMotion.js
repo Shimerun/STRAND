@@ -50,12 +50,12 @@ function dockVisibility(dock) {
   const back = easeInOut(clamp((dock - DOCK_DIP.in) / (1 - DOCK_DIP.in), 0, 1));
   return 1 - gone + back;
 }
-const SCENE_SCALE = 0.8; // a borrowed pair is a little smaller than on the track
+const SCENE_SCALE = 0.8; // a borrowed pair is a little smaller than on the track, unless the scene sets its scale
 
 // Blends the frame towards a scene that borrowed the shears (rig.setScene): tips on its point, flat to the camera.
 function applyScene(frame, scene, trackLength, maxOpen) {
   const w = scene.weight;
-  const length = trackLength * SCENE_SCALE;
+  const length = trackLength * (scene.scale ?? SCENE_SCALE);
   const turn = (rotation) => ({ x: 0, y: 0, z: nearAngle(Math.atan2(-scene.dirX, -scene.dirY), rotation.z) });
   frame.x = lerp(frame.x, scene.tipX - (scene.dirX * length) / 2, w);
   frame.y = lerp(frame.y, scene.tipY - (scene.dirY * length) / 2, w);
