@@ -4,7 +4,6 @@ import { assetUrl } from '../../lib/assetUrl.js';
 import { BOOKING_ID, scrollToId } from '../../lib/scroll.js';
 import { EVENTS } from '../../lib/track.js';
 import Button from '../Button.jsx';
-import DotField from './DotField.jsx';
 import Img from '../Img.jsx';
 import OpenBadge from '../OpenBadge.jsx';
 import Reveal from '../Reveal.jsx';
@@ -34,10 +33,8 @@ export default function HeroContent({ parallaxY, copy = false }) {
         <Img src={assetUrl(site.images.hero)} alt={copy ? '' : site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
       </motion.div>
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/40 to-bg" />
-      {/* Dots over the photo, under the text; the copy shows the main field's frame (DotField `mirror`). */}
-      <DotField mirror={copy} />
 
-      <div className="relative z-[1] mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16">
         <div className="lg:w-1/2">
           <OpenBadge />
           {/* The copy is only seen once the cut starts, long after the reveal, so it is drawn revealed. */}
