@@ -18,9 +18,17 @@ export default function Logo({ className = '' }) {
         />
       )}
       {!loaded && (
-        <span className="flex flex-col uppercase leading-none">
-          <span className="text-xl font-extrabold tracking-wordmark">{site.name}</span>
-          <span className="mt-1 text-xs font-medium tracking-wordmark text-concrete">{site.ui.brand.sub}</span>
+        <span className="relative flex flex-col uppercase leading-none">
+          <span className="sr-only">{`${site.name} ${site.ui.brand.sub}`}</span>
+          {/* The negative margin drops the tracking after the last letter, so the sub line spans exactly under the name. */}
+          <span aria-hidden="true" className="mr-[-0.32em] text-xl font-extrabold tracking-wordmark">
+            {site.name}
+          </span>
+          <span aria-hidden="true" className="mt-1.5 flex justify-between text-[0.625rem] font-medium text-concrete">
+            {[...site.ui.brand.sub].map((ch, i) => (
+              <span key={i}>{ch}</span>
+            ))}
+          </span>
         </span>
       )}
     </span>

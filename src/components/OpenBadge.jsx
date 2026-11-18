@@ -4,20 +4,14 @@ import { isOpenNow } from '../lib/time.js';
 
 const REFRESH_MS = 60_000;
 
-function useOpenNow(hours) {
-  const [open, setOpen] = useState(() => isOpenNow(hours));
+export default function OpenBadge() {
+  const [open, setOpen] = useState(() => isOpenNow(site.hours));
+  const { status } = site.ui;
 
   useEffect(() => {
-    const id = setInterval(() => setOpen(isOpenNow(hours)), REFRESH_MS);
+    const id = setInterval(() => setOpen(isOpenNow(site.hours)), REFRESH_MS);
     return () => clearInterval(id);
-  }, [hours]);
-
-  return open;
-}
-
-export default function OpenBadge() {
-  const open = useOpenNow(site.hours);
-  const { status } = site.ui;
+  }, []);
 
   return (
     <span className="inline-flex items-center gap-2 rounded border border-line bg-bg/60 px-3 py-1.5 text-xs font-medium uppercase tracking-heading">

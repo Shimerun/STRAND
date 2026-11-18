@@ -5,9 +5,7 @@ import { site } from '../../data/site.js';
 export default function SuccessState() {
   const ref = useRef(null);
 
-  useEffect(() => {
-    ref.current?.focus();
-  }, []);
+  useEffect(() => ref.current?.focus(), []);
 
   return (
     <div ref={ref} tabIndex={-1} className="flex items-start gap-4 outline-none">

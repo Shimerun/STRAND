@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
+import { MOUSE_QUERY } from '../../lib/scroll.js';
 import { useMediaQuery } from '../../lib/useMediaQuery.js';
 import Img from '../Img.jsx';
 
-const HOVER_DEVICE = '(hover: hover) and (pointer: fine)';
 const IN_VIEW = 0.75; // share of the photo on screen (and inside the swipe row) that starts the orbit on touch
 const MAX_CARDS = 5;
 const START_ANGLE = 60; // deg on the ring: the first card starts in front of the photo, to the right
@@ -12,15 +12,13 @@ const STAGGER_MS = 120;
 
 /**
  * Hovering a BarberCard throws up to five of the barber's works out of the portrait onto a ring tilted away from
- * the viewer; they circle the photo, passing behind it and in front of it (motion in index.css, `.works-orbit`;
- * the 3D scene is the wrapper round the photo in BarberCard). Each card sits on an arm turned to its place on
- * the ring; the counter element and the face undo that turn, the spin and the tilt, so every card faces the
- * viewer. With a mouse it runs on hover; on touch screens, while the photo is in view (`data-active`), so it
- * starts when the card is swiped in and stops when it leaves. Decorative: the same works are in the profile and
- * the gallery.
+ * the viewer, circling behind and in front of the photo (motion: index.css `.works-orbit`; 3D scene: the wrapper
+ * round the photo in BarberCard). Each card sits on an arm turned to its place; the counter and the face undo that
+ * turn, the spin and the tilt, so it faces the viewer. Mouse: on hover; touch: while the photo is in view
+ * (`data-active`), i.e. from swiping the card in until it leaves. Decorative: the profile and gallery show the same works.
  */
 export default function WorksOrbit({ slug }) {
-  const hover = useMediaQuery(HOVER_DEVICE);
+  const hover = useMediaQuery(MOUSE_QUERY);
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
   const works = site.works.filter((work) => work.barber === slug).slice(0, MAX_CARDS);

@@ -1,15 +1,16 @@
 import { site } from '../data/site.js';
 import { formatHours } from '../lib/format.js';
 import { kyivNow } from '../lib/time.js';
-import { EVENTS, track } from '../lib/track.js';
+import { EVENTS } from '../lib/track.js';
 import Button from './Button.jsx';
+import PhoneLink from './PhoneLink.jsx';
 import Reveal from './Reveal.jsx';
 import Section from './Section.jsx';
 import SectionTitle from './SectionTitle.jsx';
 
 const { lat, lng } = site.geo;
 const MAP_EMBED_URL = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
-const ROUTE_URL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+export const ROUTE_URL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 const TERM = 'text-xs font-medium uppercase tracking-heading text-concrete';
 
 // Rows of the hours table: one "every day" row while all days share the hours, otherwise a row per day.
@@ -38,13 +39,10 @@ export default function Contacts() {
             <div>
               <dt className={TERM}>{contacts.phone}</dt>
               <dd className="mt-1">
-                <a
-                  href={`tel:${site.phone}`}
-                  onClick={() => track(EVENTS.callClick, { where: 'contacts' })}
-                  className="text-lg font-bold transition-colors duration-300 hover:text-concrete"
-                >
-                  {site.phoneDisplay}
-                </a>
+                <PhoneLink
+                  where="contacts"
+                  className="relative text-lg font-bold transition-colors duration-300 before:absolute before:inset-x-0 before:-inset-y-3 hover:text-concrete"
+                />
               </dd>
             </div>
           </Reveal>

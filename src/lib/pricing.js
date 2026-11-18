@@ -44,9 +44,11 @@ export function serviceById(serviceId) {
   return servicesById.get(serviceId) ?? null;
 }
 
+export const offers = (service, slug) => Object.hasOwn(service.prices, slug);
+
 // Team members who offer the service, in team order.
 export function barbersFor(service) {
-  return site.team.map(({ slug }) => slug).filter((slug) => Object.hasOwn(service.prices, slug));
+  return site.team.map(({ slug }) => slug).filter((slug) => offers(service, slug));
 }
 
 export function priceFor(serviceId, slug) {
@@ -54,7 +56,7 @@ export function priceFor(serviceId, slug) {
 }
 
 // Sum for several services at one barber; null when the barber does not offer one of them.
-export function totalPrice(services, slug) {
+function totalPrice(services, slug) {
   let sum = 0;
   for (const service of services) {
     const price = service.prices[slug];
@@ -81,5 +83,5 @@ export function isFromPrice(service) {
 }
 
 export function servicesFor(slug) {
-  return site.services.filter((service) => Object.hasOwn(service.prices, slug));
+  return site.services.filter((service) => offers(service, slug));
 }

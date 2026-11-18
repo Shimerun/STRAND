@@ -123,20 +123,13 @@ export default function DotTrail() {
       nudge();
     };
 
-    window.addEventListener('pointermove', onMove, { passive: true });
-    window.addEventListener('scroll', nudge, { passive: true });
-    window.addEventListener('pointerdown', onDown, { passive: true });
-    window.addEventListener('pointerup', onUp, { passive: true });
-    window.addEventListener('blur', onUp);
+    const events = { pointermove: onMove, scroll: nudge, pointerdown: onDown, pointerup: onUp, blur: onUp };
+    Object.entries(events).forEach(([type, handler]) => window.addEventListener(type, handler, { passive: true }));
     document.addEventListener('mouseout', onOut);
     return () => {
       cancelAnimationFrame(frame);
       lenses?.forEach((lens) => lens.element.remove());
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('scroll', nudge);
-      window.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('blur', onUp);
+      Object.entries(events).forEach(([type, handler]) => window.removeEventListener(type, handler));
       document.removeEventListener('mouseout', onOut);
     };
   }, []);

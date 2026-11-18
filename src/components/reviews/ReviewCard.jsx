@@ -18,7 +18,7 @@ function Stars({ value }) {
 }
 
 // A review from Google: author with photo and profile link, stars, text, and a link to it on Google Maps.
-function GoogleReview({ review }) {
+export function GoogleReview({ review }) {
   const { open, translated } = site.ui.reviews;
   const author = review.authorUrl ? (
     <a href={review.authorUrl} {...EXTERNAL} className={LINK}>
@@ -61,17 +61,15 @@ function GoogleReview({ review }) {
   );
 }
 
-// A review kept in site.js (shown when Google reviews are not set up or cannot be reached).
-function SiteReview({ review }) {
+// A review kept in site.js (shown when Google reviews are not set up or cannot be reached): a line or two, so it
+// is set large and bare instead of boxed like the long Google ones.
+export function SiteReview({ review }) {
   return (
-    <figure className="flex h-full flex-col rounded border border-line bg-bg p-6">
-      <span aria-hidden="true" className="text-4xl font-extrabold leading-none text-concrete">
-        “
-      </span>
-      <blockquote className="mt-2 flex-1 leading-relaxed">
-        <p>{review.text}</p>
+    <figure>
+      <blockquote className="text-balance text-2xl font-medium leading-snug md:text-4xl md:leading-tight">
+        <p>«{review.text}»</p>
       </blockquote>
-      <figcaption className="mt-6 text-xs uppercase tracking-heading text-concrete">
+      <figcaption className="mt-4 text-xs uppercase tracking-heading text-concrete">
         <cite className="font-bold not-italic text-text">{review.name}</cite>
         {review.date && (
           <>
@@ -82,8 +80,4 @@ function SiteReview({ review }) {
       </figcaption>
     </figure>
   );
-}
-
-export default function ReviewCard({ review, google }) {
-  return google ? <GoogleReview review={review} /> : <SiteReview review={review} />;
 }

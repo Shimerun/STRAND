@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion, useSpring } from 'framer-motion';
 import { hoverLift, tapPress } from '../lib/motion.js';
+import { hasMouse } from '../lib/scroll.js';
 import { track } from '../lib/track.js';
 
 const BASE =
@@ -14,7 +15,6 @@ const VARIANTS = {
 
 // Primary buttons lean towards a mouse that comes within `reach` px of their edge.
 const MAGNET = { reach: 70, pull: 0.25, max: 10, spring: { stiffness: 220, damping: 18, mass: 0.4 } };
-const hasMouse = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const clampMax = (value) => Math.min(Math.max(value, -MAGNET.max), MAGNET.max);
 
 function useMagnet(enabled) {

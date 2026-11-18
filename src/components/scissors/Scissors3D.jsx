@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
+import ContextWatch from '../WebGLContextWatch.jsx';
 import { CAMERA, DESKTOP_MIN_PX } from './pose.js';
 import Shears, { CONFIG } from './Shears.jsx';
 import { SHEET_Z } from './sheet.js';
@@ -18,28 +19,8 @@ const DPR = window.matchMedia(`(min-width: ${DESKTOP_MIN_PX}px)`).matches ? [1, 
 const EXPOSURE = 1.05;
 const PROBE = { frames: 30, skip: 5, slowMs: 30 };
 
-function median(values) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-// A lost WebGL context hands over to the 2D fallback.
-function ContextWatch({ onLost }) {
-  const gl = useThree((state) => state.gl);
-
-  useEffect(() => {
-    const canvas = gl.domElement;
-    const handleLost = (event) => {
-      event.preventDefault();
-      onLost();
-    };
-    canvas.addEventListener('webglcontextlost', handleLost);
-    return () => canvas.removeEventListener('webglcontextlost', handleLost);
-  }, [gl, onLost]);
-
-  return null;
-}
+// Upper median: the probe always ends with an odd count (frames - skip), where it is the plain median.
+const median = (values) => [...values].sort((a, b) => a - b)[values.length >> 1];
 
 // Mounts once the model has loaded: forces PROBE.frames renders and calls onSlow when the median
 // requestAnimationFrame delta, ignoring the first PROBE.skip, is above PROBE.slowMs.

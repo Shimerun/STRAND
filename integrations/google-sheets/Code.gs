@@ -11,6 +11,7 @@
  *       Доступ: Усі
  *     Скопіюйте URL, що закінчується на /exec.
  *  5) Вставте цей URL у файл .env сайту: VITE_BOOKING_ENDPOINT=https://script.google.com/macros/s/…/exec
+ *     Для GitHub Pages — у змінну репозиторію: Settings → Secrets and variables → Actions → Variables.
  *  6) Після ЗМІНИ цього коду: Розгорнути → Керувати розгортаннями → олівець → Нова версія.
  *
  * ЦІНИ (аркуш «Ціни»):
@@ -32,8 +33,10 @@
  *  • Скасувати запис і звільнити час: у стовпчику «Статус» оберіть «скасовано».
  *  • Не редагуйте стовпчики «Дата», «Час», «Блоків», «Майстер (slug)» вручну.
  *  • Сайт отримує лише дату, час і майстра зайнятих слотів — без імен і телефонів.
+ *  • Майстра, послуги, тривалість і назви перевіряє сервер за списками нижче; сайту в цьому не віримо.
  *
- * Значення нижче мають збігатися з site.booking та site.hours у src/data/site.js.
+ * Значення нижче мають збігатися з site.booking, site.hours, site.team і site.services у src/data/site.js
+ * (перевіряє `npm test`).
  */
 
 const SHEET_NAME = 'Записи';
@@ -86,6 +89,9 @@ const INITIAL_PRICES = [
   ['styling', 'Укладання волосся', 150, 150, 150, 150, '', ''],
 ];
 const MAX_PRICE = 100000;
+// Тривалість у хвилинах (site.services[].durationMin) і послуги, які можна додати до візиту (site.booking.addons).
+const SERVICE_MIN = { haircut: 60, scissors: 60, clipper: 60, beard: 60, kids: 60, 'gray-head': 60, 'gray-beard': 60, perm: 120, 'face-care': 60, 'scalp-care': 15, 'scalp-peeling': 15, styling: 15 };
+const ADDONS = ['scalp-peeling', 'face-care', 'gray-beard', 'gray-head', 'kids', 'beard'];
 
 // Запустіть один раз: створює аркуш «Ціни» зі стартовими цінами. Наявні ціни не перезаписує.
 function setupPrices() {
@@ -103,8 +109,14 @@ function setupPrices() {
 }
 
 function prices_() {
+  const prices = sheetPrices_();
+  return prices ? json_({ ok: true, prices: prices }) : json_({ ok: false, error: 'no_prices' });
+}
+
+// { id послуги: { slug: ціна } } з аркуша «Ціни», або null, якщо аркуша немає.
+function sheetPrices_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PRICES_SHEET);
-  if (!sh || sh.getLastRow() < 2) return json_({ ok: false, error: 'no_prices' });
+  if (!sh || sh.getLastRow() < 2) return null;
   const values = sh.getDataRange().getValues();
   const slugs = values[0].slice(2).map(function (s) { return String(s).trim(); });
   const prices = {};
@@ -119,7 +131,24 @@ function prices_() {
     });
     prices[id] = byBarber;
   });
-  return json_({ ok: true, prices: prices });
+  return prices;
+}
+
+// Що зараз можна записати: { id: { name, prices: { slug: ціна } } }. Як на сайті (src/lib/pricing.js → applyPrices):
+// рядок аркуша з хоча б однією ціною відомого майстра замінює стартові ціни, інакше лишаються стартові.
+function catalog_() {
+  const live = sheetPrices_() || {};
+  const catalog = {};
+  INITIAL_PRICES.forEach(function (row) {
+    const initial = {};
+    const fromSheet = {};
+    PRICE_BARBERS.forEach(function (b, i) {
+      if (row[i + 2] !== '') initial[b[0]] = row[i + 2];
+      if (has_(live, row[0]) && has_(live[row[0]], b[0])) fromSheet[b[0]] = live[row[0]][b[0]];
+    });
+    catalog[row[0]] = { name: row[1], prices: Object.keys(fromSheet).length ? fromSheet : initial };
+  });
+  return catalog;
 }
 
 /* ---------- відгуки Google ---------- */
@@ -190,32 +219,45 @@ function doPost(e) {
     try { d = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad_json' }); }
     if (d && d.website) return json_({ ok: true }); // honeypot: тихо ігноруємо ботів
 
-    const bad = validate_(d);
+    const catalog = catalog_();
+    const bad = validate_(d, catalog);
     if (bad) return json_({ ok: false, error: bad });
 
-    const rows = readRows_().filter(function (r) { return !isCancelled_(r) && r[COL.DATE] === d.date; });
-    const barber = pickBarber_(rows, d, toMin_(d.time));
-    if (!barber) return json_({ ok: false, error: 'slot_taken' });
+    const phone = fmtPhone_(normPhone_(d.phone));
+    const rows = readRows_().filter(function (r) { return !isCancelled_(r) && r[COL.DATE] === d.date && r[COL.BARBER] === d.barber; });
+    // Та сама заявка вдруге (відповідь загубилась у мережі, людина натиснула ще раз): вона вже записана.
+    if (rows.some(function (r) { return r[COL.TIME] === d.time && r[COL.PHONE] === phone; })) return json_({ ok: true, barber: d.barber });
+    if (!isFree_(rows, toMin_(d.time), d.blocks)) return json_({ ok: false, error: 'slot_taken' });
 
+    const record = {
+      date: d.date,
+      time: d.time,
+      barber: barberName_(d.barber),
+      services: d.services.map(function (id) { return catalog[id].name; }).join(' + '),
+      name: text_(d.name, 60),
+      phone: phone,
+      comment: text_(d.comment, 300),
+    };
     const sh = sheet_();
-    const row = sh.getLastRow() + 1;
+    const row = Math.max(sh.getLastRow(), 1) + 1; // row 1 is the header, even if setup() was never run
     sh.getRange(row, 1, 1, HEADERS.length).setNumberFormat('@').setValues([[
       Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss'),
       STATUSES[0],
-      d.date,
-      d.time,
+      record.date,
+      record.time,
       String(d.blocks),
-      barber,
-      d.barber === 'any' ? 'будь-який' : clean_(d.barberName, 80),
-      d.barber === 'any' ? 'так' : '',
-      clean_(d.serviceName, 300) || d.service,
-      clean_(d.name, 60),
-      fmtPhone_(normPhone_(d.phone)),
-      clean_(d.comment, 300)
+      d.barber,
+      record.barber,
+      '',
+      record.services,
+      record.name,
+      record.phone,
+      record.comment
     ]]);
-    notify_(d, barber);
-    return json_({ ok: true, barber: barber });
+    notify_(record);
+    return json_({ ok: true, barber: d.barber });
   } catch (err) {
+    console.error(err);
     return json_({ ok: false, error: 'server' });
   } finally {
     lock.releaseLock();
@@ -224,7 +266,8 @@ function doPost(e) {
 
 /* ---------- logic ---------- */
 
-function validate_(d) {
+// Повертає код помилки або null. Тривалість (d.blocks) і перелік послуг (d.services) рахує сам сервер.
+function validate_(d, catalog) {
   if (!d || typeof d !== 'object') return 'bad_json';
   const name = clean_(d.name, 100);
   if (name.length < 2 || name.length > 60) return 'invalid_name';
@@ -233,48 +276,40 @@ function validate_(d) {
   const now = nowKyiv_();
   if (d.date < now.date || d.date > addDays_(now.date, DAYS_AHEAD)) return 'invalid_date';
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(d.time))) return 'invalid_time';
-  const blocks = Number(d.blocks);
-  if (!Number.isInteger(blocks) || blocks < 1 || blocks > MAX_BLOCKS) return 'invalid_blocks';
+  if (!barberName_(d.barber)) return 'invalid_barber';
+  const ids = [d.service].concat(Array.isArray(d.addons) ? d.addons : []);
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    if (typeof id !== 'string' || !has_(catalog, id) || !has_(catalog[id].prices, d.barber)) return 'invalid_service';
+    if (i > 0 && (ADDONS.indexOf(id) < 0 || ids.indexOf(id) !== i)) return 'invalid_service';
+  }
+  const blocks = Math.ceil(ids.reduce(function (sum, id) { return sum + SERVICE_MIN[id]; }, 0) / SLOT_MIN);
+  if (!(blocks >= 1 && blocks <= MAX_BLOCKS)) return 'invalid_blocks';
   d.blocks = blocks;
+  d.services = ids;
   const start = toMin_(d.time);
   if ((start - OPEN_MIN) % SLOT_MIN !== 0 || start < OPEN_MIN || start + blocks * SLOT_MIN > CLOSE_MIN) return 'invalid_time';
   if (d.date === now.date && start < now.min + MIN_LEAD_MIN) return 'invalid_time';
-  if (d.barber === 'any') {
-    if (!Array.isArray(d.candidates) || d.candidates.length < 1 || d.candidates.length > 12) return 'invalid_barber';
-    for (let i = 0; i < d.candidates.length; i++) if (!isSlug_(d.candidates[i])) return 'invalid_barber';
-  } else if (!isSlug_(d.barber)) {
-    return 'invalid_barber';
-  }
-  if (!isSlug_(d.service)) return 'invalid_service';
   return null;
 }
 
-// Повертає slug вільного майстра або null. Для «any» обирає найменш завантаженого за цей день.
-function pickBarber_(rows, d, start) {
-  const end = start + d.blocks * SLOT_MIN;
-  const isFree = function (slug) {
-    return !rows.some(function (r) {
-      if (r[COL.BARBER] !== slug) return false;
-      const rs = toMin_(r[COL.TIME]);
-      const re = rs + (Number(r[COL.BLOCKS]) || 1) * SLOT_MIN;
-      return start < re && rs < end;
-    });
-  };
-  if (d.barber !== 'any') return isFree(d.barber) ? d.barber : null;
-  const free = d.candidates.filter(isFree);
-  if (!free.length) return null;
-  const load = function (slug) { return rows.filter(function (r) { return r[COL.BARBER] === slug; }).length; };
-  free.sort(function (a, b) { return load(a) - load(b); });
-  return free[0];
+// Чи вільний майстер з start (хвилини) на blocks слотів; rows — його записи на цей день.
+function isFree_(rows, start, blocks) {
+  const end = start + blocks * SLOT_MIN;
+  return !rows.some(function (r) {
+    const rs = toMin_(r[COL.TIME]);
+    const re = rs + (Number(r[COL.BLOCKS]) || 1) * SLOT_MIN;
+    return start < re && rs < end;
+  });
 }
 
-function notify_(d, barber) {
+function notify_(record) {
   if (!NOTIFY_EMAIL) return;
   try {
     MailApp.sendEmail(
       NOTIFY_EMAIL,
-      'Новий запис Strand: ' + d.date + ' ' + d.time,
-      [clean_(d.name, 60), fmtPhone_(normPhone_(d.phone)), clean_(d.serviceName, 300), 'Майстер: ' + barber, clean_(d.comment, 300)].join('\n')
+      'Новий запис Strand: ' + record.date + ' ' + record.time,
+      [record.name, record.phone, record.services, 'Майстер: ' + record.barber, record.comment].join('\n')
     );
   } catch (err) { /* лист не повинен ламати запис */ }
 }
@@ -286,12 +321,29 @@ function sheet_() {
   return ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
 }
 
+// Рядки «Записів»; читання нічого не створює. Дату й час, внесені вручну («18.11.2026», «9:00»), зводить до
+// вигляду, який пише сайт («2026-11-18», «09:00»), щоб такий запис теж займав час.
 function readRows_() {
-  const sh = sheet_();
-  const last = sh.getLastRow();
-  if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, HEADERS.length).getDisplayValues();
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, HEADERS.length).getDisplayValues().map(function (r) {
+    r[COL.DATE] = normDate_(r[COL.DATE]);
+    r[COL.TIME] = normTime_(r[COL.TIME]);
+    return r;
+  });
 }
+
+function normDate_(s) {
+  const v = String(s).trim();
+  const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(v);
+  return m ? m[3] + '-' + pad2_(m[2]) + '-' + pad2_(m[1]) : v;
+}
+function normTime_(s) {
+  const v = String(s).trim();
+  const m = /^(\d{1,2}):(\d{2})/.exec(v);
+  return m ? pad2_(m[1]) + ':' + m[2] : v;
+}
+function pad2_(n) { return ('0' + n).slice(-2); }
 
 function isCancelled_(r) { return String(r[COL.STATUS]).trim().toLowerCase() === CANCELLED; }
 function isSlug_(s) { return typeof s === 'string' && /^[a-z0-9-]{1,40}$/.test(s); }
@@ -307,6 +359,13 @@ function nowKyiv_() {
   return { date: s.slice(0, 10), min: toMin_(s.slice(11)) };
 }
 function clean_(v, max) { return String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim().slice(0, max); }
+// Текст від клієнта для клітинки: «=», «+», «-», «@» на початку Таблиця прочитала б як формулу.
+function text_(v, max) { const s = clean_(v, max); return /^[=+\-@]/.test(s) ? "'" + s : s; }
+function has_(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+function barberName_(slug) {
+  for (let i = 0; i < PRICE_BARBERS.length; i++) if (PRICE_BARBERS[i][0] === slug) return PRICE_BARBERS[i][1];
+  return '';
+}
 function normPhone_(v) { return String(v == null ? '' : v).replace(/[\s()\-]/g, ''); }
 function fmtPhone_(p) { return /^\+380\d{9}$/.test(p) ? p.slice(0, 4) + ' ' + p.slice(4, 6) + ' ' + p.slice(6, 9) + ' ' + p.slice(9, 11) + ' ' + p.slice(11) : p; }
 function json_(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }

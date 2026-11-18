@@ -32,7 +32,7 @@ export function createSheet() {
     });
   }
 
-  return function update({ group, paper, reach = 0, gl, shadow }) {
+  return function update({ group, paper, reach, gl, shadow }) {
     if (!attached) attach(group);
     planes[0].constant = EPS + DEPTH * (1 - paper);
     blade.set(0, 1, 0).transformDirection(group.matrixWorld); // the model's blades point +Y

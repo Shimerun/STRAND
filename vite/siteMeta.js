@@ -34,11 +34,9 @@ function openingHours() {
   return [...groups.values()];
 }
 
-function assetUrl(path, baseUrl) {
-  return `${baseUrl}${path.replace(/^\/+/, '')}`;
-}
+const assetUrl = (path, baseUrl) => `${baseUrl}${path.replace(/^\/+/, '')}`;
 
-function jsonLd(siteUrl, baseUrl) {
+function jsonLd(siteUrl) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'BarberShop',
@@ -82,23 +80,21 @@ function headTags(siteUrl, baseUrl) {
       `<link rel="canonical" href="${escapeHtml(`${siteUrl}/`)}" />`,
       meta('property', 'og:url', `${siteUrl}/`),
       meta('property', 'og:image', `${siteUrl}${site.images.og}`),
+      // Size of public/images/og.jpg: lets previews lay out the large card before the image loads.
+      meta('property', 'og:image:width', '1200'),
+      meta('property', 'og:image:height', '630'),
+      meta('name', 'twitter:card', 'summary_large_image'),
     );
   }
-  if (site.images.hero) {
-    tags.push(`<link rel="preload" as="image" href="${escapeHtml(assetUrl(site.images.hero, baseUrl))}" fetchpriority="high" />`);
-  }
-  tags.push(jsonLd(siteUrl, baseUrl));
+  if (site.images.hero) tags.push(`<link rel="preload" as="image" href="${escapeHtml(assetUrl(site.images.hero, baseUrl))}" fetchpriority="high" />`);
+  tags.push(jsonLd(siteUrl));
   return tags.map((tag) => `    ${tag}`).join('\n');
 }
 
 function readSiteUrl(raw) {
   if (!raw) return '';
-  let url;
-  try {
-    url = new URL(raw);
-  } catch {
-    throw new Error(`[site-meta] VITE_SITE_URL is not a valid URL: "${raw}"`);
-  }
+  if (!URL.canParse(raw)) throw new Error(`[site-meta] VITE_SITE_URL is not a valid URL: "${raw}"`);
+  const url = new URL(raw);
   if (!/^https?:$/.test(url.protocol)) throw new Error(`[site-meta] VITE_SITE_URL must start with http(s)://: "${raw}"`);
   return url.href.replace(/\/+$/, '');
 }
@@ -125,20 +121,15 @@ export default function siteMeta() {
         logger.warn('[site-meta] VITE_SITE_URL is not set: skipped robots.txt, sitemap.xml, canonical and og:image.');
         return;
       }
-      this.emitFile({
-        type: 'asset',
-        fileName: 'robots.txt',
-        source: `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
-      });
-      this.emitFile({
-        type: 'asset',
-        fileName: 'sitemap.xml',
-        source:
-          '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      const asset = (fileName, source) => this.emitFile({ type: 'asset', fileName, source });
+      asset('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);
+      asset(
+        'sitemap.xml',
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
           `  <url><loc>${escapeHtml(`${siteUrl}/`)}</loc></url>\n` +
           '</urlset>\n',
-      });
+      );
     },
   };
 }

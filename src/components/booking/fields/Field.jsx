@@ -1,3 +1,5 @@
+import { site } from '../../../data/site.js';
+
 export const LABEL = 'mb-2 block text-xs font-medium uppercase tracking-heading text-concrete';
 
 export const CONTROL =
@@ -27,6 +29,28 @@ export function FieldError({ id, error }) {
     <p id={errorId(id)} className="mt-2 text-sm text-danger">
       {error}
     </p>
+  );
+}
+
+export function InputField({ name, value, error, onChange, className = '', ...props }) {
+  const id = `booking-${name}`;
+  const { fields, placeholders } = site.ui.form;
+  return (
+    <Field id={id} label={fields[name]} error={error}>
+      <input
+        {...controlProps(id, error)}
+        name={name}
+        type="text"
+        autoComplete={name}
+        required
+        aria-required="true"
+        placeholder={placeholders[name]}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`${CONTROL} ${borderFor(error)} ${className}`.trim()}
+        {...props}
+      />
+    </Field>
   );
 }
 

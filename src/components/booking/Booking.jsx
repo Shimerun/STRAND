@@ -1,5 +1,8 @@
 import { site } from '../../data/site.js';
+import { bookingEnabled } from '../../lib/booking.js';
 import { BOOKING_ID } from '../../lib/scroll.js';
+import { EVENTS } from '../../lib/track.js';
+import Button from '../Button.jsx';
 import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
@@ -9,6 +12,18 @@ import SuccessState from './SuccessState.jsx';
 import Ticket from './Ticket.jsx';
 import { useAvailability } from './useAvailability.js';
 import { useBookingForm } from './useBookingForm.js';
+
+// No web app configured: a form that cannot send would waste the visitor's time, so offer the phone.
+function Unavailable() {
+  return (
+    <div className="space-y-6">
+      <p className="text-lg leading-relaxed">{site.ui.form.unavailable}</p>
+      <Button href={`tel:${site.phone}`} track={{ name: EVENTS.callClick, where: 'booking_unavailable' }} className="w-full md:w-auto">
+        {site.phoneDisplay}
+      </Button>
+    </div>
+  );
+}
 
 export default function Booking() {
   const availability = useAvailability();
@@ -22,17 +37,24 @@ export default function Booking() {
         <div>
           <div className="lg:sticky lg:top-[calc(theme(spacing.header)+2rem)]">
             <SectionTitle>{title}</SectionTitle>
-            <Reveal as="p" className="mt-4 leading-relaxed text-concrete md:text-lg">
-              {subtitle}
-            </Reveal>
-            {!success && <BookingSummary form={form} className="mt-10 hidden lg:block" />}
+            {bookingEnabled && (
+              <Reveal as="p" className="mt-4 leading-relaxed text-concrete md:text-lg">
+                {subtitle}
+              </Reveal>
+            )}
+            {bookingEnabled && !success && <BookingSummary form={form} className="mt-10 hidden lg:block" />}
           </div>
         </div>
 
         <div className="rounded border border-line bg-surface p-5 md:p-8">
-          <div aria-live="polite">{success && <SuccessState />}</div>
-          {success && <Ticket form={form} />}
-          {!success && <BookingForm form={form} availability={availability} />}
+          {bookingEnabled ? (
+            <>
+              <div aria-live="polite">{success && <SuccessState />}</div>
+              {success ? <Ticket booked={form.booked} /> : <BookingForm form={form} availability={availability} />}
+            </>
+          ) : (
+            <Unavailable />
+          )}
         </div>
       </div>
     </Section>

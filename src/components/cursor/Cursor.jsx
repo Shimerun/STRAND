@@ -62,19 +62,14 @@ export default function Cursor() {
     };
 
     document.documentElement.classList.add(ROOT_CLASS);
-    window.addEventListener('pointermove', onMove, { passive: true });
-    window.addEventListener('pointerdown', onDown, { passive: true });
-    window.addEventListener('pointerup', onUp, { passive: true });
-    window.addEventListener('blur', onUp);
+    const events = { pointermove: onMove, pointerdown: onDown, pointerup: onUp, blur: onUp };
+    Object.entries(events).forEach(([type, handler]) => window.addEventListener(type, handler, { passive: true }));
     document.addEventListener('mouseout', onOut);
 
     return () => {
       cancelAnimationFrame(frame);
       document.documentElement.classList.remove(ROOT_CLASS);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('blur', onUp);
+      Object.entries(events).forEach(([type, handler]) => window.removeEventListener(type, handler));
       document.removeEventListener('mouseout', onOut);
     };
   }, []);

@@ -3,11 +3,11 @@ import { site } from '../../data/site.js';
 import { formatRating } from '../../lib/format.js';
 import { hoverLift } from '../../lib/motion.js';
 import ArrowIcon from '../ArrowIcon.jsx';
-import Img from '../Img.jsx';
 import InstagramIcon from '../InstagramIcon.jsx';
 import Reveal from '../Reveal.jsx';
 import StarIcon from '../StarIcon.jsx';
-import { barberPhoto, PHOTO_RADIUS, PHOTO_TRANSITION, photoLayoutId } from './photo.js';
+import BarberPhoto from './BarberPhoto.jsx';
+import { PHOTO_RADIUS, PHOTO_TRANSITION, photoLayoutId } from './photo.js';
 import WorksOrbit from './WorksOrbit.jsx';
 
 // The name button stretches over the whole card and opens the barber's profile, into which the photo morphs
@@ -33,7 +33,13 @@ export default function BarberCard({ barber, index, onOpen }) {
           style={{ borderRadius: PHOTO_RADIUS }}
           className="overflow-hidden border border-line bg-surface"
         >
-          <Img src={barberPhoto(slug)} alt={name} width={800} height={1000} className="aspect-[4/5] w-full object-cover" />
+          {/* alt="": the name is the heading right below; a screen reader would read it twice. */}
+          <BarberPhoto
+            barber={barber}
+            alt=""
+            className="aspect-[4/5] w-full object-cover"
+            fallbackClassName="aspect-[4/5] text-6xl"
+          />
         </motion.div>
         {/* Says the card opens: touch screens have no hover to hint it. */}
         <span

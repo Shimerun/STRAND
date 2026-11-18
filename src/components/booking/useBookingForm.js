@@ -1,23 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { site } from '../../data/site.js';
 import { BookingError, submitBooking } from '../../lib/booking.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
-import { normalizePhone } from '../../lib/phone.js';
 import { serviceById, visitPrice } from '../../lib/pricing.js';
 import { blocksFor, bookingDates, freeTimes, fullDates } from '../../lib/slots.js';
 import { EVENTS, track } from '../../lib/track.js';
+import { bookingRequest } from './request.js';
 import { useAddons } from './useAddons.js';
 import { RULES, validate, withError } from './validation.js';
 
-const barberName = (slug) => site.team.find((barber) => barber.slug === slug)?.name ?? slug;
 const NO_DATES = new Set();
 
 export function useBookingForm(availability) {
   const { selection, select } = useBooking();
-  const [dates] = useState(() => bookingDates());
+  const [dates, setDates] = useState(bookingDates);
   const [values, setValues] = useState({ name: '', phone: '', date: dates[0] ?? '', time: '', addons: [], comment: '', website: '' });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | success | error
+  const [booked, setBooked] = useState(null); // what the ticket shows, copied at submit
   const [slotTaken, setSlotTaken] = useState(false);
   const [focusRequest, setFocusRequest] = useState(0);
   const formRef = useRef(null);
@@ -28,10 +27,9 @@ export function useBookingForm(availability) {
   const { durationMin } = extras;
   const ready = Boolean(service && barber);
   const { busy } = availability;
-  const times = useMemo(
-    () => (ready ? freeTimes({ dateISO: values.date, durationMin, barberSlug: barber, busy }) : []),
-    [ready, durationMin, barber, values.date, busy],
-  );
+  // Not memoised: each render takes the current time, so slots inside the lead time drop out of the list.
+  const freeNow = () => (ready ? freeTimes({ dateISO: values.date, durationMin, barberSlug: barber, busy }) : []);
+  const times = freeNow();
   // Days with nothing left are crossed out in the calendar, but only once the busy list really loaded.
   const full = useMemo(
     () => (ready && availability.state === 'ready' ? fullDates({ dates, durationMin, barberSlug: barber, busy }) : NO_DATES),
@@ -40,6 +38,18 @@ export function useBookingForm(availability) {
   const price = visitPrice(extras.services, barber, extras.candidates);
   // A time that is no longer free (refetch, another barber or service) counts as not chosen.
   const time = times.includes(values.time) ? values.time : '';
+
+  // A tab left open past midnight keeps yesterday in the list; refresh it (and drop a now-stale date) on return.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      const next = bookingDates();
+      setDates(next);
+      setValues((prev) => (next.includes(prev.date) ? prev : { ...prev, date: next[0] ?? '', time: '' }));
+    };
+    document.addEventListener('visibilitychange', refresh);
+    return () => document.removeEventListener('visibilitychange', refresh);
+  }, []);
 
   useEffect(() => {
     if (!focusRequest) return;
@@ -57,9 +67,10 @@ export function useBookingForm(availability) {
     if (key === 'time') setSlotTaken(false);
   };
 
-  const chooseBarber = (slug) => {
-    select({ barber: slug });
-    recheck('barber', slug);
+  // Barber and service live in the shared booking context.
+  const choose = (key, value) => {
+    select({ [key]: value });
+    recheck(key, value);
   };
 
   const toggleAddon = (id) =>
@@ -68,9 +79,11 @@ export function useBookingForm(availability) {
       addons: prev.addons.includes(id) ? prev.addons.filter((addon) => addon !== id) : [...prev.addons, id],
     }));
 
-  const chooseService = (id) => {
-    select({ service: id || null });
-    recheck('service', id);
+  // The chosen time is gone (booked by someone else, or now inside the lead time): ask for another one.
+  const timeGone = () => {
+    setValues((prev) => ({ ...prev, time: '' }));
+    setSlotTaken(true);
+    setFocusRequest((n) => n + 1);
   };
 
   const submit = async (event) => {
@@ -79,25 +92,11 @@ export function useBookingForm(availability) {
 
     const found = validate({ ...values, time, barber, service: service?.id ?? '' });
     setErrors(found);
-    if (Object.keys(found).length > 0) {
-      setFocusRequest((n) => n + 1);
-      return;
-    }
+    if (Object.keys(found).length > 0) return setFocusRequest((n) => n + 1);
+    // The form may have stayed open for a while since `times` was worked out.
+    if (!freeNow().includes(time)) return timeGone();
 
-    const data = {
-      name: values.name.trim(),
-      phone: normalizePhone(values.phone),
-      barber,
-      barberName: barberName(barber),
-      service: service.id,
-      serviceName: extras.services.map(({ name }) => name).join(' + '),
-      addons: extras.addons.map(({ id }) => id),
-      date: values.date,
-      time,
-      blocks: blocksFor(durationMin),
-      comment: values.comment.trim(),
-      website: values.website,
-    };
+    const { data, receipt } = bookingRequest({ values, time, barber, service, extras, price });
     const meta = { barber, service: service.id, addons: extras.addons.length };
 
     track(EVENTS.bookingSubmit, meta);
@@ -105,21 +104,18 @@ export function useBookingForm(availability) {
     setSlotTaken(false);
     try {
       await submitBooking(data);
-      availability.addBusy({ date: data.date, time, blocks: data.blocks, barber });
+      availability.addBusy({ date: data.date, time, blocks: blocksFor(durationMin), barber });
       void availability.refetch();
       track(EVENTS.bookingSuccess, meta);
+      setBooked(receipt);
       setStatus('success');
     } catch (error) {
       const reason = error instanceof BookingError ? error.code : 'unknown';
       if (reason === 'unknown') console.error('[booking] unexpected submit error:', error);
       track(EVENTS.bookingError, { ...meta, reason });
-      if (reason !== 'slot_taken') {
-        setStatus('error');
-        return;
-      }
-      setValues((prev) => ({ ...prev, time: '' }));
-      setSlotTaken(true);
+      if (reason !== 'slot_taken' && reason !== 'invalid_time') return setStatus('error');
       setStatus('idle');
+      timeGone();
       void availability.refetch();
     }
   };
@@ -129,6 +125,7 @@ export function useBookingForm(availability) {
     values,
     errors,
     status,
+    booked,
     slotTaken,
     dates,
     times,
@@ -140,8 +137,8 @@ export function useBookingForm(availability) {
     price,
     serviceReset: selection.serviceReset,
     setField,
-    chooseBarber,
-    chooseService,
+    chooseBarber: (slug) => choose('barber', slug),
+    chooseService: (id) => choose('service', id || null),
     toggleAddon,
     submit,
   };

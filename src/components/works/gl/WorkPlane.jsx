@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { ImageBitmapLoader, Texture, Vector2, Vector4 } from 'three';
+import { DRIFT, RADIUS, UNIT_OPEN_FROM as OPEN_FROM, ZOOM } from '../../../lib/photoMotion.js';
 import { fragmentShader, vertexShader } from './shaders.js';
 
 const SEGMENTS = 24; // enough for a smooth bend
-const RADIUS = 6; // px, theme borderRadius
-// As in PhotoReveal, which this plane stands in for: where the photo opens from (shares of the frame closed on
-// [top, right, bottom, left]), its zoom while opening and its drift inside the frame over the whole pass.
-const OPEN_FROM = { sides: [0, 0.3, 0, 0.3], left: [0, 0.55, 0, 0], right: [0, 0, 0, 0.55], bottom: [0.45, 0, 0, 0] };
-const ZOOM = { from: 1.25, rest: 1.1 };
-const DRIFT = 0.04;
 const MARGIN = 120; // px past the viewport a plane is still drawn: the bend reaches beyond its frame
 const MAX_TEXTURE_PX = 1280; // taller photos are scaled down while decoding to keep GPU memory low
 const MAX_ANISOTROPY = 4;
@@ -84,7 +79,7 @@ export default function WorkPlane({ src, height, index, frames, strength }) {
     uniforms.uSize.value.set(rect.width, rect.height);
     uniforms.uInset.value.set(top * closed, right * closed, bottom * closed, left * closed);
     uniforms.uZoom.value = ZOOM.from + (ZOOM.rest - ZOOM.from) * open;
-    uniforms.uDrift.value = (pass * 2 - 1) * DRIFT;
+    uniforms.uDrift.value = (pass * 2 - 1) * (DRIFT / 100);
     uniforms.uStrength.value = strength.current;
   });
 

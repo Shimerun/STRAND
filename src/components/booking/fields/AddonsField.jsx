@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { site } from '../../../data/site.js';
-import { formatDuration, formatPrice } from '../../../lib/format.js';
-import { isFromPrice, minPrice, priceFor } from '../../../lib/pricing.js';
+import { formatDuration, formatServicePrice } from '../../../lib/format.js';
 import CheckIcon from '../../CheckIcon.jsx';
 import Img from '../../Img.jsx';
 import { servicePhoto } from '../servicePhoto.js';
@@ -20,10 +19,6 @@ export default function AddonsField({ barber, extras, onToggle }) {
   if (options.length === 0) return null;
 
   const { form } = site.ui;
-  const priceOf = (addon) =>
-    barber
-      ? formatPrice(priceFor(addon.id, barber), { from: addon.from === true })
-      : formatPrice(minPrice(addon), { from: isFromPrice(addon) });
   const isFull = options.some((addon) => !addons.includes(addon) && tooLong(services, addon));
 
   return (
@@ -65,7 +60,7 @@ export default function AddonsField({ barber, extras, onToggle }) {
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-bold">{addon.name}</span>
                     <span className="mt-1 block text-xs text-concrete">
-                      {formatDuration(addon.durationMin)} · {priceOf(addon)}
+                      {formatDuration(addon.durationMin)} · {formatServicePrice(addon, barber)}
                     </span>
                   </span>
                   <span

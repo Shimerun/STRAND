@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
 import { hoverLift } from '../../lib/motion.js';
+import ArrowIcon from '../ArrowIcon.jsx';
 import Button from '../Button.jsx';
 import ErrorBoundary from '../ErrorBoundary.jsx';
 import PhotoReveal from '../PhotoReveal.jsx';
@@ -99,8 +100,9 @@ export default function Works() {
 
       {social.instagram && (
         <Reveal className="mt-6 md:mt-8">
-          <Button variant="ghost" href={social.instagram} target="_blank" rel="noopener noreferrer">
+          <Button variant="link" href={social.instagram} target="_blank" rel="noopener noreferrer">
             {ui.cta.moreWorks}
+            <ArrowIcon className="transition-transform duration-300 motion-safe:group-hover:translate-x-1" />
           </Button>
         </Reveal>
       )}

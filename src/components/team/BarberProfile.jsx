@@ -6,9 +6,10 @@ import { EASE_REVEAL } from '../../lib/motion.js';
 import { unlockScroll } from '../../lib/scroll.js';
 import { EVENTS } from '../../lib/track.js';
 import { useDialog } from '../../lib/useDialog.js';
+import CloseButton from '../CloseButton.jsx';
 import Button from '../Button.jsx';
-import Img from '../Img.jsx';
-import { barberPhoto, PHOTO_RADIUS, PHOTO_TRANSITION, photoLayoutId } from './photo.js';
+import BarberPhoto from './BarberPhoto.jsx';
+import { PHOTO_RADIUS, PHOTO_TRANSITION, photoLayoutId } from './photo.js';
 import ProfileDetails from './ProfileDetails.jsx';
 
 const backdrop = { duration: 0.4, ease: EASE_REVEAL };
@@ -58,11 +59,7 @@ export default function BarberProfile({ barber, onClose }) {
         <div className="flex min-h-full flex-col">
           <motion.div {...contentProps} className="sticky top-0 z-10 flex h-header shrink-0 items-center justify-between bg-bg px-5 lg:px-8">
             <p className="text-xs font-medium uppercase tracking-heading text-concrete">{team.profile}</p>
-            <button ref={closeRef} type="button" aria-label={cta.close} onClick={onClose} className="-mr-3 flex h-12 w-12 items-center justify-center rounded">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 5l14 14M19 5L5 19" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </button>
+            <CloseButton ref={closeRef} onClick={onClose} />
           </motion.div>
 
           {/* grid-cols-1: an auto track would grow to the works row's full scroll width and blow the photo up. */}
@@ -75,7 +72,11 @@ export default function BarberProfile({ barber, onClose }) {
                 className="aspect-[4/5] w-full overflow-hidden bg-surface lg:max-w-[min(100%,calc((100dvh-9rem)*0.8))]"
                 {...(reduce ? contentProps : undefined)}
               >
-                <Img src={barberPhoto(barber.slug)} alt="" width={800} height={1000} className="h-full w-full object-cover" />
+                <BarberPhoto
+                  barber={barber}
+                  className="h-full w-full object-cover"
+                  fallbackClassName="h-full text-8xl"
+                />
               </motion.div>
             </div>
 

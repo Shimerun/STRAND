@@ -1,6 +1,6 @@
 import { useLayoutEffect } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
-import { cutGeometry, cutSoFar, cutState, heroCutPhases } from '../../lib/heroCut.js';
+import { clamp01, cutGeometry, cutSoFar, cutState, heroCutPhases } from '../../lib/heroCut.js';
 import { FOLD, creaseAt, fallAt, foldAt, foldTransform, folded, wedged } from './paper.js';
 
 // Once the cut is through, the halves part and swell a little: the top springs up (ease-out, shift in frame
@@ -14,7 +14,6 @@ const SAG = { drop: 0.04, maxTan: 0.1 };
 const SEAM = { overlap: 1.5, below: 4 };
 const UNDERLAY_FROM = 0.9; // the next section grows from this scale to 1 as the halves part
 const PARALLAX = 20; // % of the photo height over the whole hero scroll
-const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 const polygon = (points) => `polygon(${points.map(({ x, y }) => `${x}px ${y}px`).join(', ')})`;
 const started = (points) => points?.length > 1; // the cut has entered the frame
 
@@ -94,8 +93,6 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     underlay.style.willChange = transform ? 'transform' : '';
   });
 
-  const hinge = (points, h) => [{ x: points.at(-1).x, y: h }];
-
   return {
     state,
     split,
@@ -123,7 +120,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     },
     flap: {
       clip: useTransform([flapEdge, width, height], ([points, w, h]) =>
-        points ? polygon([...[...points].reverse(), { x: w, y: h }, ...hinge(points, h)]) : 'none',
+        points ? polygon([...[...points].reverse(), { x: w, y: h }, { x: points.at(-1).x, y: h }]) : 'none',
       ),
       // The strip turns away from the light as it lifts: the shade over it (Hero.jsx) comes up with the fold.
       shade: useTransform(fold, (deg) => deg / FOLD.deg),

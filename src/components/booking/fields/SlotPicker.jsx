@@ -12,9 +12,11 @@ export default function SlotPicker({ hasService, availability, times, value, err
   if (!hasService) message = slots.pickService;
   else if (availability === 'loading') message = slots.loading;
   else if (times.length === 0) message = slots.none;
+  // Without a service there is nothing to pick yet: the service field carries the error.
+  const shownError = hasService ? error : null;
 
   return (
-    <fieldset data-invalid={Boolean(error)} aria-describedby={error ? errorId(ID) : undefined}>
+    <fieldset data-invalid={Boolean(shownError) || slotTaken} aria-describedby={shownError ? errorId(ID) : undefined}>
       <legend className={LABEL}>{fields.time}</legend>
 
       <div aria-live="polite" className="space-y-2 text-sm">
@@ -46,7 +48,7 @@ export default function SlotPicker({ hasService, availability, times, value, err
         </div>
       )}
 
-      <FieldError id={ID} error={error} />
+      <FieldError id={ID} error={shownError} />
     </fieldset>
   );
 }

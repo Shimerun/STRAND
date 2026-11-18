@@ -1,9 +1,8 @@
 // Pure math for the hero cut behaving as a sheet of paper: the wedge the blades push open, the cut-off strip
 // lifting off the page about the cutting point, and its fall once the cut is through.
 
-import { pointAt } from '../../lib/heroCut.js';
+import { TAU, pointAt } from '../../lib/heroCut.js';
 
-const TAU = Math.PI * 2;
 const RAD = Math.PI / 180;
 
 // At the blades the strip is pushed aside by the lower blade's body: the gap opens as a wedge `px` wide at the

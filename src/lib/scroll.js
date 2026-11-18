@@ -13,15 +13,14 @@ export function setLenis(instance, wake = null) {
   wakeLenis = wake;
 }
 
-export function getLenis() {
-  return lenis;
-}
-
 export function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-// Lenis is absent under reduced motion, so fall back to locking the root element.
+export const MOUSE_QUERY = '(hover: hover) and (pointer: fine)';
+export const hasMouse = () => window.matchMedia(MOUSE_QUERY).matches;
+
+// Lenis is absent under reduced motion and on touch screens, so fall back to locking the root element.
 export function lockScroll() {
   if (lenis) lenis.stop();
   else document.documentElement.style.overflow = 'hidden';

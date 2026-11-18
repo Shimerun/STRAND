@@ -1,30 +1,27 @@
 import { site } from '../../data/site.js';
 import { formatPrice } from '../../lib/format.js';
-import { barbersFor, servicesFor } from '../../lib/pricing.js';
+import { offers, servicesFor } from '../../lib/pricing.js';
 import Button from '../Button.jsx';
 import BookingSummary from './BookingSummary.jsx';
 import ErrorState from './ErrorState.jsx';
 import AddonsField from './fields/AddonsField.jsx';
 import BarberPicker from './fields/BarberPicker.jsx';
 import DateField from './fields/DateField.jsx';
-import Field, { CONTROL, borderFor, controlProps } from './fields/Field.jsx';
-import NameField from './fields/NameField.jsx';
+import Field, { CONTROL, InputField, borderFor, controlProps } from './fields/Field.jsx';
 import PhoneField from './fields/PhoneField.jsx';
 import ServicePicker from './fields/ServicePicker.jsx';
 import SlotPicker from './fields/SlotPicker.jsx';
 import Step from './fields/Step.jsx';
 
 const COMMENT_ID = 'booking-comment';
+const NAME_MAX = 60;
 const COMMENT_MAX = 300;
 
 export default function BookingForm({ form, availability }) {
   const copy = site.ui.form;
   const { values, errors, barber, service, price } = form;
   const services = barber ? servicesFor(barber) : site.services;
-  const eligibleBarbers = service ? new Set(barbersFor(service)) : null;
-  const barbers = eligibleBarbers
-    ? site.team.filter(({ slug }) => eligibleBarbers.has(slug))
-    : site.team;
+  const barbers = service ? site.team.filter(({ slug }) => offers(service, slug)) : site.team;
   const sending = form.status === 'sending';
   const submitLabel = price ? `${copy.submit} · ${formatPrice(price.value, { from: price.from })}` : copy.submit;
 
@@ -64,7 +61,7 @@ export default function BookingForm({ form, availability }) {
 
       <Step index={3} title={copy.steps.contacts}>
         <div className="grid gap-5 md:grid-cols-2">
-          <NameField value={values.name} error={errors.name} onChange={(name) => form.setField('name', name)} />
+          <InputField name="name" maxLength={NAME_MAX} value={values.name} error={errors.name} onChange={(name) => form.setField('name', name)} />
           <PhoneField value={values.phone} error={errors.phone} onChange={(phone) => form.setField('phone', phone)} />
         </div>
 

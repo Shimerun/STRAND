@@ -7,10 +7,12 @@ import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
 import StarIcon from '../StarIcon.jsx';
-import ReviewCard from './ReviewCard.jsx';
+import { GoogleReview, SiteReview } from './ReviewCard.jsx';
 import { useGoogleReviews } from './useGoogleReviews.js';
 
 const MAX_STARS = 5;
+const GOOGLE_LIST =
+  '-ml-5 flex snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto pb-4 pl-5 pt-2 [scrollbar-width:none] md:ml-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-0';
 
 /**
  * Google reviews (rating, count and up to five reviews, with Google's attribution) once they load;
@@ -25,7 +27,8 @@ export default function Reviews() {
   const rating = google ? { value: google.rating, count: google.count } : site.rating;
   const reviews = google ? google.reviews : site.reviews.filter((review) => review.text);
   const fullStars = Math.round(rating.value);
-  const countLabel = google ? `${pluralUk(rating.count, labels.count)} ${labels.onGoogle}` : pluralUk(rating.count, labels.verified);
+  // site.rating is copied from the Google listing too, so both read "N відгуків у Google".
+  const countLabel = `${pluralUk(rating.count, labels.count)} ${labels.onGoogle}`;
 
   return (
     <Section id="reviews" tone="surface">
@@ -56,17 +59,18 @@ export default function Reviews() {
         </div>
 
         <div className="min-w-0 flex-1">
-          {/* Horizontal scroll-snap on mobile, bleeding to the left edge; grid from md up. */}
-          <ul className="-ml-5 flex snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto pb-4 pl-5 pt-2 [scrollbar-width:none] md:ml-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-0">
+          {/* Google cards: horizontal scroll-snap on mobile, bleeding to the left edge; grid from md up.
+              The site's own short quotes: a plain stack divided by hairlines. */}
+          <ul className={google ? GOOGLE_LIST : 'divide-y divide-line'}>
             {reviews.map((review, index) => (
               <Reveal
                 as="li"
                 key={google ? `${review.author}-${index}` : `${review.name}-${review.date}`}
                 index={index}
-                whileHover={reduce ? undefined : hoverLift}
-                className="w-[85%] shrink-0 snap-start sm:w-[60%] md:w-auto"
+                whileHover={reduce || !google ? undefined : hoverLift}
+                className={google ? 'w-[85%] shrink-0 snap-start sm:w-[60%] md:w-auto' : 'py-8 first:pt-0 last:pb-0'}
               >
-                <ReviewCard review={review} google={Boolean(google)} />
+                {google ? <GoogleReview review={review} /> : <SiteReview review={review} />}
               </Reveal>
             ))}
           </ul>

@@ -61,12 +61,10 @@ const share = (value, of) => `${((value / of) * 100).toFixed(3)}%`;
 const CORE_CLIP = `inset(${share(GLASS.y, VIEW.height)} ${share(VIEW.width - CORE.x - CORE.width, VIEW.width)} ${share(VIEW.height - GLASS.y - GLASS.height, VIEW.height)} ${share(CORE.x, VIEW.width)})`;
 
 /**
- * Black-and-white barber pole whose cylinder turns on a CSS loop (.barber-pole-stripes in index.css; still
- * under reduced motion). Three stacked drawings: the back, the stripes, and the shading, glass and caps over
- * them. The stripes are a layer of their own so the loop runs on the compositor: turning the pole costs the
- * page no style, layout or paint work, however long it spins.
- * period: seconds for one stripe to pass. stripesRef: the turning element, for callers that change its speed
- * (element.getAnimations()).
+ * Barber pole turning on a CSS loop (.barber-pole-stripes; still under reduced motion), drawn as three stacked
+ * layers: back, stripes, then shading, glass and caps. The stripes get a layer of their own so the compositor
+ * runs the loop: no style, layout or paint work, however long it spins.
+ * period: seconds per stripe. stripesRef: the turning element, for callers that retime it (getAnimations()).
  */
 export default function BarberPole({ height = 72, period = 1.1, stripesRef, className = '' }) {
   const id = useId().replace(/:/g, '');

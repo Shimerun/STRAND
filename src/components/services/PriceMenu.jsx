@@ -1,7 +1,6 @@
 import { site } from '../../data/site.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
-import { formatDuration, formatPrice } from '../../lib/format.js';
-import { isFromPrice, minPrice } from '../../lib/pricing.js';
+import { formatDuration, formatPriceRange } from '../../lib/format.js';
 import { EVENTS } from '../../lib/track.js';
 import ArrowIcon from '../ArrowIcon.jsx';
 import Button from '../Button.jsx';
@@ -26,15 +25,28 @@ function PlusIcon() {
   );
 }
 
+/** A service's booking link, in the cards (Services) and in the price menu; `where` is for analytics. */
+export function BookLink({ service, where, className }) {
+  const { openBooking } = useBooking();
+  return (
+    <Button
+      variant="link"
+      className={className}
+      track={{ name: EVENTS.bookClick, where, service: service.id }}
+      onClick={() => openBooking({ service: service.id })}
+    >
+      {site.ui.cta.book}
+      <ArrowIcon className="transition-transform duration-300 motion-safe:group-hover:translate-x-1" />
+    </Button>
+  );
+}
+
 /**
  * The services that are not cards, as a price menu: name, time and price on one row; opening a row shows what
  * the service is and the way to book it. Native <details>, so it works without script and with a keyboard;
  * two columns from lg, each flowing on its own so an opened row never stretches its neighbour.
  */
 export default function PriceMenu({ services }) {
-  const { openBooking } = useBooking();
-  const { cta } = site.ui;
-
   return (
     <ul className="price-menu border-t border-line lg:columns-2 lg:gap-x-16">
       {services.map((service) => (
@@ -48,21 +60,13 @@ export default function PriceMenu({ services }) {
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-4 pt-0.5">
-                <span className="text-sm font-bold tabular-nums">{formatPrice(minPrice(service), { from: isFromPrice(service) })}</span>
+                <span className="text-sm font-bold tabular-nums">{formatPriceRange(service.prices, { from: service.from === true })}</span>
                 <PlusIcon />
               </span>
             </summary>
             <div className="pb-5 pr-7">
               <p className="max-w-prose text-sm leading-relaxed text-concrete">{service.description}</p>
-              <Button
-                variant="link"
-                className="mt-1"
-                track={{ name: EVENTS.bookClick, where: 'price-menu', service: service.id }}
-                onClick={() => openBooking({ service: service.id })}
-              >
-                {cta.book}
-                <ArrowIcon className="transition-transform duration-300 motion-safe:group-hover:translate-x-1" />
-              </Button>
+              <BookLink service={service} where="price-menu" className="mt-1" />
             </div>
           </details>
         </li>

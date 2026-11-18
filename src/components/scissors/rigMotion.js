@@ -1,22 +1,23 @@
 // Renderer-free motion of the shears in CSS px, shared by the 3D rig and the 2D fallback.
-import { heroCutPhases } from '../../lib/heroCut.js';
+import { TAU, clamp01, ease, heroCutPhases } from '../../lib/heroCut.js';
 import {
   BURST_DURATION, CUT_FADE, CUT_LINE, CUT_ROLL, DESKTOP_MIN_PX, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
-  clamp, cutPose, dockRange, easeFade, idleSnip, lerp, nearAngle, scrollSnip, trackPoint, trackTurn, withBurst,
+  applyScene, cutPose, dockRange, idleSnip, lerp, mix, nearAngle, scrollSnip, trackPoint, trackTurn, withBurst,
 } from './pose.js';
 import { burstElapsed, getScene, rig } from './rig.js';
 
-const TAU = Math.PI * 2;
 const POINTER = { max: 8 * (Math.PI / 180), lerp: 0.08, settle: 1e-4 };
 const LAG = 8; // 1/s: the shears trail the scroll, as in the reference demo
 const LAG_SETTLE = 0.5; // px
 const MAX_DT = 0.05;
+// s: an untouched hero floats and snips this long after the last scroll, pointer move or resize, then eases to
+// rest over `fade` and stops drawing. Drawn without end, it took a fifth of a phone's main thread.
+const IDLE = { after: 8, fade: 1.2 };
 
 /**
- * Scroll range of the track in scrollY px. It starts when the shears have docked and ends END_OFFSET
- * viewports before the [data-scissors-end] element scrolls into view, or at the page bottom when there is none.
- * endTop is that element's viewport top (Infinity without one). Pure arithmetic on what useScissorsSignals
- * measured: this runs every frame, and reading the DOM here would force a layout each time.
+ * Scroll range of the track in scrollY px: from the dock to END_OFFSET viewports before the end element scrolls
+ * into view (the page bottom without one); endTop is its viewport top (Infinity without one). Pure arithmetic on
+ * what useScissorsSignals measured: reading the DOM in this per-frame code would force a layout each time.
  */
 function readTrack({ heroHeight, cutPin, endTop, pageHeight, viewHeight: viewport }, scrollY) {
   const start = dockRange(heroHeight, cutPin).to;
@@ -27,67 +28,52 @@ function readTrack({ heroHeight, cutPin, endTop, pageHeight, viewHeight: viewpor
 /**
  * Hero pose for a layer of `screen` size: centre and long axis in CSS px, rotation as Euler radians
  * (z = tilt in the screen plane, y = yaw, x = pitch). unit: px per world unit; length: long axis in world units.
+ * idle: 0..1, how much of the float and sway plays.
  */
-export function heroPose(screen, unit, length, time = 0) {
+export function heroPose(screen, unit, length, time = 0, idle = 1) {
   const hero = screen.width >= DESKTOP_MIN_PX ? HERO.desktop : HERO.mobile;
   return {
     x: screen.width / 2 + hero.x * screen.width,
-    y: screen.height / 2 - hero.y * screen.height - FLOAT.amp * unit * Math.sin(TAU * FLOAT.hz * time),
+    y: screen.height / 2 - hero.y * screen.height - idle * FLOAT.amp * unit * Math.sin(TAU * FLOAT.hz * time),
     length: hero.scale * length * unit,
-    rotation: { x: 0, y: hero.yaw + SWAY.amp * Math.sin(TAU * SWAY.hz * time), z: hero.tilt },
+    rotation: { x: 0, y: hero.yaw + idle * SWAY.amp * Math.sin(TAU * SWAY.hz * time), z: hero.tilt },
   };
 }
 
-const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
-const easeInOut = (t) => t * t * (3 - 2 * t);
-
-// Below desktop the About text fills the screen while it shows through the hero cut. Rather than fly across it
-// from the end of the cut (left edge) to the track (right edge), the shears fade out early in the dock and fade
-// back in at its end, already on the track.
+// The About text fills the screen through the hero cut: rather than fly across it from the cut's end (left edge)
+// to the track (right edge), the shears fade out early in the dock and back in at its end, on the track.
 const DOCK_DIP = { out: 0.1, in: 0.92 };
-function dockVisibility(dock) {
-  const gone = easeInOut(clamp(dock / DOCK_DIP.out, 0, 1));
-  const back = easeInOut(clamp((dock - DOCK_DIP.in) / (1 - DOCK_DIP.in), 0, 1));
-  return 1 - gone + back;
-}
-const SCENE_SCALE = 0.8; // a borrowed pair is a little smaller than on the track, unless the scene sets its scale
-
-// Blends the frame towards a scene that borrowed the shears (rig.setScene): tips on its point, flat to the camera.
-function applyScene(frame, scene, trackLength, maxOpen) {
-  const w = scene.weight;
-  const length = trackLength * (scene.scale ?? SCENE_SCALE);
-  const turn = (rotation) => ({ x: 0, y: 0, z: nearAngle(Math.atan2(-scene.dirX, -scene.dirY), rotation.z) });
-  frame.x = lerp(frame.x, scene.tipX - (scene.dirX * length) / 2, w);
-  frame.y = lerp(frame.y, scene.tipY - (scene.dirY * length) / 2, w);
-  frame.length = lerp(frame.length, length, w);
-  frame.rotation = mix(frame.rotation, turn(frame.rotation), w);
-  frame.heroRotation = mix(frame.heroRotation, turn(frame.heroRotation), w);
-  frame.trackRotation = mix(frame.trackRotation, turn(frame.trackRotation), w);
-  frame.open = lerp(frame.open, maxOpen * scene.open, w);
-  frame.roll = lerp(frame.roll, 0, w);
-  frame.paper = lerp(frame.paper, 0, w);
-  frame.opacity = Math.max(frame.opacity, w);
-}
+const dockVisibility = (dock) =>
+  1 - ease(clamp01(dock / DOCK_DIP.out)) + ease(clamp01((dock - DOCK_DIP.in) / (1 - DOCK_DIP.in)));
 
 /**
- * Returns step(input) → frame for one rendered frame. input: { time, dt (s), scrollY, dock (0..1),
- * signals, screen, unit, length, maxOpen }. The frame holds the centre / length in CSS px, the hero and
- * track rotations plus their linear mix, the opening (degrees per half), the opacity and whether
- * another frame is needed. Also publishes visibility and an approximate tip position on `rig`.
+ * Returns step(input) → frame. input: { dt (s), scrollY, dock (0..1), signals, screen, unit, length, maxOpen }.
+ * The frame: centre / length in CSS px, hero and track rotations plus their linear mix, opening (degrees per half),
+ * opacity and whether another frame is needed. Also publishes visibility and an approximate tip position on `rig`.
  */
 export function createRigMotion() {
   const lean = { x: 0, y: 0 };
   let smoothY = null;
   let shown = null; // linear visibility 0..1, eased into the opacity
   let cutAt = null; // performance.now() when the end element crossed CUT_LINE
+  let time = 0; // s of drawn motion: it stands still while nothing is drawn, so waking up carries on without a jump
+  let still = 0; // s since the scroll, the pointer or the screen last changed
+  let idle = 1; // 0..1: how much of the hero's float and idle snips plays
+  const last = { scrollY: NaN, x: 0, y: 0, width: 0, height: 0 };
 
-  return function step({ time, dt: rawDt, scrollY, dock, signals, screen, unit, length, maxOpen }) {
+  return function step({ dt: rawDt, scrollY, dock, signals, screen, unit, length, maxOpen }) {
     const dt = Math.min(rawDt, MAX_DT);
+    time += dt;
+    const { pointer } = signals;
+    const moved = scrollY !== last.scrollY || pointer.x !== last.x || pointer.y !== last.y || screen.width !== last.width || screen.height !== last.height;
+    Object.assign(last, { scrollY, x: pointer.x, y: pointer.y, width: screen.width, height: screen.height });
+    still = moved ? 0 : still + dt;
+    idle = clamp01(idle + (still < IDLE.after ? dt : -dt) / IDLE.fade);
     if (smoothY === null || Math.abs(scrollY - smoothY) <= LAG_SETTLE) smoothY = scrollY;
     else smoothY += (scrollY - smoothY) * (1 - Math.exp(-LAG * dt));
 
     const range = readTrack(signals, scrollY);
-    const p = clamp((smoothY - range.start) / range.span, 0, 1);
+    const p = clamp01((smoothY - range.start) / range.span);
     const track = screen.width >= DESKTOP_MIN_PX ? TRACK.desktop : TRACK.mobile;
     const point = trackPoint(p, { width: signals.pageWidth, height: screen.height }, signals.gutter, track);
 
@@ -97,20 +83,20 @@ export function createRigMotion() {
     lean.x += (leanX - lean.x) * k;
     lean.y += (leanY - lean.y) * k;
 
-    const hero = heroPose(screen, unit, length, time);
+    const hero = heroPose(screen, unit, length, time, idle);
     hero.rotation.x += lean.x;
     hero.rotation.y += lean.y;
 
     // Hero cut: raw scroll (no lag) keeps the tip on the line the hero draws.
     const phases = heroCutPhases(scrollY, signals.cutPin);
-    const aim = easeInOut(phases.aim);
+    const aim = ease(phases.aim);
     const cut = cutPose(phases.along, signals.pageWidth, signals.heroHeight, maxOpen);
     const before = {
       x: lerp(hero.x, cut.x, aim),
       y: lerp(hero.y, cut.y, aim),
       length: lerp(hero.length, cut.length, aim),
       rotation: mix(hero.rotation, { x: cut.rotation.x + lean.x, y: cut.rotation.y + lean.y, z: cut.rotation.z }, aim),
-      open: lerp(idleSnip(time, maxOpen), cut.open, aim),
+      open: lerp(idle * idleSnip(time, maxOpen), cut.open, aim),
       roll: CUT_ROLL * aim,
     };
 
@@ -120,13 +106,12 @@ export function createRigMotion() {
     const burst = burstElapsed();
     const now = performance.now();
     const pastCut = range.endTop < signals.viewHeight * CUT_LINE;
-    if (!pastCut) cutAt = null;
-    else if (cutAt === null) cutAt = now;
+    cutAt = pastCut ? (cutAt ?? now) : null;
     const holding = pastCut && (now - cutAt) / 1000 < BURST_DURATION; // the final snips play before the fade
     const target = pastCut && !holding ? 0 : 1;
-    shown = shown === null ? target : clamp(shown + Math.sign(target - shown) * (dt / CUT_FADE), 0, 1);
-    const docking = track === TRACK.mobile ? dockVisibility(dock) : 1;
-    const opacity = Math.round(easeFade(shown) * docking * 1000) / 1000;
+    shown = shown === null ? target : clamp01(shown + Math.sign(target - shown) * (dt / CUT_FADE));
+    const docking = dockVisibility(dock);
+    const opacity = Math.round(ease(shown) * docking * 1000) / 1000;
     const leaning = Math.abs(leanX - lean.x) + Math.abs(leanY - lean.y) > POINTER.settle;
 
     const frame = {
@@ -142,12 +127,12 @@ export function createRigMotion() {
       paper: aim * (1 - dock), // 0..1: how much the hero photo acts as a sheet the shears cut through (3D only)
       reach: cut.reach, // px: the sheet is already cut this far ahead of the pivot (3D only)
       opacity,
-      active: !signals.pageHidden && (signals.heroVisible || leaning || smoothY !== scrollY || burst < BURST_DURATION || holding || shown !== target),
+      active: !signals.pageHidden && ((signals.heroVisible && idle > 0) || leaning || smoothY !== scrollY || burst < BURST_DURATION || holding || shown !== target),
     };
 
     const scene = getScene();
-    if (scene && scene.weight > 0) applyScene(frame, scene, track.length, maxOpen);
-    const { rotation: final } = frame;
+    if (scene?.weight > 0) applyScene(frame, scene, track.length, maxOpen);
+    const { rotation: final } = frame; // applyScene may have replaced it
 
     const reach = (frame.length / 2) * Math.cos(final.x);
     rig.visible = frame.opacity > 0;

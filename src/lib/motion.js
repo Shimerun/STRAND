@@ -1,6 +1,6 @@
 export const EASE_REVEAL = [0.4, 0, 0.2, 1];
-export const EASE_HOVER = [0.26, 1.04, 0.54, 1];
-export const EASE_MASK = [0.16, 1, 0.3, 1]; // fast start, long settle: words rising out of a mask
+const EASE_HOVER = [0.26, 1.04, 0.54, 1];
+const EASE_MASK = [0.16, 1, 0.3, 1]; // fast start, long settle: words rising out of a mask
 
 export const revealViewport = { once: true, amount: 0.3 };
 

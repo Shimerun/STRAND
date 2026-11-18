@@ -9,8 +9,6 @@ export const EVENTS = Object.freeze({
 
 export function track(name, params = {}) {
   const payload = { event: name, ...params };
-  if (typeof window !== 'undefined' && typeof window.dataLayer?.push === 'function') {
-    window.dataLayer.push(payload);
-  }
+  if (typeof window.dataLayer?.push === 'function') window.dataLayer.push(payload);
   if (import.meta.env.DEV) console.debug('[track]', payload);
 }

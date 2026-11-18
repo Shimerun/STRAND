@@ -27,10 +27,8 @@ export const site = {
   images: {
     hero: "/images/hero.webp", // TODO: 680px wide now; a 1600px-wide photo (<= ~200 KB) looks sharp on desktop
     about: "/images/about.webp",
-    facade: "/images/facade.webp",
-    interior: ["/images/interior-1.webp", "/images/interior-2.webp", "/images/interior-3.webp", "/images/interior-4.webp"],
-    logo: null, // TODO: a transparent SVG/PNG; LOGO.webp is an opaque square, so the text wordmark stays
-    og: "/images/hero.webp", // TODO: a 1200x630 JPG previews best in messengers and Facebook
+    logo: null, // the Montserrat text wordmark (Logo.jsx); an image path here would replace it
+    og: "/images/og.jpg", // 1200x630 link-preview card: logo, tagline, address over the hero photo
     // Booking form thumbnails by service id: per barber slug and/or `all`.
     // A barber without an own photo gets `all`, then another barber's photo of the same service.
     services: {
@@ -61,7 +59,9 @@ export const site = {
       styling: { all: "/images/services/styling.webp" }
       // TODO: "scalp-care" (Nevitaly) has no photo yet
     },
-    favicon: "/images/logo.webp"
+    // Barber portraits by slug, 4:5. Only the ones that exist: a barber without one shows initials, no request.
+    team: { "oleh-dok": "/images/team/oleh-dok.jpg" },
+    favicon: "/images/favicon.webp" // LOGO.webp at 192px
   },
   seo: {
     title: "Strand Barbershop — барбершоп у Житомирі · Запис онлайн",
@@ -70,8 +70,7 @@ export const site = {
   amenities: ["Безкоштовний Wi-Fi", "Громадська парковка", "Кондиціонер", "Безкоштовні напої", "Кавоварка", "Підходить для дітей", "Доступно для людей з інвалідністю"],
   about: [
     "STRAND Barbershop — простір чоловічого стилю, де бездоганний сервіс поєднується з майстерністю та увагою до деталей.",
-    "Назва походить від англійського strand — «пасмо волосся». Це символ професіоналізму, точності та поваги до кожної деталі: з одного пасма починається новий образ, а з майстерності барбера — впевненість у собі.",
-    "Ми дбаємо про комфортну атмосферу, стерильність інструментів і професійну косметику від перевірених світових брендів. Кожен візит — це персональний підхід і консультація."
+    "Назва походить від англійського strand — «пасмо волосся»: з одного пасма починається новий образ. Ми дбаємо про стерильність інструментів і професійну косметику від перевірених світових брендів. Кожен візит — це персональний підхід і консультація."
   ],
   // featured: shown as a large card in Services (the cuts); the rest make up the compact price menu below them.
   services: [
@@ -101,12 +100,12 @@ export const site = {
       prices: { "oleh-dok": 150, "liubov-zainchkovska": 150, "liliia-pavlenko": 150, "daryna-badio": 150 } }
   ],
   team: [
-    { slug: "oleh-dok", name: "Олег Док", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/olegdok_/" },
-    { slug: "liubov-zainchkovska", name: "Люба Зайнчковська", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/luybka_barber/" },
-    { slug: "liliia-pavlenko", name: "Лілія Павленко", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/pavlenko_lilya_/" },
-    { slug: "daryna-badio", name: "Дарина Бадьо", role: "Барбер", junior: false, rating: 5.0, instagram: "https://www.instagram.com/darina.bado/" },
-    { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/rmn_mkhlvski/" },
-    { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", junior: true, rating: null, instagram: "https://www.instagram.com/puhach.dm/" }
+    { slug: "oleh-dok", name: "Олег Док", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/olegdok_/" },
+    { slug: "liubov-zainchkovska", name: "Люба Зайнчковська", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/luybka_barber/" },
+    { slug: "liliia-pavlenko", name: "Лілія Павленко", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/pavlenko_lilya_/" },
+    { slug: "daryna-badio", name: "Дарина Бадьо", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/darina.bado/" },
+    { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", rating: null, instagram: "https://www.instagram.com/rmn_mkhlvski/" },
+    { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", rating: null, instagram: "https://www.instagram.com/puhach.dm/" }
   ],
   // width / height: the photo's own size, so the masonry keeps its place before the photo loads.
   // New photos: WebP, at most 1200 px wide (a phone at 3x fills the lightbox with that), about 100-250 KB.
@@ -161,14 +160,13 @@ export const site = {
     status: { open: "Зараз відчинено", closed: "Зараз зачинено" },
     hero: { subline: "Барбершоп у Житомирі" }, // component appends " · " + site.addressShort
     alt: { hero: "Барбершоп Strand у Житомирі", about: "Майстер Strand за роботою" }, // barber photos use the barber's name
-    sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", booking: "Запис онлайн", contacts: "Контакти" },
+    sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", contacts: "Контакти" },
     services: { more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
     units: { min: "хв", hour: "год", currency: "₴" },
     team: { prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
     works: { prev: "Попереднє фото", next: "Наступне фото", showAll: "Показати всі роботи" },
     brand: { sub: "Barbershop" },
     reviews: {
-      verified: ["перевірений відгук", "перевірені відгуки", "перевірених відгуків"],
       count: ["відгук", "відгуки", "відгуків"],
       onGoogle: "у Google",
       googleMaps: "Google Maps", // Google's attribution: keep as is, never translate
@@ -200,7 +198,6 @@ export const site = {
       summary: { title: "Ваш запис", barber: "Майстер", services: "Послуги", when: "Дата і час", duration: "Тривалість", total: "Разом", empty: "—" },
       ticket: { title: "Ваш талон", stub: "Контроль" },
       placeholders: { name: "Ваше ім'я", phone: "+380 XX XXX XX XX", barber: "Оберіть майстра", service: "Оберіть послугу", comment: "Побажання до стрижки" },
-      priceLabel: "Вартість",
       submit: "Записатись",
       sending: "Надсилаємо…",
       consent: "Натискаючи «Записатись», ви погоджуєтесь на обробку персональних даних для запису.",
@@ -219,11 +216,12 @@ export const site = {
         loading: "Перевіряємо вільний час…",
         pickService: "Оберіть майстра та послугу, щоб побачити вільний час",
         none: "На цей день вільного часу немає — оберіть іншу дату або майстра.",
-        taken: "Цей час щойно зайняли. Список оновлено — оберіть інший.",
+        taken: "Цей час уже недоступний. Список оновлено — оберіть інший.",
         loadFailed: "Не вдалося перевірити вільний час. Ви можете надіслати заявку — ми підтвердимо її по телефону."
       },
-      success: "Дякуємо! Ми зателефонуємо для підтвердження",
-      errorText: "Не вдалося надіслати заявку. Зателефонуйте нам:"
+      success: "Дякуємо! Час за вами — ми зателефонуємо, щоб підтвердити запис",
+      errorText: "Не вдалося надіслати заявку. Зателефонуйте нам:",
+      unavailable: "Онлайн-запис тимчасово не працює. Зателефонуйте — запишемо вас на зручний час."
     }
   }
 };

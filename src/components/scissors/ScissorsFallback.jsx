@@ -39,7 +39,6 @@ function MovingShears() {
 
   useEffect(() => {
     const current = loop.current;
-    const start = performance.now();
     let opacity = -1;
     // The layer's size is read when it changes, never in the frame loop (that forced a layout every frame).
     let screen = screenOf(layerRef.current);
@@ -49,9 +48,7 @@ function MovingShears() {
     });
     resized.observe(layerRef.current);
     current.tick = (now) => {
-      const layer = layerRef.current;
       const frame = step({
-        time: (now - start) / 1000,
         dt: current.last ? (now - current.last) / 1000 : 0,
         scrollY: scrollY.get(),
         dock: dock.get(),
@@ -64,7 +61,7 @@ function MovingShears() {
       current.last = now;
       place(svgRef.current, frame);
       openHalves(halfARef.current, halfBRef.current, frame.open);
-      if (frame.opacity !== opacity) layer.style.opacity = String(frame.opacity);
+      if (frame.opacity !== opacity) layerRef.current.style.opacity = String(frame.opacity);
       opacity = frame.opacity;
       if (frame.active) requestFrame();
     };

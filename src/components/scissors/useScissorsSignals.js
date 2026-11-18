@@ -1,21 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useSpring } from 'framer-motion';
+import { clamp01 } from '../../lib/heroCut.js';
 import { TOP_ID } from '../../lib/scroll.js';
-import { clamp, dockRange } from './pose.js';
-import { bindRig } from './rig.js';
+import { dockRange } from './pose.js';
+import { END_SELECTOR, bindRig } from './rig.js';
 
 const DOCK_SPRING = { stiffness: 120, damping: 24 };
 const FRAME_SELECTOR = '[data-hero-frame]';
-const END_SELECTOR = '[data-scissors-end]'; // the track ends before this element
 
 const dockFor = (scrollY, { heroHeight, cutPin }) => {
   const { from, to } = dockRange(heroHeight, cutPin);
-  return clamp((scrollY - from) / (to - from), 0, 1);
+  return clamp01((scrollY - from) / (to - from));
 };
-
-function readGutter() {
-  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter')) || 0;
-}
 
 /**
  * Everything outside the renderer the shears react to: scroll, the docking spring, gutter, page and hero
@@ -60,7 +56,7 @@ export function useScissorsSignals(requestFrame) {
     const frame = hero?.querySelector(FRAME_SELECTOR) ?? hero;
     const end = document.querySelector(END_SELECTOR);
     const measure = () => {
-      signals.current.gutter = readGutter();
+      signals.current.gutter = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter')) || 0;
       signals.current.pageWidth = document.documentElement.clientWidth;
       signals.current.pageHeight = document.documentElement.scrollHeight;
       signals.current.viewWidth = window.innerWidth;
@@ -76,24 +72,20 @@ export function useScissorsSignals(requestFrame) {
     // Anything that moves the end element (late content, fonts, an opened form) changes the page height.
     const resizer = new ResizeObserver(measure);
     resizer.observe(document.body);
-    if (!hero) {
-      signals.current.heroVisible = false;
-      return () => {
-        window.removeEventListener('resize', measure);
-        resizer.disconnect();
-      };
-    }
-    // The pin height is set after the hero measures itself, so watch the section too.
-    resizer.observe(hero);
-    const observer = new IntersectionObserver(([entry]) => {
-      signals.current.heroVisible = entry.isIntersecting;
-      wake();
-    });
-    observer.observe(hero);
+    let observer;
+    if (hero) {
+      // The pin height is set after the hero measures itself, so watch the section too.
+      resizer.observe(hero);
+      observer = new IntersectionObserver(([entry]) => {
+        signals.current.heroVisible = entry.isIntersecting;
+        wake();
+      });
+      observer.observe(hero);
+    } else signals.current.heroVisible = false;
     return () => {
       window.removeEventListener('resize', measure);
       resizer.disconnect();
-      observer.disconnect();
+      observer?.disconnect();
     };
   }, [dockTarget, scrollY, wake]);
 

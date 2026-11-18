@@ -6,11 +6,8 @@ import { EVENTS } from '../lib/track.js';
 import Button from './Button.jsx';
 import OpenBadge from './OpenBadge.jsx';
 
-/**
- * The last word of the page, under the footer stencil: the tagline the page opened with, the way to book and
- * whether the shop is open right now. Marked data-own-cta, so the mobile bar does not repeat its button.
- * The phone and the address follow in the footer itself and are not repeated here.
- */
+// Under the footer stencil: tagline, booking and open-now (phone and address follow in the footer).
+// data-own-cta: the mobile bar does not repeat its button.
 export default function Closing() {
   const { cta, contacts } = site.ui;
   const today = site.hours[kyivNow().weekday];

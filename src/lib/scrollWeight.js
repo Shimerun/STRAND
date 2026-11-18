@@ -13,10 +13,8 @@ export const weightShift = motionValue(0);
 const targets = new Set();
 const settings = (weight) => `"wght" ${weight}`;
 
-/**
- * Thins the text in `ref` (font weight `base` at rest) with the scroll speed, while it is on screen. Only that
- * element's own style changes: a variable on :root would make the browser restyle the whole page every frame.
- */
+// Thins the text in `ref` (weight `base` at rest) with the scroll speed while it is on screen. Only that element's
+// own style changes: a variable on :root would make the browser restyle the whole page every frame.
 export function useScrollWeight(ref, base) {
   useEffect(() => {
     const element = ref.current;
@@ -42,11 +40,8 @@ export function useScrollWeight(ref, base) {
   }, [ref, base]);
 }
 
-/**
- * Builds the font instance of every step ahead of use, one per idle slice, on a hidden copy of the first
- * heading that uses the effect (same family and size, so the instances are the ones the headings will get).
- * Returns a function that cancels what is left.
- */
+// Builds every step's font instance ahead of use, one per idle slice, on a hidden copy of the first heading using
+// the effect (same family and size, so the headings get these instances). Returns a function that cancels the rest.
 export function warmScrollWeights() {
   const idle = window.requestIdleCallback ?? ((callback) => window.setTimeout(callback, 50));
   const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout;

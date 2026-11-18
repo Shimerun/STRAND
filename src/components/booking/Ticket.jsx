@@ -2,6 +2,10 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { formatLongDay, formatPrice } from '../../lib/format.js';
+import { EVENTS } from '../../lib/track.js';
+import ArrowIcon from '../ArrowIcon.jsx';
+import Button from '../Button.jsx';
+import { ROUTE_URL } from '../Contacts.jsx';
 import TicketSnip from './TicketSnip.jsx';
 
 const STUB_FALL = { y: 140, rotate: 7, opacity: 0, transition: { duration: 0.7, ease: [0.4, 0, 1, 1] } };
@@ -10,8 +14,9 @@ const NOTCH = 'absolute top-0 h-6 w-6 -translate-y-1/2 rounded-full border borde
 /**
  * Booking receipt shown after a successful request: date, time, barber, services and total. The shears cut
  * the stub off along the perforation and it drops away. Reduced motion: shown already torn off, no shears.
+ * `booked` is a copy taken at submit, so later picks elsewhere on the page or live prices cannot change it.
  */
-export default function Ticket({ form }) {
+export default function Ticket({ booked }) {
   const reduce = useReducedMotion();
   const { summary, ticket } = site.ui.form;
   const [stage, setStage] = useState(reduce ? 'done' : 'cut'); // cut → fall → done
@@ -21,13 +26,13 @@ export default function Ticket({ form }) {
 
   useLayoutEffect(() => setWidth(perforationRef.current?.offsetWidth ?? 0), []);
 
-  const barber = site.team.find(({ slug }) => slug === form.barber)?.name;
-  const { services } = form.extras;
-  const { date, time } = form.values; // values.time: the slot just booked is no longer in the free list
+  const { date, time, barber, services, price } = booked;
   const rows = [
     [summary.barber, barber],
-    [summary.services, services.map(({ name }) => name).join(', ')],
-    [summary.total, form.price ? formatPrice(form.price.value, { from: form.price.from }) : null],
+    [summary.services, services],
+    [summary.total, price ? formatPrice(price.value, { from: price.from }) : null],
+    // Here, not only on the stub: the stub falls away.
+    [site.ui.contacts.address, site.addressShort],
   ].filter(([, value]) => value);
 
   return (
@@ -47,6 +52,17 @@ export default function Ticket({ form }) {
             </div>
           ))}
         </dl>
+        <Button
+          variant="link"
+          href={ROUTE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          track={{ name: EVENTS.routeClick, where: 'ticket' }}
+          className="mt-4"
+        >
+          {site.ui.cta.route}
+          <ArrowIcon />
+        </Button>
       </div>
 
       {/* Perforation: dashed tear line with a notch at each end; the shears cut along it. */}

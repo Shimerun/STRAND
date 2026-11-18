@@ -5,8 +5,9 @@ export const HERO_CUT = {
   // Extra scroll while the hero stays pinned, in hero (frame) heights. Phones get fewer snips (minSnips), so a
   // shorter pin keeps each snip under half a screen of scrolling; desktop (>= 1024px) has up to maxSnips.
   pin: { mobile: 2, desktop: 3 },
-  aimEnd: 0.08, // share of the pin: the shears move from the hero pose onto the line
-  cutEnd: 0.72, // share of the pin: the last snip; the halves part over the rest
+  // At 0.08 the move onto the line ran 2-4x faster than the page (measured with a wheel, 2026-11-17).
+  aimEnd: 0.15, // share of the pin: the shears move from the hero pose onto the line
+  cutEnd: 0.76, // share of the pin: the last snip; the halves part over the rest
   right: 0.44, // line height at the right edge, share of the frame height
   left: 0.56, // line height at the left edge (before the wave)
   wave: [
@@ -19,6 +20,9 @@ export const HERO_CUT = {
   maxSnips: 7,
   openShare: 0.8, // how wide the blades open while cutting, share of the model's max opening
   bite: 3, // power of the closing ease: the blades press slowly, then snap shut
+  // Share of each snip's scroll the blades spend closing in place; the shears move forward over the rest. At half,
+  // they stood still for half the scroll and then ran at up to 3x its speed.
+  closeShare: 0.35,
 };
 
 // Points along the line: one per SAMPLE_PX of width, within these bounds. Every point goes into the two clip
@@ -27,9 +31,11 @@ const SAMPLE_PX = 6;
 const SAMPLES = { min: 48, max: 160 };
 const KINK_PX = 1.2; // how far off the line one snip can run
 const PRESS_BUILD = 0.3; // share of a closing over which the blades come to bear on the paper
-const TAU = Math.PI * 2;
-const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
-const ease = (t) => t * t * (3 - 2 * t);
+const PRESS_RELEASE = 0.12; // and the last share, as they snap through, over which the paper springs back
+// Shared with the shears, the hero and the footer stencil.
+export const TAU = Math.PI * 2;
+export const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
+export const ease = (t) => t * t * (3 - 2 * t); // smoothstep on 0..1
 
 /** Progress 0..1 of each phase at `scrollY` for a pin of `pin` px (0 = no cut, everything stays 0). */
 export function heroCutPhases(scrollY, pin) {
@@ -103,8 +109,10 @@ export function cutState(along, width, height) {
   const progress = along * snips;
   const snip = Math.floor(progress);
   const phase = progress - snip;
-  const closing = phase < 0.5;
-  const t = closing ? (phase * 2) ** HERO_CUT.bite : ease(phase * 2 - 1);
+  const { closeShare } = HERO_CUT;
+  const closing = phase < closeShare;
+  const closeT = phase / closeShare; // 0..1 through the closing
+  const t = closing ? closeT ** HERO_CUT.bite : ease((phase - closeShare) / (1 - closeShare));
   const pivotD = snip * step + (closing ? 0 : step * t);
   const cut = Math.min(snip * step + (closing ? step * t : step), total);
   const pivot = pointAt(geometry, pivotD);
@@ -118,10 +126,10 @@ export function cutState(along, width, height) {
     open: closing ? 1 - t : t,
     dir: { x: (ahead.x - pivot.x) / chord, y: (ahead.y - pivot.y) / chord },
     blade: chord,
-    closings: Math.min(Math.floor(progress + 0.5), snips),
+    closings: Math.min(Math.floor(progress + 1 - closeShare), snips),
     // 0..1: how hard the closing blades bear on the paper ahead of the cut (nothing while they open), and where
     // along the line they will meet.
-    press: closing ? ease(Math.min((phase * 2) / PRESS_BUILD, 1)) : 0,
+    press: closing ? ease(Math.min(closeT / PRESS_BUILD, 1)) * (1 - ease(clamp01((closeT - 1 + PRESS_RELEASE) / PRESS_RELEASE))) : 0,
     shut: Math.min((snip + 1) * step, total),
   };
 }
@@ -135,9 +143,4 @@ export function cutSoFar(geometry, cutEnd) {
   if (cutEnd.x >= edge.x) return [edge];
   const inside = geometry.points.filter((point) => point.x < edge.x && point.x > cutEnd.x);
   return [edge, ...inside, cutEnd];
-}
-
-/** SVG path of the whole line. */
-export function cutPath(geometry) {
-  return geometry.points.map((point, i) => `${i ? 'L' : 'M'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
 }

@@ -12,19 +12,22 @@ function buzz() {
   navigator.vibrate(BUZZ_MS);
 }
 
-/** Motion value (px) for the hero frame's jolt; `state` is the cut state from useHeroCut. */
-export function useSnipJolt(state) {
-  const jolt = useMotionValue(0);
+/** Calls onClose(s) each time the blades shut on the way down; `state` is the cut state from useHeroCut. */
+export function useOnClosing(state, onClose) {
   const closings = useRef(state.get()?.closings ?? 0);
-
   useMotionValueEvent(state, 'change', (s) => {
     const done = s?.closings ?? 0;
-    if (done > closings.current) {
-      animate(jolt, [JOLT.px, 0], { duration: JOLT.s, ease: 'easeOut' });
-      buzz();
-    }
+    if (done > closings.current) onClose(s);
     closings.current = done;
   });
+}
 
+/** Motion value (px) for the hero frame's jolt. */
+export function useSnipJolt(state) {
+  const jolt = useMotionValue(0);
+  useOnClosing(state, () => {
+    animate(jolt, [JOLT.px, 0], { duration: JOLT.s, ease: 'easeOut' });
+    buzz();
+  });
   return jolt;
 }

@@ -1,6 +1,8 @@
 // The only module that knows the Google Apps Script web app (see integrations/google-sheets): bookings,
 // busy slots, prices from the sheet and Google reviews.
 const ENDPOINT = import.meta.env.VITE_BOOKING_ENDPOINT;
+// A production build without the web app cannot take bookings: the section shows the phone instead of the form.
+export const bookingEnabled = Boolean(ENDPOINT) || import.meta.env.DEV;
 const FETCH_TIMEOUT_MS = 15_000;
 // Apps Script can cold-start and then wait up to 10 s for its lock.
 const SUBMIT_TIMEOUT_MS = 30_000;
@@ -29,12 +31,8 @@ async function request(url, init, timeoutMs) {
     throw new BookingError('network');
   }
   if (!response.ok) throw new BookingError('server');
-  let json;
-  try {
-    json = await response.json();
-  } catch {
-    throw new BookingError('server');
-  }
+  // A body that is not JSON ends as 'server', like a JSON without ok: true.
+  const json = await response.json().catch(() => null);
   if (json?.ok !== true) throw new BookingError(toErrorCode(json?.error));
   return json;
 }
@@ -44,20 +42,22 @@ function toBusyItem(item) {
   return { date: item.date, time: item.time, blocks: Number(item.blocks) || 1, barber: item.barber };
 }
 
+function get(action, params = {}) {
+  const url = new URL(ENDPOINT);
+  url.search = new URLSearchParams({ action, ...params }).toString();
+  return request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
+}
+
 export async function fetchBusy({ from, to }) {
   if (!ENDPOINT) return [];
-  const url = new URL(ENDPOINT);
-  url.search = new URLSearchParams({ action: 'busy', from, to }).toString();
-  const json = await request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
+  const json = await get('busy', { from, to });
   return Array.isArray(json.busy) ? json.busy.map(toBusyItem).filter(Boolean) : [];
 }
 
 /** Prices from the "Ціни" sheet: { serviceId: { barberSlug: price } }, or null without an endpoint. */
 export async function fetchPrices() {
   if (!ENDPOINT) return null;
-  const url = new URL(ENDPOINT);
-  url.search = new URLSearchParams({ action: 'prices' }).toString();
-  const json = await request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
+  const json = await get('prices');
   return json.prices && typeof json.prices === 'object' ? json.prices : null;
 }
 
@@ -84,9 +84,7 @@ function toReview(item) {
 /** Google reviews through the web app: { rating, count, url, reviews }, or null without an endpoint. */
 export async function fetchReviews() {
   if (!ENDPOINT) return null;
-  const url = new URL(ENDPOINT);
-  url.search = new URLSearchParams({ action: 'reviews' }).toString();
-  const json = await request(url, { method: 'GET' }, FETCH_TIMEOUT_MS);
+  const json = await get('reviews');
   const reviews = Array.isArray(json.reviews) ? json.reviews.map(toReview).filter(Boolean) : [];
   const rating = Number(json.rating);
   if (!reviews.length || !(rating > 0)) return null;

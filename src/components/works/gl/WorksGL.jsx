@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import ContextWatch from '../../WebGLContextWatch.jsx';
 import { useScroll, useVelocity } from 'framer-motion';
 import { assetUrl } from '../../../lib/assetUrl.js';
 import WorkPlane from './WorkPlane.jsx';
@@ -12,7 +13,6 @@ const CAMERA = { position: [0, 0, 10], zoom: 1, near: 0.1, far: 100 };
 const SPEED = { full: 3200, follow: 12, release: 5 };
 const MAX_STEP_S = 0.1; // a long frame (tab switch) never makes the bend jump
 const KEEP_MS = 1200;
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 // Scroll speed, smoothed into one -1..1 value shared by all planes.
 function Strength({ value }) {
@@ -20,7 +20,7 @@ function Strength({ value }) {
   const velocity = useVelocity(scrollY);
 
   useFrame((_, delta) => {
-    const target = clamp(velocity.get() / SPEED.full, -1, 1);
+    const target = Math.min(Math.max(velocity.get() / SPEED.full, -1), 1);
     const rate = Math.abs(target) > Math.abs(value.current) ? SPEED.follow : SPEED.release;
     value.current += (target - value.current) * (1 - Math.exp(-rate * Math.min(delta, MAX_STEP_S)));
   });
@@ -63,23 +63,6 @@ function Ticker({ running }) {
       cancelAnimationFrame(frame);
     };
   }, [running, invalidate, scrollY]);
-
-  return null;
-}
-
-// A lost WebGL context hands the photos back to the DOM.
-function ContextWatch({ onLost }) {
-  const gl = useThree((state) => state.gl);
-
-  useEffect(() => {
-    const canvas = gl.domElement;
-    const handleLost = (event) => {
-      event.preventDefault();
-      onLost();
-    };
-    canvas.addEventListener('webglcontextlost', handleLost);
-    return () => canvas.removeEventListener('webglcontextlost', handleLost);
-  }, [gl, onLost]);
 
   return null;
 }

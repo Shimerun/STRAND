@@ -2,11 +2,13 @@ const PREFIX = '+380';
 const NATIONAL_LENGTH = 9;
 const VALID_PHONE = /^\+380[1-9]\d{8}$/;
 
-// Accepts 0671234567, 380671234567 and +380… (also when pasted over the fixed prefix).
+// Accepts 0671234567, 80671234567, 380671234567 and +380… (also when pasted over the fixed prefix).
 export function nationalDigits(raw) {
   let digits = String(raw).replace(/\D/g, '');
   while (digits.startsWith('380')) digits = digits.slice(3);
-  if (digits.startsWith('0')) digits = digits.slice(1);
+  // "8 0XX…" is the old long-distance habit; 800… is a real (toll-free) code and stays.
+  if (/^80[1-9]/.test(digits)) digits = digits.slice(2);
+  else if (digits.startsWith('0')) digits = digits.slice(1);
   return digits.slice(0, NATIONAL_LENGTH);
 }
 

@@ -3,12 +3,9 @@ import { lockScroll, unlockScroll } from './scroll.js';
 
 const FOCUSABLE = 'a[href], button:not([disabled])';
 
-/**
- * Modal dialog behaviour for the element in `rootRef`: locks the page scroll, moves focus to `initialRef`
- * (or the root), keeps Tab inside, closes on Escape and hands focus back to the element that opened it.
- * Returns the keydown handler for the root.
- */
-export function useDialog(rootRef, initialRef, onClose) {
+// Modal dialog behaviour for `rootRef`: locks the page scroll, focuses `initialRef` (or the root), keeps Tab
+// inside, closes on Escape and hands focus back to the opener. Returns the root's keydown handler.
+export function useDialog(rootRef, initialRef, onClose, { restoreFocus = true } = {}) {
   // Captured at first render: under StrictMode the effect re-runs after focus has already moved.
   const [opener] = useState(() => document.activeElement);
 
@@ -17,15 +14,12 @@ export function useDialog(rootRef, initialRef, onClose) {
     (initialRef?.current ?? rootRef.current)?.focus();
     return () => {
       unlockScroll();
-      opener?.focus?.({ preventScroll: true });
+      if (restoreFocus) opener?.focus?.({ preventScroll: true });
     };
-  }, [rootRef, initialRef, opener]);
+  }, [rootRef, initialRef, opener, restoreFocus]);
 
   return (event) => {
-    if (event.key === 'Escape') {
-      onClose();
-      return;
-    }
+    if (event.key === 'Escape') return onClose();
     if (event.key !== 'Tab') return;
     const focusable = rootRef.current.querySelectorAll(FOCUSABLE);
     const first = focusable[0];

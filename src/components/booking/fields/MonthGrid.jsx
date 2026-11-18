@@ -18,12 +18,7 @@ const monthOf = (iso) => iso.slice(0, 7);
 // Cells of a Monday-first month grid: null for the days before the 1st, then the ISO dates.
 function monthCells(month) {
   const first = `${month}-01`;
-  const days = [];
-  for (let i = 0; i < MAX_MONTH_DAYS; i++) {
-    const iso = addDaysISO(first, i);
-    if (monthOf(iso) !== month) break;
-    days.push(iso);
-  }
+  const days = Array.from({ length: MAX_MONTH_DAYS }, (_, i) => addDaysISO(first, i)).filter((iso) => monthOf(iso) === month);
   return [...Array(WEEK.indexOf(weekdayOf(first))).fill(null), ...days];
 }
 

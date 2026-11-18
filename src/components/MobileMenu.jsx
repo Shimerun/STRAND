@@ -2,14 +2,16 @@ import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { site } from '../data/site.js';
 import { EASE_REVEAL } from '../lib/motion.js';
-import { BOOKING_ID, lockScroll, scrollToId, unlockScroll } from '../lib/scroll.js';
-import { EVENTS, track } from '../lib/track.js';
+import { BOOKING_ID, scrollToId, unlockScroll } from '../lib/scroll.js';
+import { EVENTS } from '../lib/track.js';
+import { useDialog } from '../lib/useDialog.js';
 import Button from './Button.jsx';
+import CloseButton from './CloseButton.jsx';
 import Logo from './Logo.jsx';
+import PhoneLink from './PhoneLink.jsx';
 import SpinningPole from './SpinningPole.jsx';
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
-const FOCUSABLE = 'a[href], button:not([disabled])';
 
 const list = { visible: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } } };
 const item = {
@@ -21,19 +23,16 @@ const itemFade = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { 
 export default function MobileMenu({ id, onClose }) {
   const rootRef = useRef(null);
   const closeRef = useRef(null);
+  // Header restores focus to the menu toggle itself.
+  const onKeyDown = useDialog(rootRef, closeRef, onClose, { restoreFocus: false });
   const reduce = useReducedMotion();
   const { nav, cta } = site.ui;
 
   useEffect(() => {
-    lockScroll();
-    closeRef.current?.focus();
     const desktop = window.matchMedia(DESKTOP_QUERY);
     const onChange = (event) => event.matches && onClose();
     desktop.addEventListener('change', onChange);
-    return () => {
-      desktop.removeEventListener('change', onChange);
-      unlockScroll();
-    };
+    return () => desktop.removeEventListener('change', onChange);
   }, [onClose]);
 
   // Scroll must be unlocked before scrolling: a stopped Lenis ignores scrollTo.
@@ -42,24 +41,6 @@ export default function MobileMenu({ id, onClose }) {
     unlockScroll();
     scrollToId(target);
     onClose();
-  };
-
-  const onKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      onClose();
-      return;
-    }
-    if (event.key !== 'Tab') return;
-    const focusable = rootRef.current.querySelectorAll(FOCUSABLE);
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   };
 
   return (
@@ -83,17 +64,7 @@ export default function MobileMenu({ id, onClose }) {
             <SpinningPole />
             <Logo />
           </span>
-          <button
-            ref={closeRef}
-            type="button"
-            aria-label={cta.close}
-            onClick={onClose}
-            className="-mr-3 flex h-12 w-12 items-center justify-center rounded"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5 5l14 14M19 5L5 19" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </button>
+          <CloseButton ref={closeRef} onClick={onClose} />
         </div>
 
         <nav aria-label={cta.menu} className="flex flex-1 flex-col justify-center px-5 py-8">
@@ -116,13 +87,10 @@ export default function MobileMenu({ id, onClose }) {
           <Button className="w-full" track={{ name: EVENTS.bookClick, where: 'menu' }} onClick={go(BOOKING_ID)}>
             {cta.book}
           </Button>
-          <a
-            href={`tel:${site.phone}`}
-            onClick={() => track(EVENTS.callClick, { where: 'menu' })}
+          <PhoneLink
+            where="menu"
             className="block text-center text-sm font-medium tracking-heading text-concrete transition-colors duration-300 hover:text-text"
-          >
-            {site.phoneDisplay}
-          </a>
+          />
         </div>
       </div>
     </motion.div>

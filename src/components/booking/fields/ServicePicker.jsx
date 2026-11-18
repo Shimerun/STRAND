@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { site } from '../../../data/site.js';
-import { formatDuration, formatPrice } from '../../../lib/format.js';
-import { isFromPrice, minPrice, priceFor } from '../../../lib/pricing.js';
+import { formatDuration, formatServicePrice } from '../../../lib/format.js';
 import CheckIcon from '../../CheckIcon.jsx';
 import Img from '../../Img.jsx';
 import { servicePhoto } from '../servicePhoto.js';
@@ -25,11 +24,6 @@ export default function ServicePicker({ services, barber, value, error, hint, on
   const selectedIndex = services.findIndex((service) => service.id === value);
   const selected = services[selectedIndex] ?? null;
   const activeService = open ? services[active] : null;
-
-  const priceOf = (service) =>
-    barber
-      ? formatPrice(priceFor(service.id, barber), { from: service.from === true })
-      : formatPrice(minPrice(service), { from: isFromPrice(service) });
 
   const show = () => {
     setActive(Math.max(selectedIndex, 0));
@@ -91,7 +85,7 @@ export default function ServicePicker({ services, barber, value, error, hint, on
               {selected ? selected.name : form.placeholders.service}
             </span>
           </span>
-          {selected && <span className="shrink-0 text-sm text-concrete">{priceOf(selected)}</span>}
+          {selected && <span className="shrink-0 text-sm text-concrete">{formatServicePrice(selected, barber)}</span>}
         </button>
         <svg
           width="16"
@@ -129,7 +123,7 @@ export default function ServicePicker({ services, barber, value, error, hint, on
                 <span className="min-w-0 flex-1">
                   <span className={`block text-sm ${isSelected ? 'font-bold' : 'font-medium'}`}>{service.name}</span>
                   <span className="mt-0.5 block text-xs text-concrete">
-                    {formatDuration(service.durationMin)} · {priceOf(service)}
+                    {formatDuration(service.durationMin)} · {formatServicePrice(service, barber)}
                   </span>
                 </span>
                 <span className="flex h-4 w-4 shrink-0 items-center justify-center">{isSelected && <CheckIcon />}</span>

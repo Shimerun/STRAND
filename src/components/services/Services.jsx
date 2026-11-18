@@ -1,16 +1,11 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
-import { useBooking } from '../../lib/bookingContext.jsx';
-import { formatDuration, formatPrice } from '../../lib/format.js';
+import { formatDuration, formatPriceRange } from '../../lib/format.js';
 import { hoverLift } from '../../lib/motion.js';
-import { isFromPrice, minPrice } from '../../lib/pricing.js';
-import { EVENTS } from '../../lib/track.js';
-import ArrowIcon from '../ArrowIcon.jsx';
-import Button from '../Button.jsx';
 import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
-import PriceMenu from './PriceMenu.jsx';
+import PriceMenu, { BookLink } from './PriceMenu.jsx';
 
 const LABEL = 'text-xs font-medium uppercase tracking-heading text-concrete';
 const CARD = 'flex h-full flex-col rounded border border-line bg-bg p-6 transition-colors duration-300 hover:border-concrete';
@@ -29,40 +24,10 @@ const SPAN = 'lg:col-span-2';
  * of twelve does not become twelve equal cards.
  */
 export default function Services() {
-  const { openBooking } = useBooking();
   const reduce = useReducedMotion();
-  const { cta, sections, services: labels } = site.ui;
+  const { sections, services: labels } = site.ui;
   const featured = site.services.filter((service) => service.featured);
   const rest = site.services.filter((service) => !service.featured);
-
-  const content = (service) => (
-    <>
-      <h3 className="text-sm leading-snug">{service.name}</h3>
-      <p className="mt-3 text-sm leading-relaxed text-concrete">{service.description}</p>
-      {service.note && <p className="mt-2 text-xs font-medium text-text/80">{service.note}</p>}
-
-      <dl className="mt-auto flex flex-wrap items-end gap-x-8 gap-y-4 pt-6">
-        <div>
-          <dt className={LABEL}>{labels.price}</dt>
-          <dd className="mt-2 text-2xl font-extrabold leading-none">{formatPrice(minPrice(service), { from: isFromPrice(service) })}</dd>
-        </div>
-        <div>
-          <dt className={LABEL}>{labels.duration}</dt>
-          <dd className="mt-2 text-sm font-bold">{formatDuration(service.durationMin)}</dd>
-        </div>
-      </dl>
-
-      <Button
-        variant="link"
-        className="mt-4 self-start"
-        track={{ name: EVENTS.bookClick, where: 'services', service: service.id }}
-        onClick={() => openBooking({ service: service.id })}
-      >
-        {cta.book}
-        <ArrowIcon className="transition-transform duration-300 motion-safe:group-hover:translate-x-1" />
-      </Button>
-    </>
-  );
 
   return (
     <Section id="services" tone="surface">
@@ -71,7 +36,22 @@ export default function Services() {
       <ul className={ROW}>
         {featured.map((service, index) => (
           <motion.li key={service.id} whileHover={reduce ? undefined : hoverLift} className={`${CARD} ${ITEM} ${SPANS[index] ?? SPAN}`}>
-            {content(service)}
+            <h3 className="text-sm leading-snug">{service.name}</h3>
+            <p className="mt-3 text-sm leading-relaxed text-concrete">{service.description}</p>
+            {service.note && <p className="mt-2 text-xs font-medium text-text/80">{service.note}</p>}
+
+            <dl className="mt-auto flex flex-wrap items-end gap-x-8 gap-y-4 pt-6">
+              <div>
+                <dt className={LABEL}>{labels.price}</dt>
+                <dd className="mt-2 text-2xl font-extrabold leading-none">{formatPriceRange(service.prices, { from: service.from === true })}</dd>
+              </div>
+              <div>
+                <dt className={LABEL}>{labels.duration}</dt>
+                <dd className="mt-2 text-sm font-bold">{formatDuration(service.durationMin)}</dd>
+              </div>
+            </dl>
+
+            <BookLink service={service} where="services" className="mt-4 self-start" />
           </motion.li>
         ))}
       </ul>

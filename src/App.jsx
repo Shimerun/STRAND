@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { useLivePrices } from './lib/livePrices.js';
-import { prefersReducedMotion, setLenis } from './lib/scroll.js';
+import { hasMouse, prefersReducedMotion, setLenis } from './lib/scroll.js';
 import About from './components/About.jsx';
 import Booking from './components/booking/Booking.jsx';
 import Contacts from './components/Contacts.jsx';
@@ -12,7 +12,6 @@ import Hero from './components/hero/Hero.jsx';
 import Intro from './components/Intro.jsx';
 import MobileBar from './components/MobileBar.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
-import ScrollScale from './components/ScrollScale.jsx';
 import ScrollWeight from './components/ScrollWeight.jsx';
 import Reviews from './components/reviews/Reviews.jsx';
 import Services from './components/services/Services.jsx';
@@ -21,7 +20,6 @@ import Works from './components/works/Works.jsx';
 
 // The custom cursor (and its CSS) loads only on devices with a mouse.
 const Cursor = lazy(() => import('./components/cursor/Cursor.jsx'));
-const hasMouse = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_MS = 200;
@@ -48,9 +46,8 @@ function useLenis() {
     // the browser's smooth scroll (scrollToId) and dialogs lock the root element (lockScroll).
     if (prefersReducedMotion() || !hasMouse()) return undefined;
     const lenis = new Lenis({ duration: 1.1 });
-    // Lenis needs frames only while it animates a scroll: after a wheel turn or a scrollTo. A loop that never
-    // stops makes the browser run a whole rendering pass 60 times a second on a page standing still, and on
-    // touch screens, where the scroll is native, Lenis has nothing to animate at all.
+    // Frames only while Lenis animates (after a wheel turn or a scrollTo): a loop that never stops makes the
+    // browser run a whole rendering pass 60 times a second on a page standing still.
     let frame = 0;
     const loop = (time) => {
       lenis.raf(time);
@@ -100,11 +97,6 @@ export default function App() {
       {showScissors && (
         <ErrorBoundary>
           <ScissorsLayer />
-        </ErrorBoundary>
-      )}
-      {showScissors && (
-        <ErrorBoundary>
-          <ScrollScale />
         </ErrorBoundary>
       )}
       {showCursor && (

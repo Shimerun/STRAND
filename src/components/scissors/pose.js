@@ -1,17 +1,11 @@
 // Pure pose math shared by the 3D shears and the 2D fallback; must not import three.js.
-import { HERO_CUT, cutState } from '../../lib/heroCut.js';
+import { HERO_CUT, TAU, cutState } from '../../lib/heroCut.js';
 
 const DEG = Math.PI / 180;
-const TAU = Math.PI * 2;
 const HEADER_PX = 72; // tailwind spacing.header
 export const DESKTOP_MIN_PX = 1024;
 
-export const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 export const lerp = (a, b, t) => a + (b - a) * t;
-const smoothstep = (value, min, max) => {
-  const t = clamp((value - min) / (max - min), 0, 1);
-  return t * t * (3 - 2 * t);
-};
 
 // The 3D camera; the 2D fallback uses the same framing.
 export const CAMERA = { fov: 35, position: [0, 0, 10], near: 0.1, far: 50 };
@@ -34,7 +28,7 @@ export const TRACK = {
   desktop: { length: 260, drift: 40, edge: 0.5, top: 24, bottom: 32 },
   mobile: { length: 130, drift: 14, edge: 0.8, top: 16, bottom: 96 },
 };
-export const DOCK_END = 0.6; // fraction of the hero height scrolled when the shears sit on the track
+const DOCK_END = 0.6; // fraction of the hero height scrolled when the shears sit on the track
 // With the hero cut, docking starts this share of the pin in (after the cut) and ends with the pin.
 const DOCK_FROM_PIN = HERO_CUT.cutEnd + 0.08;
 const CUT_TILT = 0.18; // rad the shears pitch with the blades wide open
@@ -132,7 +126,22 @@ export function trackPoint(p, screen, gutter, track) {
   };
 }
 
-// Eased opacity for a linear fade value 0..1.
-export function easeFade(t) {
-  return smoothstep(t, 0, 1);
+export const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
+const SCENE_SCALE = 0.8; // a borrowed pair is a little smaller than on the track, unless the scene sets its scale
+
+// Blends the frame towards a scene that borrowed the shears (rig.setScene): tips on its point, flat to the camera.
+export function applyScene(frame, scene, trackLength, maxOpen) {
+  const w = scene.weight;
+  const length = trackLength * (scene.scale ?? SCENE_SCALE);
+  const turn = (rotation) => ({ x: 0, y: 0, z: nearAngle(Math.atan2(-scene.dirX, -scene.dirY), rotation.z) });
+  frame.x = lerp(frame.x, scene.tipX - (scene.dirX * length) / 2, w);
+  frame.y = lerp(frame.y, scene.tipY - (scene.dirY * length) / 2, w);
+  frame.length = lerp(frame.length, length, w);
+  frame.rotation = mix(frame.rotation, turn(frame.rotation), w);
+  frame.heroRotation = mix(frame.heroRotation, turn(frame.heroRotation), w);
+  frame.trackRotation = mix(frame.trackRotation, turn(frame.trackRotation), w);
+  frame.open = lerp(frame.open, maxOpen * scene.open, w);
+  frame.roll = lerp(frame.roll, 0, w);
+  frame.paper = lerp(frame.paper, 0, w);
+  frame.opacity = Math.max(frame.opacity, w);
 }

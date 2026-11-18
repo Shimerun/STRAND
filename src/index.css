@@ -4,7 +4,6 @@
 
 @font-face {
   font-family: 'Montserrat Variable';
-  font-style: normal;
   font-display: swap;
   font-weight: 100 900;
   src: url(/fonts/montserrat-cyrillic-wght-normal.woff2) format('woff2-variations');
@@ -13,7 +12,6 @@
 
 @font-face {
   font-family: 'Montserrat Variable';
-  font-style: normal;
   font-display: swap;
   font-weight: 100 900;
   src: url(/fonts/montserrat-cyrillic-ext-wght-normal.woff2) format('woff2-variations');
@@ -22,7 +20,6 @@
 
 @font-face {
   font-family: 'Montserrat Variable';
-  font-style: normal;
   font-display: swap;
   font-weight: 100 900;
   src: url(/fonts/montserrat-latin-wght-normal.woff2) format('woff2-variations');
@@ -48,7 +45,8 @@
   html {
     color-scheme: dark;
     background-color: theme('colors.bg');
-    -webkit-text-size-adjust: 100%;
+    /* The cursor's dot-trail canvas (clip-path only hides its pixels) must not widen the page. */
+    overflow-x: hidden;
   }
 
   body {
@@ -57,6 +55,9 @@
     background-size: var(--grain-size);
     /* A stacking context, so the section bands (.band-bg, z-index -1) paint over this background, under content. */
     isolation: isolate;
+    /* html's overflow-x does not stop a mobile layout viewport from growing to the dot-trail canvas near the right
+       edge (a narrow screen with a mouse zoomed out to 600px+). clip, not hidden: no scroll container, sticky works. */
+    overflow-x: clip;
   }
 
   h1,
@@ -79,18 +80,7 @@
 }
 
 /* Fixed 3D overlay; lvh keeps the iOS address bar from resizing the drawing buffer. */
-.scissors-layer {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100lvh;
-  pointer-events: none;
-  z-index: 40;
-}
-
-/* Works photos drawn in WebGL (works/gl): above the page content, below every other overlay. */
+.scissors-layer,
 .works-layer {
   position: fixed;
   left: 0;
@@ -99,6 +89,14 @@
   height: 100vh;
   height: 100lvh;
   pointer-events: none;
+}
+
+.scissors-layer {
+  z-index: 40;
+}
+
+/* Works photos sit above the page content, below every other overlay. */
+.works-layer {
   z-index: 5;
 }
 
@@ -146,12 +144,6 @@ main {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .barber-pole-stripes {
-    animation: none;
-  }
-}
-
 /* ScrollCue: a glint runs down the hairline, then rests off it for the last part of the loop. Reduced motion:
    it stands still in the middle of the line. */
 .scroll-cue-glint {
@@ -168,27 +160,23 @@ main {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .scroll-cue-glint {
-    animation: none;
+/* Footer stencil: a sliver of paper flies off the cut; StencilBand.jsx sets where to and how far it turns. */
+.stencil-chip {
+  opacity: 0.9;
+  animation: stencil-chip 0.8s ease-out forwards;
+}
+
+@keyframes stencil-chip {
+  to {
+    transform: translate(var(--chip-x), var(--chip-y)) rotate(var(--chip-turn));
+    opacity: 0;
   }
 }
 
-/* Services: the concrete slab the cards are cut from, a shade lighter than the band, with a fine speckle. */
-.slab {
-  background-color: color-mix(in srgb, theme('colors.surface'), theme('colors.concrete') 10%);
-  background-image:
-    radial-gradient(rgb(242 242 242 / 0.06) 1px, transparent 1.2px),
-    radial-gradient(rgb(0 0 0 / 0.35) 1px, transparent 1.2px);
-  background-size: 5px 5px, 7px 7px;
-  background-position: 0 0, 2px 3px;
-}
-
-/* Section bands: a soft pool of light on the wall, like the strip lamps over the chairs, alternating sides down
-   the page. It fades out before the band's top edge, so two bands of one tone never show a seam. The lighter
-   band carries its own grain (it covers the body's), drawn over the light to dither its banding.
-   Static backgrounds that scroll with the page: painted once, never per frame. The section (.band) sets the
-   light; a layer under its content (.band-bg) paints it, so the cursor's dot trail can sit between the two. */
+/* Section bands: a soft pool of light, alternating sides down the page, faded out before the band's top edge so
+   two bands of one tone never show a seam. The lighter band has its own grain (covering the body's) over the
+   light, to dither its banding. Static: painted once, never per frame. .band sets the light and .band-bg, a layer
+   under the content, paints it, so the cursor's dot trail can sit between the two. */
 .band {
   --light-x: 24%;
   --light: radial-gradient(70% 300px at var(--light-x) 300px, rgb(242 242 242 / 0.055), transparent);
@@ -220,7 +208,6 @@ main {
 .works-orbit {
   --orbit-radius: 42%; /* of the photo width: the swipe row on phones has little room beside the card */
   transform: translateZ(-120px) rotateX(70deg);
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (min-width: 768px) {
@@ -240,14 +227,18 @@ main {
   animation: works-orbit-spin 14s linear infinite paused;
 }
 
+.works-orbit,
+.works-orbit-arm,
+.works-orbit-counter {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .works-orbit-arm {
   transform: rotateZ(var(--orbit-angle)) translateX(calc(var(--orbit-radius) * 0.4));
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .works-orbit-counter {
   transform: rotateZ(calc(var(--orbit-angle) * -1)) scale3d(0.75, 0.75, 0.75);
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .works-orbit-face {
@@ -257,8 +248,7 @@ main {
 }
 
 /* On: the card is hovered or keyboard-focused, or (touch screens) its photo is in view. */
-:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-spin,
-:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-face {
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) :is(.works-orbit-spin, .works-orbit-face) {
   animation-play-state: running;
 }
 
@@ -271,11 +261,13 @@ main {
 
 :is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-arm {
   transform: rotateZ(var(--orbit-angle)) translateX(var(--orbit-radius));
-  transition: transform 1.6s cubic-bezier(0.45, 0, 0.25, 1) var(--orbit-delay);
 }
 
 :is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) .works-orbit-counter {
   transform: rotateZ(calc(var(--orbit-angle) * -1)) scale3d(1, 1, 1);
+}
+
+:is(.group:hover .works-orbit, .group:has(:focus-visible) .works-orbit, .works-orbit[data-active]) :is(.works-orbit-arm, .works-orbit-counter) {
   transition: transform 1.6s cubic-bezier(0.45, 0, 0.25, 1) var(--orbit-delay);
 }
 
@@ -310,6 +302,8 @@ main {
     transition: none;
   }
 
+  .barber-pole-stripes,
+  .scroll-cue-glint,
   .works-orbit-spin,
   .works-orbit-face {
     animation: none;
@@ -332,30 +326,9 @@ main {
   }
 }
 
-/* Marquee: every other word drawn as an outline. */
-.marquee-outline {
-  color: transparent;
-  -webkit-text-stroke: 1px theme('colors.concrete');
-}
-
-/* ScrollScale: comb ticks, short every 8px and long every 40px, on a hairline axis. */
-.comb-ticks {
-  background-image:
-    linear-gradient(theme('colors.line'), theme('colors.line')),
-    linear-gradient(to bottom, theme('colors.concrete') 1px, transparent 1px),
-    linear-gradient(to bottom, theme('colors.concrete') 1px, transparent 1px);
-  background-size: 1px 100%, 6px 8px, 12px 40px;
-  background-repeat: no-repeat, repeat-y, repeat-y;
-}
-
 /* Ticket: tear line between the receipt and its stub. */
 .cut-perforation {
   background-image: repeating-linear-gradient(to right, theme('colors.concrete') 0 6px, transparent 6px 11px);
-}
-
-/* Hero cut: dashed "cut here" guide along the path of the shears. */
-.cut-guide {
-  background-image: repeating-linear-gradient(to left, theme('colors.text') 0 8px, transparent 8px 14px);
 }
 
 /* CutReveal: dashed cut line, 6px on / 8px off. */

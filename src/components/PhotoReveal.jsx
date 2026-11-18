@@ -1,19 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { fadeReveal, revealViewport } from '../lib/motion.js';
+import { DRIFT, OPEN_FROM, RADIUS, ZOOM } from '../lib/photoMotion.js';
 import Img from './Img.jsx';
-
-// Where the photo opens from: inset (%) on each side [top, right, bottom, left] before it reaches full size.
-const OPEN_FROM = {
-  sides: [0, 30, 0, 30],
-  left: [0, 55, 0, 0],
-  right: [0, 0, 0, 55],
-  bottom: [45, 0, 0, 0],
-};
-const RADIUS = 6; // px, theme borderRadius: the opening edge keeps the card's corners
-// The photo starts zoomed in, settles to `rest` as it opens and keeps that margin for the drift.
-const ZOOM = { from: 1.25, rest: 1.1 };
-const DRIFT = 4; // % of the photo height it moves inside its frame over the whole pass (needs ZOOM.rest > 1 + 2 * DRIFT / 100)
 
 const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visible', viewport: revealViewport };
 
@@ -25,9 +14,8 @@ const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visib
 export default function PhotoReveal({ from = 'sides', openBy = 'center', className = '', ...imgProps }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
-  // Share of the whole pass the opening takes. 'center': from 'start end' to 'center center', exactly half.
-  // 'inView': from 'start end' to 'end end', which depends on the frame and screen heights, so it is measured
-  // on resize rather than read on every scroll frame.
+  // Share of the pass the opening takes: 'center' (start end → center center) is exactly half; 'inView' (start
+  // end → end end) depends on the frame and screen heights, so it is measured on resize, not every scroll frame.
   const openShare = useRef(0.5);
   // One scroll target per photo (framer measures every target on every scroll frame).
   const { scrollYProgress: pass } = useScroll({ target: ref, offset: ['start end', 'end start'] });

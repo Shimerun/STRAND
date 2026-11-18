@@ -18,7 +18,6 @@ function formatConfig(c) {
     `  SCALE: ${c.SCALE},`,
     `  PIVOT: ${pivot},`,
     `  MAX_OPEN: ${c.MAX_OPEN},`,
-    `  SIGN_A: ${c.SIGN_A}, SIGN_B: ${c.SIGN_B},`,
     '};',
   ].join('\n');
 }
@@ -72,7 +71,6 @@ export default function ScissorsDebug({ config, onChange, hold, onHold, info }) 
       <p className="text-concrete">
         ↑↓ X · ←→ Y · Alt+↑↓ Z (5°, Shift 90°) · [ ] SCALE · , . MAX_OPEN · 0 open/closed
       </p>
-      <p className="text-concrete">SIGN_A / SIGN_B: ignored, the model&apos;s Snip clip drives the halves</p>
       <button type="button" onClick={copy} className="mt-2 underline">
         copy
       </button>

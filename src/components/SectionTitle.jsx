@@ -9,12 +9,9 @@ const LINE_OFFSET = ['start end', 'start 0.6'];
 const H2 = 'text-[1.75rem] leading-tight sm:text-4xl';
 const H2_WEIGHT = 800; // font-extrabold, the h2 base style
 
-/**
- * The real text is in the flow but transparent: it sizes the title and is what screen readers, search and
- * selection get. The words seen sit in a layer on top, each rising out of its own mask, and thin out while the
- * page scrolls fast (useScrollWeight). The layer is laid out on its own (contain), so a change of weight never
- * re-lays out the section around the title.
- */
+// The real text stays in the flow, transparent: it sizes the title and is what screen readers, search and
+// selection get. The visible words sit in a layer on top, each rising out of its own mask and thinning with
+// scroll speed; contain keeps a weight change from re-laying out the section.
 function MaskedWords({ text }) {
   const layerRef = useRef(null);
   useScrollWeight(layerRef, H2_WEIGHT);

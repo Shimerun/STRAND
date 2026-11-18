@@ -1,6 +1,6 @@
 import { site } from '../../data/site.js';
-import { formatDuration, formatPrice, formatRating } from '../../lib/format.js';
-import { priceFor, servicesFor } from '../../lib/pricing.js';
+import { formatDuration, formatRating, formatServicePrice } from '../../lib/format.js';
+import { servicesFor } from '../../lib/pricing.js';
 import { EVENTS } from '../../lib/track.js';
 import Button from '../Button.jsx';
 import InstagramIcon from '../InstagramIcon.jsx';
@@ -69,7 +69,7 @@ export default function ProfileDetails({ barber, titleId, onBook }) {
                 <p className="mt-1 text-xs text-concrete">{formatDuration(service.durationMin)}</p>
                 {service.note && <p className="mt-1 text-xs text-concrete">{service.note}</p>}
               </div>
-              <p className="shrink-0 text-sm font-bold">{formatPrice(priceFor(service.id, slug), { from: service.from === true })}</p>
+              <p className="shrink-0 text-sm font-bold">{formatServicePrice(service, slug)}</p>
             </li>
           ))}
         </ul>

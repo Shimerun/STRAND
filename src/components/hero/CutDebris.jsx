@@ -1,22 +1,18 @@
 import { useCallback, useRef, useState } from 'react';
-import { motion, useMotionValueEvent } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useOnClosing } from './useSnipJolt.js';
 
 const GLINT_S = 0.35;
 
 /** Each time the blades close, a short glint at the cutting point. */
 export default function CutDebris({ state }) {
   const [glints, setGlints] = useState([]);
-  const closings = useRef(state.get()?.closings ?? 0);
   const nextId = useRef(0);
   const remove = useCallback((id) => setGlints((list) => list.filter((glint) => glint.id !== id)), []);
 
-  useMotionValueEvent(state, 'change', (s) => {
-    const done = s?.closings ?? 0;
-    if (s && done > closings.current) {
-      const id = ++nextId.current;
-      setGlints((list) => [...list, { id, x: s.cutEnd.x, y: s.cutEnd.y }]);
-    }
-    closings.current = done;
+  useOnClosing(state, (s) => {
+    const id = ++nextId.current;
+    setGlints((list) => [...list, { id, x: s.cutEnd.x, y: s.cutEnd.y }]);
   });
 
   return glints.map(({ id, x, y }) => (

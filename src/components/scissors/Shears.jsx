@@ -9,7 +9,6 @@ export const CONFIG = {
   SCALE: 4,               // long axis in world units
   PIVOT: null,            // [x,y,z] in model space (screw / point between the halves); null = bounding-box centre
   MAX_OPEN: 30,           // max degrees PER HALF; I tune this by eye so the blades never cross
-  SIGN_A: 1, SIGN_B: -1,  // flip a sign if a half opens the wrong way (unused while the built-in Snip clip drives the halves)
 };
 
 // Below desktop the shears are at most ~240px long, so phones load a copy made from scissors.glb with

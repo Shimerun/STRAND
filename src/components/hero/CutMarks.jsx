@@ -22,7 +22,7 @@ const NO_CREASE = { dent: '', dentNear: '', ridge: '', shade: '' };
 const round = (value) => Math.round(value * 10) / 10;
 const fmt = (x, y) => `${round(x)} ${round(y)}`;
 
-const band = (inner, outer) => `M${inner.join('L')}L${outer.reverse().join('L')}Z`;
+const band = (inner, outer) => `M${inner.join('L')}L${outer.reverse().join('L')}Z`; // reverses `outer` in place
 
 // The pressed paper around the cutting point ({ points, depth } from creaseAt), as fill paths.
 function creaseMarks(crease) {
@@ -49,19 +49,13 @@ function creaseMarks(crease) {
   }
   return {
     dent: band(line, dent),
-    dentNear: band([...line], dentNear),
+    dentNear: band(line, dentNear),
     ridge: band(ridgeIn, [...ridgeOut]),
     shade: band(ridgeOut, shade),
   };
 }
 
-// All the marks in one pass, every point formatted once (they are redrawn on each scroll frame): the top edge, the
-// strip's edge (same points, same order), the gap between them, whole and down to each shadow band, and the paper
-// pressed around the cutting point.
-function marks(top, flap, crease) {
-  return { ...edgeMarks(top, flap), ...creaseMarks(crease) };
-}
-
+// The top edge, the strip's edge (same points, same order) and the gap between them, whole and down to each shadow band.
 function edgeMarks(top, flap) {
   if (!top || top.length < 2 || flap?.length !== top.length) return NO_EDGES;
   const n = top.length;
@@ -88,8 +82,9 @@ function edgeMarks(top, flap) {
 /** Path data for the cut marks, from the hero cut's motion values (useHeroCut). */
 export function useCutMarks(cut) {
   const { soFar, flapLine, crease } = cut;
-  // flapLine follows soFar on every frame of the cut, so with the crease it drives the update.
-  const all = useTransform([flapLine, crease], ([flap, pressed]) => marks(soFar.get(), flap, pressed));
+  // All the marks in one pass, every point formatted once: they are redrawn on each scroll frame. flapLine follows
+  // soFar on every frame of the cut, so with the crease it drives the update.
+  const all = useTransform([flapLine, crease], ([flap, pressed]) => ({ ...edgeMarks(soFar.get(), flap), ...creaseMarks(pressed) }));
   return {
     top: useTransform(all, (m) => m.top),
     flap: useTransform(all, (m) => m.flap),

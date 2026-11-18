@@ -1,8 +1,8 @@
 import { site } from '../data/site.js';
-import { EVENTS, track } from '../lib/track.js';
 import Closing from './Closing.jsx';
 import InstagramIcon from './InstagramIcon.jsx';
 import Logo from './Logo.jsx';
+import PhoneLink from './PhoneLink.jsx';
 import Stencil from './Stencil.jsx';
 
 export default function Footer() {
@@ -19,13 +19,11 @@ export default function Footer() {
           <Logo />
           <address className="mt-5 space-y-1 text-sm not-italic text-concrete">
             <p>{site.address}</p>
-            <a
-              href={`tel:${site.phone}`}
-              onClick={() => track(EVENTS.callClick, { where: 'footer' })}
-              className="inline-block text-text transition-colors duration-300 hover:text-concrete"
-            >
-              {site.phoneDisplay}
-            </a>
+            <PhoneLink
+              where="footer"
+              // The before: box stretches the tap target to 44px without moving the text.
+              className="relative inline-block text-text transition-colors duration-300 before:absolute before:inset-x-0 before:-inset-y-3 hover:text-concrete"
+            />
           </address>
         </div>
 

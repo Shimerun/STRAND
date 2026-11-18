@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
 import { site } from '../../data/site.js';
 import { usePricesVersion } from '../../lib/livePrices.js';
-import { barbersFor, serviceById } from '../../lib/pricing.js';
+import { barbersFor, offers, serviceById } from '../../lib/pricing.js';
 import { blocksFor } from '../../lib/slots.js';
 
 const ADDONS = site.booking.addons.map(serviceById).filter(Boolean);
-const offers = (service, slug) => Object.hasOwn(service.prices, slug);
 const totalMinutes = (services) => services.reduce((sum, service) => sum + service.durationMin, 0);
 
 // True when adding `addon` would make the visit longer than the sheet accepts (site.booking.maxBlocks).

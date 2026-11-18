@@ -27,12 +27,11 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
   const [sheet] = useState(() => createSheet());
   const [tmp] = useState(() => ({ tip: new Vector3(), euler: new Euler(), qHero: new Quaternion(), qTrack: new Quaternion() }));
 
-  useFrame(({ viewport, size, clock, camera }, delta) => {
+  useFrame(({ viewport, size, camera }, delta) => {
     const group = groupRef.current;
     if (!group) return;
     const unit = viewport.factor; // CSS px per world unit at z = 0
     const frame = step({
-      time: clock.elapsedTime,
       dt: delta,
       scrollY: scrollY.get(),
       dock: dock.get(),

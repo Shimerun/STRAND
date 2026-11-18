@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { usePricesVersion } from './livePrices.js';
 import { priceFor } from './pricing.js';
 import { BOOKING_ID, scrollToId } from './scroll.js';
 
@@ -17,6 +18,12 @@ export function BookingProvider({ children }) {
   const [selection, setSelection] = useState({ barber: '', service: null, serviceReset: false });
 
   const select = useCallback((partial) => setSelection((prev) => merge(prev, partial)), []);
+
+  // Prices from the sheet can take the chosen service away from the chosen barber: drop it as a new barber would.
+  const prices = usePricesVersion();
+  useEffect(() => {
+    setSelection((prev) => (prev.service && prev.barber && priceFor(prev.service, prev.barber) === null ? merge(prev, {}) : prev));
+  }, [prices]);
 
   const openBooking = useCallback(
     (partial = {}) => {

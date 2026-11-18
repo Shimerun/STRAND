@@ -16,7 +16,7 @@ function pickTimeZone(candidates) {
   return undefined;
 }
 
-export const TZ = pickTimeZone([site.timezone, 'Europe/Kiev']);
+const TZ = pickTimeZone([site.timezone, 'Europe/Kiev']);
 
 const partsFormatter = new Intl.DateTimeFormat('en-GB', {
   timeZone: TZ,
@@ -46,9 +46,7 @@ export function toMinutes(hhmm) {
 }
 
 export function fromMinutes(total) {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 const utcDate = (iso) => new Date(`${iso}T00:00:00Z`);
@@ -65,6 +63,5 @@ export function weekdayOf(iso) {
 
 export function isOpenNow(hours, now = kyivNow()) {
   const day = hours?.[now.weekday];
-  if (!day) return false;
-  return now.minutes >= toMinutes(day.open) && now.minutes < toMinutes(day.close);
+  return Boolean(day) && now.minutes >= toMinutes(day.open) && now.minutes < toMinutes(day.close);
 }

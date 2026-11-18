@@ -3,15 +3,14 @@ import { motion } from 'framer-motion';
 import { EASE_REVEAL } from '../../lib/motion.js';
 import { TOP_ID } from '../../lib/scroll.js';
 import { CUT_LINE } from './pose.js';
-import { rig } from './rig.js';
+import { END_SELECTOR, rig } from './rig.js';
 
 const DRAW = 0.9; // s: the line runs from the shears to the left edge
 const SOLID_AT = 0.8; // share of DRAW after which the solid line fades in
 const FADE = 1.2; // s: then both lines fade out
 const SECTION_THRESHOLD = 0.2;
 // The hero and the section seen through it are cut by the hero cut (components/hero), not here.
-const SECTIONS = `main section[id]:not(#${TOP_ID}):not([data-hero-underlay] section):not([data-scissors-end])`;
-const END = '[data-scissors-end]';
+const SECTIONS = `main section[id]:not(#${TOP_ID}):not([data-hero-underlay] section):not(${END_SELECTOR})`;
 
 let lastId = 0;
 
@@ -80,7 +79,7 @@ export default function CutReveal() {
       },
       { rootMargin: `0px 0px -${Math.round((1 - CUT_LINE) * 100)}% 0px` },
     );
-    const endElement = document.querySelector(END);
+    const endElement = document.querySelector(END_SELECTOR);
     if (endElement) end.observe(endElement);
 
     return () => {

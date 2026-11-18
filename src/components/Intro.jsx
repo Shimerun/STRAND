@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { EASE_REVEAL } from '../lib/motion.js';
 import { prefersReducedMotion } from '../lib/scroll.js';
+import { readSession, writeSession } from '../lib/session.js';
 import Logo from './Logo.jsx';
 
 const STORAGE_KEY = 'strand:intro-seen';
@@ -9,27 +10,11 @@ const FADE_S = 0.5;
 const SLIDE_DELAY_S = 0.55;
 const SLIDE_S = 0.65; // delay + slide = 1.2s max
 
-function readSeen() {
-  try {
-    return sessionStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return false; // storage blocked: the intro simply plays again
-  }
-}
-
-function markSeen() {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, '1');
-  } catch {
-    // storage blocked: nothing to persist, the intro is harmless to repeat
-  }
-}
-
 export default function Intro() {
-  const [visible, setVisible] = useState(() => !prefersReducedMotion() && !readSeen());
+  const [visible, setVisible] = useState(() => !prefersReducedMotion() && readSession(STORAGE_KEY) !== '1');
 
   useEffect(() => {
-    if (visible) markSeen();
+    if (visible) writeSession(STORAGE_KEY, '1');
   }, [visible]);
 
   if (!visible) return null;

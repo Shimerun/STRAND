@@ -1,7 +1,6 @@
 import { site } from '../../../data/site.js';
 import CheckIcon from '../../CheckIcon.jsx';
-import Img from '../../Img.jsx';
-import { barberPhoto } from '../../team/photo.js';
+import BarberPhoto from '../../team/BarberPhoto.jsx';
 import { FieldError, LABEL, errorId } from './Field.jsx';
 
 const ID = 'booking-barber';
@@ -11,13 +10,6 @@ const AVATAR = 'block aspect-[4/5] w-full overflow-hidden md:aspect-auto md:h-14
 // Phones: the caption sits on the photo's lower edge; md+ it is plain text beside the avatar.
 const CAPTION =
   'absolute inset-x-0 bottom-0 min-w-0 bg-gradient-to-t from-bg/90 via-bg/60 to-transparent px-1.5 pb-1.5 pt-6 md:static md:bg-none md:p-0';
-
-const initials = (name) =>
-  name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .slice(0, 2);
 
 /**
  * Barbers as photo cards. Phones get a 3-column grid of portrait tiles (first name and role on the photo), so every
@@ -50,17 +42,13 @@ export default function BarberPicker({ barbers, value, error, onChange }) {
               >
                 {/* The portraits are 3:4 with the head in the upper third: zoom on it so the face fills the frame. */}
                 <span className={AVATAR}>
-                  <Img
-                    src={barberPhoto(slug)}
-                    alt=""
+                  <BarberPhoto
+                    barber={{ slug, name }}
                     width={4}
                     height={5}
                     className="h-full w-full origin-[50%_20%] scale-[1.4] object-cover object-top md:scale-[1.7]"
-                    fallback={
-                      <span className="flex h-full w-full items-center justify-center bg-bg text-xs font-extrabold text-concrete">
-                        {initials(name)}
-                      </span>
-                    }
+                    // Phones: the initials sit clear of the caption, which grows to two lines for a long role.
+                    fallbackClassName="h-full bg-bg pb-8 text-xs md:pb-0"
                   />
                 </span>
                 <span className={CAPTION}>
@@ -69,7 +57,7 @@ export default function BarberPicker({ barbers, value, error, onChange }) {
                     <span className="hidden md:inline">{name}</span>
                   </span>
                   <span
-                    className={`mt-0.5 block text-[10px] leading-tight md:text-xs ${
+                    className={`mt-0.5 block text-[11px] leading-tight md:text-xs ${
                       checked ? 'text-text/75 md:text-bg/70' : 'text-text/75 md:text-concrete'
                     }`}
                   >
