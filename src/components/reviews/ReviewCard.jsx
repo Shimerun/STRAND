@@ -18,7 +18,9 @@ function Stars({ value }) {
 }
 
 // A review from Google: author with photo and profile link, stars, text, and a link to it on Google Maps.
-export function GoogleReview({ review }) {
+// placeUrl: the place's own Google page, the way to the full text when a long review has no link of its own.
+export function GoogleReview({ review, placeUrl }) {
+  const link = review.url ?? placeUrl;
   const { open, translated } = site.ui.reviews;
   const author = review.authorUrl ? (
     <a href={review.authorUrl} {...EXTERNAL} className={LINK}>
@@ -51,8 +53,8 @@ export function GoogleReview({ review }) {
       </blockquote>
       <p className="mt-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-concrete">
         {review.translated && <span>{translated}</span>}
-        {review.url && (
-          <a href={review.url} {...EXTERNAL} className={LINK}>
+        {link && (
+          <a href={link} {...EXTERNAL} className={`${LINK} inline-flex min-h-11 items-center font-bold text-text`}>
             {open}
           </a>
         )}

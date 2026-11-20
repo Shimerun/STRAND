@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
+import { useBooking } from '../../lib/bookingContext.jsx';
 import { hoverLift } from '../../lib/motion.js';
 import ArrowIcon from '../ArrowIcon.jsx';
 import Button from '../Button.jsx';
@@ -27,6 +28,21 @@ const FRAME = 'aspect-[4/5] rounded';
 export default function Works() {
   const [openIndex, setOpenIndex] = useState(null);
   const close = useCallback(() => setOpenIndex(null), []);
+  const { openProfile } = useBooking();
+  // A work's "barber's profile" opens it only once the lightbox has gone: its exit hands focus back to the work,
+  // and the profile then returns focus there when it closes.
+  const profileNext = useRef(null);
+  const toProfile = useCallback(
+    (slug) => {
+      profileNext.current = slug;
+      close();
+    },
+    [close],
+  );
+  const afterLightbox = () => {
+    if (profileNext.current) openProfile(profileNext.current);
+    profileNext.current = null;
+  };
   const reduce = useReducedMotion();
   const listRef = useRef(null);
   const sideOf = useColumnSides(listRef);
@@ -118,9 +134,9 @@ export default function Works() {
 
       {/* Portaled so transformed ancestors never become the lightbox's containing block. */}
       {createPortal(
-        <AnimatePresence>
+        <AnimatePresence onExitComplete={afterLightbox}>
           {openIndex !== null && (
-            <Lightbox works={works} index={openIndex} onIndexChange={setOpenIndex} onClose={close} />
+            <Lightbox works={works} index={openIndex} onIndexChange={setOpenIndex} onClose={close} onProfile={toProfile} />
           )}
         </AnimatePresence>,
         document.body,

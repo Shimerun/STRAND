@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { formatRating, pluralUk } from '../../lib/format.js';
+import { HEADER_HEIGHT } from '../../lib/scroll.js';
 import { hoverLift } from '../../lib/motion.js';
 import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
@@ -11,6 +12,23 @@ import { GoogleReview, SiteReview } from './ReviewCard.jsx';
 import { useGoogleReviews } from './useGoogleReviews.js';
 
 const MAX_STARS = 5;
+
+// Google's reviews replace the site's short ones and change the section's height, often while the visitor is
+// already further down (at the form, after a link to #booking). Then the page moves by the same amount, so what
+// they are looking at stays put. `ref`: an element inside the section; `content`: what changes its height.
+function useKeepPlace(ref, content) {
+  const height = useRef(0);
+  useLayoutEffect(() => {
+    const section = ref.current?.closest('section');
+    if (!section) return;
+    const next = section.offsetHeight;
+    const delta = next - height.current;
+    // Its bottom before the change was above the screen or under the fixed header: none of it was in view.
+    const wasAbove = section.getBoundingClientRect().bottom - delta < HEADER_HEIGHT + 2; // + subpixel slack
+    if (height.current && delta && wasAbove) window.scrollBy(0, delta);
+    height.current = next;
+  }, [ref, content]);
+}
 const GOOGLE_LIST =
   '-ml-5 flex snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto pb-4 pl-5 pt-2 [scrollbar-width:none] md:ml-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-0';
 
@@ -22,6 +40,7 @@ export default function Reviews() {
   const reduce = useReducedMotion();
   const rootRef = useRef(null);
   const google = useGoogleReviews(rootRef);
+  useKeepPlace(rootRef, google);
   const { ui } = site;
   const labels = ui.reviews;
   const rating = google ? { value: google.rating, count: google.count } : site.rating;
@@ -50,7 +69,7 @@ export default function Reviews() {
                 {rating.count} {countLabel}
               </p>
               {google?.url && (
-                <a href={google.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-xs font-bold text-text underline-offset-4 hover:underline">
+                <a href={google.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-xs font-bold text-text underline-offset-4 hover:underline">
                   {labels.googleMaps}
                 </a>
               )}
@@ -70,7 +89,7 @@ export default function Reviews() {
                 whileHover={reduce || !google ? undefined : hoverLift}
                 className={google ? 'w-[85%] shrink-0 snap-start sm:w-[60%] md:w-auto' : 'py-8 first:pt-0 last:pb-0'}
               >
-                {google ? <GoogleReview review={review} /> : <SiteReview review={review} />}
+                {google ? <GoogleReview review={review} placeUrl={google.url} /> : <SiteReview review={review} />}
               </Reveal>
             ))}
           </ul>

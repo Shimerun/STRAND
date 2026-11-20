@@ -14,8 +14,14 @@ function merge(prev, partial) {
   return { ...next, service: null, serviceReset: true };
 }
 
+/**
+ * The barber and service chosen anywhere on the page (Services, Team, Works, Booking), and the open barber profile.
+ * `request` counts explicit "book this" clicks, so a form showing its ticket can start a new booking.
+ */
 export function BookingProvider({ children }) {
   const [selection, setSelection] = useState({ barber: '', service: null, serviceReset: false });
+  const [request, setRequest] = useState(0);
+  const [profile, setProfile] = useState(null);
 
   const select = useCallback((partial) => setSelection((prev) => merge(prev, partial)), []);
 
@@ -28,12 +34,18 @@ export function BookingProvider({ children }) {
   const openBooking = useCallback(
     (partial = {}) => {
       select(partial);
+      setRequest((n) => n + 1);
       scrollToId(BOOKING_ID);
     },
     [select],
   );
 
-  const value = useMemo(() => ({ selection, select, openBooking }), [selection, select, openBooking]);
+  const closeProfile = useCallback(() => setProfile(null), []);
+
+  const value = useMemo(
+    () => ({ selection, select, request, openBooking, profile, openProfile: setProfile, closeProfile }),
+    [selection, select, request, openBooking, profile, closeProfile],
+  );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;
 }

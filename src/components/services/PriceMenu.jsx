@@ -1,9 +1,7 @@
-import { site } from '../../data/site.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
 import { formatDuration, formatPriceRange } from '../../lib/format.js';
-import { EVENTS } from '../../lib/track.js';
 import ArrowIcon from '../ArrowIcon.jsx';
-import Button from '../Button.jsx';
+import BookButton from '../BookButton.jsx';
 
 const GROUP = 'price-menu'; // details that share a name close one another
 
@@ -18,26 +16,20 @@ function PlusIcon() {
       stroke="currentColor"
       strokeWidth="1.5"
       aria-hidden="true"
-      className="text-concrete transition-[transform,color] duration-300 group-open/row:rotate-45 group-hover/row:text-text motion-reduce:transition-none"
+      className="text-concrete transition-[transform,color] duration-150 group-open/row:rotate-45 group-hover/row:text-text motion-reduce:transition-none"
     >
       <path d="M6 1v10M1 6h10" />
     </svg>
   );
 }
 
-/** A service's booking link, in the cards (Services) and in the price menu; `where` is for analytics. */
-export function BookLink({ service, where, className }) {
+/** A service's booking link in the price menu: the form opens with the service chosen. */
+function BookLink({ service }) {
   const { openBooking } = useBooking();
   return (
-    <Button
-      variant="link"
-      className={className}
-      track={{ name: EVENTS.bookClick, where, service: service.id }}
-      onClick={() => openBooking({ service: service.id })}
-    >
-      {site.ui.cta.book}
-      <ArrowIcon className="transition-transform duration-300 motion-safe:group-hover:translate-x-1" />
-    </Button>
+    <BookButton variant="link" track={{ where: 'price-menu', service: service.id }} onClick={() => openBooking({ service: service.id })}>
+      <ArrowIcon className="transition-transform duration-150 motion-safe:group-hover:translate-x-1" />
+    </BookButton>
   );
 }
 
@@ -52,21 +44,21 @@ export default function PriceMenu({ services }) {
       {services.map((service) => (
         <li key={service.id} className="break-inside-avoid border-b border-line">
           <details name={GROUP} className="group/row">
-            <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-4 [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-4 py-4 [&::-webkit-details-marker]:hidden">
               <span className="min-w-0">
-                <span className="block text-sm font-bold">{service.name}</span>
-                <span className="mt-1 block text-xs text-concrete">
-                  {[formatDuration(service.durationMin), service.note].filter(Boolean).join(' · ')}
-                </span>
+                <span className="block font-bold leading-snug">{service.name}</span>
+                <span className="mt-1 block text-sm text-concrete">{formatDuration(service.durationMin)}</span>
+                {/* Age limits and the consultation stay on the row itself, not behind the fold. */}
+                {service.note && <span className="mt-1 block text-sm text-accent-light">{service.note}</span>}
               </span>
-              <span className="flex shrink-0 items-center gap-4 pt-0.5">
-                <span className="text-sm font-bold tabular-nums">{formatPriceRange(service.prices, { from: service.from === true })}</span>
+              <span className="flex shrink-0 items-center gap-4">
+                <span className="font-bold tabular-nums">{formatPriceRange(service.prices, { from: service.from === true })}</span>
                 <PlusIcon />
               </span>
             </summary>
             <div className="pb-5 pr-7">
               <p className="max-w-prose text-sm leading-relaxed text-concrete">{service.description}</p>
-              <BookLink service={service} where="price-menu" className="mt-1" />
+              <BookLink service={service} />
             </div>
           </details>
         </li>

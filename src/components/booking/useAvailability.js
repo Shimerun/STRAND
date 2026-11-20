@@ -35,6 +35,11 @@ export function useAvailability() {
   }, [refetch]);
 
   const addBusy = useCallback((item) => setBusy((prev) => [...prev, item]), []);
+  // The visitor's own "check again": shows the loading state, unlike the quiet refetch after a booking.
+  const retry = useCallback(() => {
+    setState('loading');
+    return refetch();
+  }, [refetch]);
 
-  return { busy, state, refetch, addBusy };
+  return { busy, state, refetch, retry, addBusy };
 }

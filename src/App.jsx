@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { useLivePrices } from './lib/livePrices.js';
-import { hasMouse, prefersReducedMotion, setLenis } from './lib/scroll.js';
+import { MAIN_ID, hasMouse, prefersReducedMotion, scrollToId, setLenis } from './lib/scroll.js';
 import About from './components/About.jsx';
 import Booking from './components/booking/Booking.jsx';
 import Contacts from './components/Contacts.jsx';
@@ -68,8 +68,20 @@ function useLenis() {
   }, []);
 }
 
+// A link to /#section opens at that section. The page is partly laid out by script (the hero pin pulls the next
+// section up), so the browser's own jump on load lands in the wrong place; this runs once the layout is in.
+function useHashOnLoad() {
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return undefined;
+    const frame = requestAnimationFrame(() => scrollToId(id, { immediate: true }));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+}
+
 export default function App() {
   useLenis();
+  useHashOnLoad();
   useLivePrices(); // re-renders the page when prices from the Google Sheet arrive
   const showScissors = useAfterFirstPaint();
   const [showCursor] = useState(hasMouse);
@@ -80,14 +92,14 @@ export default function App() {
       {scrollWeight && <ScrollWeight />}
       <Intro />
       <Header />
-      <main>
+      <main id={MAIN_ID} tabIndex={-1}>
         {/* The section inside the hero is what shows through its cut. */}
         <Hero>
           <About />
         </Hero>
+        <Services />
         <Team />
         <Works />
-        <Services />
         <Reviews />
         <Booking />
         <Contacts />

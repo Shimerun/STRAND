@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { site } from '../data/site.js';
 import { EASE_REVEAL } from '../lib/motion.js';
+import { bookingEnabled } from '../lib/booking.js';
 import { BOOKING_ID, scrollToId, unlockScroll } from '../lib/scroll.js';
-import { EVENTS } from '../lib/track.js';
 import { useDialog } from '../lib/useDialog.js';
-import Button from './Button.jsx';
+import BookButton from './BookButton.jsx';
 import CloseButton from './CloseButton.jsx';
 import Logo from './Logo.jsx';
 import PhoneLink from './PhoneLink.jsx';
@@ -35,12 +35,13 @@ export default function MobileMenu({ id, onClose }) {
     return () => desktop.removeEventListener('change', onChange);
   }, [onClose]);
 
-  // Scroll must be unlocked before scrolling: a stopped Lenis ignores scrollTo.
+  // Scroll must be unlocked before scrolling: a stopped Lenis ignores scrollTo. Closing first, because it hands
+  // focus back to the menu button and scrollToId then moves it on to the section.
   const go = (target) => (event) => {
     event.preventDefault();
+    onClose();
     unlockScroll();
     scrollToId(target);
-    onClose();
   };
 
   return (
@@ -84,13 +85,14 @@ export default function MobileMenu({ id, onClose }) {
         </nav>
 
         <div className="shrink-0 space-y-5 px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
-          <Button className="w-full" track={{ name: EVENTS.bookClick, where: 'menu' }} onClick={go(BOOKING_ID)}>
-            {cta.book}
-          </Button>
-          <PhoneLink
-            where="menu"
-            className="block text-center text-sm font-medium tracking-heading text-concrete transition-colors duration-300 hover:text-text"
-          />
+          <BookButton className="w-full" track={{ where: 'menu' }} onClick={go(BOOKING_ID)} />
+          {/* Without the form the button above is the call already. */}
+          {bookingEnabled && (
+            <PhoneLink
+              where="menu"
+              className="flex min-h-11 items-center justify-center text-sm font-medium tracking-heading text-concrete transition-colors duration-150 hover:text-text"
+            />
+          )}
         </div>
       </div>
     </motion.div>

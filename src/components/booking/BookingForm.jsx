@@ -1,6 +1,6 @@
 import { site } from '../../data/site.js';
 import { formatPrice } from '../../lib/format.js';
-import { offers, servicesFor } from '../../lib/pricing.js';
+import { servicesFor } from '../../lib/pricing.js';
 import Button from '../Button.jsx';
 import BookingSummary from './BookingSummary.jsx';
 import ErrorState from './ErrorState.jsx';
@@ -21,14 +21,15 @@ export default function BookingForm({ form, availability }) {
   const copy = site.ui.form;
   const { values, errors, barber, service, price } = form;
   const services = barber ? servicesFor(barber) : site.services;
-  const barbers = service ? site.team.filter(({ slug }) => offers(service, slug)) : site.team;
+  // Every barber stays listed, with the chosen service's price; picking one who does not offer it clears the
+  // service and says so under it (serviceReset), so a choice made earlier never locks the other field.
   const sending = form.status === 'sending';
   const submitLabel = price ? `${copy.submit} · ${formatPrice(price.value, { from: price.from })}` : copy.submit;
 
   return (
     <form ref={form.formRef} noValidate onSubmit={form.submit} className="space-y-6">
       <Step index={1} title={copy.steps.choice}>
-        <BarberPicker barbers={barbers} value={barber} error={errors.barber} onChange={form.chooseBarber} />
+        <BarberPicker barbers={site.team} service={service} value={barber} error={errors.barber} onChange={form.chooseBarber} />
         <ServicePicker
           services={services}
           barber={barber}
@@ -51,6 +52,7 @@ export default function BookingForm({ form, availability }) {
         <SlotPicker
           hasService={Boolean(service && barber)}
           availability={availability.state}
+          onRetry={availability.retry}
           times={form.times}
           value={form.time}
           error={errors.time}
@@ -94,7 +96,7 @@ export default function BookingForm({ form, availability }) {
 
         <div className="space-y-4">
           <div aria-live="polite">{form.status === 'error' && <ErrorState />}</div>
-          <Button type="submit" disabled={sending} className="w-full disabled:cursor-wait disabled:opacity-60 md:w-auto">
+          <Button type="submit" magnetic={false} disabled={sending} className="w-full disabled:cursor-wait md:w-auto">
             {sending ? copy.sending : submitLabel}
           </Button>
           <p className="text-xs leading-relaxed text-concrete">{copy.consent}</p>

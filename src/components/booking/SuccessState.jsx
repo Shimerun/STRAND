@@ -9,7 +9,7 @@ export default function SuccessState() {
 
   return (
     <div ref={ref} tabIndex={-1} className="flex items-start gap-4 outline-none">
-      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent text-accent">
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent text-accent-light">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="1.75" />
         </svg>

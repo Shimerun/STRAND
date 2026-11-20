@@ -10,7 +10,8 @@ export default {
         edge: '#666666', // form control borders: >= 3:1 against bg and surface (WCAG 1.4.11)
         concrete: '#8A8A8A',
         text: '#F2F2F2',
-        accent: '#6B7F5E',
+        // light: small accent text on bg and surface (8.7:1 on surface; the base green is 4.2:1 there)
+        accent: { DEFAULT: '#6B7F5E', light: '#A4B89A' },
         danger: '#E06C5A',
       },
       borderRadius: {

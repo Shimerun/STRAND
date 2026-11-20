@@ -142,16 +142,21 @@ export const site = {
   ui: {
     nav: [
       { id: "about", label: "Про нас" },
-      { id: "team", label: "Команда" },
       { id: "services", label: "Послуги" },
+      { id: "team", label: "Команда" },
       { id: "works", label: "Роботи" },
       { id: "reviews", label: "Відгуки" },
       { id: "contacts", label: "Контакти" }
     ],
     cta: {
-      book: "Записатись",
+      book: "Записатись онлайн",
+      bookByPhone: "Запис за телефоном", // the main action while the online form is off (no booking endpoint)
+      bookAgain: "Оформити ще один запис",
+      services: "Послуги та ціни",
       call: "Подзвонити",
       route: "Маршрут",
+      openMap: "Відкрити на карті",
+      skip: "Перейти до вмісту",
       bookWithBarber: "Записатись до майстра",
       moreWorks: "Більше робіт в Instagram",
       menu: "Меню",
@@ -161,10 +166,10 @@ export const site = {
     hero: { subline: "Барбершоп у Житомирі" }, // component appends " · " + site.addressShort
     alt: { hero: "Барбершоп Strand у Житомирі", about: "Майстер Strand за роботою" }, // barber photos use the barber's name
     sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", contacts: "Контакти" },
-    services: { more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від", duration: "Тривалість", price: "Ціна" },
+    services: { main: "Стрижки та борода", more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від" },
     units: { min: "хв", hour: "год", currency: "₴" },
-    team: { prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
-    works: { prev: "Попереднє фото", next: "Наступне фото", showAll: "Показати всі роботи" },
+    team: { instagram: "Instagram", prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
+    works: { author: "Майстер", prev: "Попереднє фото", next: "Наступне фото", showAll: "Показати всі роботи" },
     brand: { sub: "Barbershop" },
     reviews: {
       count: ["відгук", "відгуки", "відгуків"],
@@ -202,6 +207,7 @@ export const site = {
       sending: "Надсилаємо…",
       consent: "Натискаючи «Записатись», ви погоджуєтесь на обробку персональних даних для запису.",
       serviceReset: "Цей майстер не виконує обрану послугу — оберіть іншу.",
+      notOffered: "Не виконує цю послугу",
       errors: {
         nameRequired: "Вкажіть ім'я",
         nameShort: "Ім'я має містити щонайменше 2 літери",
@@ -217,9 +223,10 @@ export const site = {
         pickService: "Оберіть майстра та послугу, щоб побачити вільний час",
         none: "На цей день вільного часу немає — оберіть іншу дату або майстра.",
         taken: "Цей час уже недоступний. Список оновлено — оберіть інший.",
-        loadFailed: "Не вдалося перевірити вільний час. Ви можете надіслати заявку — ми підтвердимо її по телефону."
+        loadFailed: "Не вдалося перевірити вільний час. Ви можете надіслати заявку — ми підтвердимо її по телефону.",
+        retry: "Перевірити ще раз"
       },
-      success: "Дякуємо! Час за вами — ми зателефонуємо, щоб підтвердити запис",
+      success: "Заявку отримано. Зателефонуємо для підтвердження",
       errorText: "Не вдалося надіслати заявку. Зателефонуйте нам:",
       unavailable: "Онлайн-запис тимчасово не працює. Зателефонуйте — запишемо вас на зручний час."
     }

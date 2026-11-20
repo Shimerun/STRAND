@@ -9,7 +9,7 @@ import { LABEL, TOGGLE } from './Field.jsx';
 
 const LIST_ID = 'booking-addons';
 const ROW =
-  'flex h-full min-h-11 items-center gap-3 rounded border px-3 py-3 transition-colors duration-300 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent';
+  'flex h-full min-h-11 items-center gap-3 rounded border px-3 py-3 transition-colors duration-150 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent';
 const THUMB = 48; // px
 
 // Optional extras to the main service, folded behind a toggle; ones that would make the visit too long are disabled.

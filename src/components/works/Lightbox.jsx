@@ -4,6 +4,8 @@ import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
 import { EASE_REVEAL } from '../../lib/motion.js';
 import { useDialog } from '../../lib/useDialog.js';
+import ArrowIcon from '../ArrowIcon.jsx';
+import Button from '../Button.jsx';
 import CloseButton from '../CloseButton.jsx';
 import Img from '../Img.jsx';
 
@@ -21,12 +23,14 @@ function Chevron({ flip = false }) {
   );
 }
 
-export default function Lightbox({ works, index, onIndexChange, onClose }) {
+// onProfile(slug): the "barber's profile" link under a work whose barber is known.
+export default function Lightbox({ works, index, onIndexChange, onClose, onProfile }) {
   const rootRef = useRef(null);
   const closeRef = useRef(null);
   const onDialogKeyDown = useDialog(rootRef, closeRef, onClose);
   const { sections, works: labels } = site.ui;
   const work = works[index];
+  const author = site.team.find(({ slug }) => slug === work.barber);
   const many = works.length > 1;
 
   const step = (delta) => onIndexChange((index + delta + works.length) % works.length);
@@ -63,7 +67,7 @@ export default function Lightbox({ works, index, onIndexChange, onClose }) {
         <CloseButton ref={closeRef} onClick={onClose} />
       </div>
 
-      <div className="relative flex min-h-0 flex-1 items-center justify-center px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] lg:px-24">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center px-5 pb-4 lg:px-24">
         <motion.div
           drag={many ? 'x' : false}
           dragConstraints={{ left: 0, right: 0 }}
@@ -79,7 +83,7 @@ export default function Lightbox({ works, index, onIndexChange, onClose }) {
               height={work.height ?? 1500}
               priority
               draggable={false}
-              className="mx-auto h-auto max-h-[calc(100svh-9rem)] w-full select-none object-contain"
+              className="mx-auto h-auto max-h-[calc(100svh-11rem)] w-full select-none object-contain"
             />
           </motion.div>
         </motion.div>
@@ -92,6 +96,21 @@ export default function Lightbox({ works, index, onIndexChange, onClose }) {
             <button type="button" aria-label={labels.next} onClick={() => step(1)} className={`${NAV_BUTTON} right-2 lg:right-6`}>
               <Chevron flip />
             </button>
+          </>
+        )}
+      </div>
+
+      <div aria-live="polite" className="flex min-h-14 shrink-0 items-center justify-between gap-4 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] lg:px-24">
+        {author && (
+          <>
+            <p className="min-w-0 text-sm">
+              <span className="text-concrete">{labels.author}: </span>
+              <span className="font-bold">{author.name}</span>
+            </p>
+            <Button variant="link" onClick={() => onProfile(author.slug)} className="shrink-0">
+              {site.ui.team.profile}
+              <ArrowIcon className="transition-transform duration-150 motion-safe:group-hover:translate-x-1" />
+            </Button>
           </>
         )}
       </div>

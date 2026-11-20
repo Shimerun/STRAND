@@ -1,11 +1,13 @@
 import { site } from '../../../data/site.js';
 import BarberPole from '../../BarberPole.jsx';
+import Button from '../../Button.jsx';
+import CheckIcon from '../../CheckIcon.jsx';
 import { CHIP, FieldError, LABEL, errorId } from './Field.jsx';
 
 const ID = 'booking-time';
 
 // Renders only free times; taken slots are never shown.
-export default function SlotPicker({ hasService, availability, times, value, error, slotTaken, onChange }) {
+export default function SlotPicker({ hasService, availability, onRetry, times, value, error, slotTaken, onChange }) {
   const { fields, slots } = site.ui.form;
 
   let message = null;
@@ -21,7 +23,14 @@ export default function SlotPicker({ hasService, availability, times, value, err
 
       <div aria-live="polite" className="space-y-2 text-sm">
         {slotTaken && <p className="text-danger">{slots.taken}</p>}
-        {hasService && availability === 'failed' && <p className="text-concrete">{slots.loadFailed}</p>}
+        {hasService && availability === 'failed' && (
+          <div>
+            <p className="text-concrete">{slots.loadFailed}</p>
+            <Button variant="link" onClick={onRetry}>
+              {slots.retry}
+            </Button>
+          </div>
+        )}
         {message && (
           <p className="flex items-center gap-4 text-concrete">
             {message === slots.loading && <BarberPole />}
@@ -42,7 +51,10 @@ export default function SlotPicker({ hasService, availability, times, value, err
                 onChange={() => onChange(time)}
                 className="peer sr-only"
               />
-              <span className={`${CHIP} text-sm font-bold tabular-nums`}>{time}</span>
+              <span className={`${CHIP} relative text-sm font-bold tabular-nums`}>
+                {time}
+                {value === time && <CheckIcon size={10} className="absolute right-1 top-1" />}
+              </span>
             </label>
           ))}
         </div>

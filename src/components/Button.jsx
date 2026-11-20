@@ -5,12 +5,12 @@ import { hasMouse } from '../lib/scroll.js';
 import { track } from '../lib/track.js';
 
 const BASE =
-  'inline-flex min-h-12 items-center justify-center gap-2 rounded px-6 py-3 text-sm font-bold uppercase tracking-heading transition-colors duration-300';
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded px-6 py-3 text-sm font-bold uppercase tracking-heading transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50';
 
 const VARIANTS = {
-  primary: 'bg-text text-bg hover:bg-accent',
-  ghost: 'border border-line text-text hover:border-accent',
-  link: 'group !px-0 text-text hover:text-accent',
+  primary: 'bg-text text-bg hover:bg-accent active:bg-accent',
+  ghost: 'border border-edge text-text hover:border-accent active:border-accent',
+  link: 'group !px-0 text-text hover:text-accent-light active:text-accent-light',
 };
 
 // Primary buttons lean towards a mouse that comes within `reach` px of their edge.
@@ -48,13 +48,14 @@ export default function Button({
   type = 'button',
   track: trackEvent,
   onClick,
+  magnetic: magnetOn = true, // false in forms: a button that moves under the pointer is harder to hit
   className = '',
   children,
   ...rest
 }) {
   const reduce = useReducedMotion();
   const [mouse] = useState(hasMouse);
-  const magnetic = variant === 'primary' && mouse && !reduce;
+  const magnetic = magnetOn && variant === 'primary' && mouse && !reduce;
   const magnet = useMagnet(magnetic);
   const Comp = href ? motion.a : motion.button;
 

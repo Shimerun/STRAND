@@ -1,9 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { AnimatePresence, useMotionValueEvent, useScroll } from 'framer-motion';
 import { site } from '../data/site.js';
-import { BOOKING_ID, TOP_ID, scrollToId } from '../lib/scroll.js';
-import { EVENTS } from '../lib/track.js';
-import Button from './Button.jsx';
+import { MAIN_ID, TOP_ID, scrollToId } from '../lib/scroll.js';
+import BookButton from './BookButton.jsx';
 import Logo from './Logo.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import ScrollProgress from './ScrollProgress.jsx';
@@ -40,6 +39,13 @@ export default function Header() {
 
   return (
     <>
+      {/* First in the tab order; shown only while focused. */}
+      <a
+        href={`#${MAIN_ID}`}
+        className="fixed left-4 top-3 z-[110] -translate-y-24 rounded bg-text px-4 py-3 text-sm font-bold text-bg transition-transform duration-150 focus:translate-y-0 motion-reduce:transition-none"
+      >
+        {cta.skip}
+      </a>
       <header
         className={`fixed inset-x-0 top-0 z-50 h-header border-b transition-colors duration-300 ${
           scrolled ? 'border-line bg-bg' : 'border-transparent bg-transparent'
@@ -52,13 +58,13 @@ export default function Header() {
           </a>
 
           <nav aria-label={cta.menu} className="hidden lg:block">
-            <ul className="flex items-center gap-7">
+            <ul className="flex items-center gap-4 xl:gap-7">
               {nav.map(({ id, label }) => (
                 <li key={id}>
                   <a
                     href={`#${id}`}
                     onClick={goTo(id)}
-                    className="text-xs font-medium uppercase tracking-heading text-concrete transition-colors duration-300 hover:text-text"
+                    className="whitespace-nowrap text-xs font-medium uppercase tracking-heading text-concrete transition-colors duration-150 hover:text-text"
                   >
                     {label}
                   </a>
@@ -68,9 +74,7 @@ export default function Header() {
           </nav>
 
           <div className="hidden lg:block">
-            <Button track={{ name: EVENTS.bookClick, where: 'header' }} onClick={() => scrollToId(BOOKING_ID)}>
-              {cta.book}
-            </Button>
+            <BookButton track={{ where: 'header' }} className="whitespace-nowrap" />
           </div>
 
           <button

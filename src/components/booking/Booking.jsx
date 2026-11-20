@@ -28,29 +28,39 @@ function Unavailable() {
 export default function Booking() {
   const availability = useAvailability();
   const form = useBookingForm(availability);
-  const { title, subtitle } = site.ui.form;
+  const { cta, form: copy } = site.ui;
   const success = form.status === 'success';
 
   return (
-    <Section id={BOOKING_ID} data-scissors-end>
+    // The shears fade out as this section comes up, so it needs no gutter for them: the form gets even sides.
+    <Section id={BOOKING_ID} gutter={false} data-scissors-end>
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
         <div>
           <div className="lg:sticky lg:top-[calc(theme(spacing.header)+2rem)]">
-            <SectionTitle>{title}</SectionTitle>
+            <SectionTitle>{bookingEnabled ? copy.title : cta.bookByPhone}</SectionTitle>
             {bookingEnabled && (
               <Reveal as="p" className="mt-4 leading-relaxed text-concrete md:text-lg">
-                {subtitle}
+                {copy.subtitle}
               </Reveal>
             )}
             {bookingEnabled && !success && <BookingSummary form={form} className="mt-10 hidden lg:block" />}
           </div>
         </div>
 
-        <div className="rounded border border-line bg-surface p-5 md:p-8">
+        <div className="rounded border border-line bg-surface p-4 sm:p-5 md:p-8">
           {bookingEnabled ? (
             <>
               <div aria-live="polite">{success && <SuccessState />}</div>
-              {success ? <Ticket booked={form.booked} /> : <BookingForm form={form} availability={availability} />}
+              {success ? (
+                <>
+                  <Ticket booked={form.booked} />
+                  <Button variant="ghost" onClick={form.again} className="mt-6 w-full sm:w-auto">
+                    {cta.bookAgain}
+                  </Button>
+                </>
+              ) : (
+                <BookingForm form={form} availability={availability} />
+              )}
             </>
           ) : (
             <Unavailable />

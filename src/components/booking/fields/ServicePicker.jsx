@@ -81,11 +81,17 @@ export default function ServicePicker({ services, barber, value, error, hint, on
             {selected && (
               <Img src={servicePhoto(selected.id, barber)} alt="" width={32} height={32} className="-my-1 h-8 w-8 shrink-0 rounded object-cover" />
             )}
-            <span className={`truncate ${selected ? '' : 'text-concrete'}`}>
+            {/* Long names wrap: at 320px a cut-off name could not be told from its neighbour. */}
+            <span className={`min-w-0 break-words ${selected ? '' : 'text-concrete'}`}>
               {selected ? selected.name : form.placeholders.service}
             </span>
           </span>
-          {selected && <span className="shrink-0 text-sm text-concrete">{formatServicePrice(selected, barber)}</span>}
+          {selected && (
+            <span className="shrink-0 text-right text-sm text-concrete">
+              <span className="block">{formatServicePrice(selected, barber)}</span>
+              <span className="block text-xs">{formatDuration(selected.durationMin)}</span>
+            </span>
+          )}
         </button>
         <svg
           width="16"

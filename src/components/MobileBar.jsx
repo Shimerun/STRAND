@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { site } from '../data/site.js';
-import { BOOKING_ID, scrollToId } from '../lib/scroll.js';
+import { bookingEnabled } from '../lib/booking.js';
+import { BOOKING_ID } from '../lib/scroll.js';
 import { EVENTS } from '../lib/track.js';
+import BookButton from './BookButton.jsx';
 import Button from './Button.jsx';
+import PhoneIcon from './PhoneIcon.jsx';
 
 // Wherever the page shows a booking button of its own (marked data-own-cta), and over the form itself.
 const OWN_CTA = `#${BOOKING_ID}, [data-own-cta]`;
@@ -41,17 +44,20 @@ export default function MobileBar() {
       }`}
     >
       <div className="flex gap-3 px-5 py-3">
-        <Button className="flex-1 !px-3" track={{ name: EVENTS.bookClick, where: 'sticky' }} onClick={() => scrollToId(BOOKING_ID)}>
-          {cta.book}
-        </Button>
-        <Button
-          variant="ghost"
-          className="flex-1 !px-3"
-          href={`tel:${site.phone}`}
-          track={{ name: EVENTS.callClick, where: 'sticky' }}
-        >
-          {cta.call}
-        </Button>
+        <BookButton className="flex-1 !px-3" track={{ where: 'sticky' }} />
+        {/* The call as an icon, so the main action keeps its full label at 320px; without the form the main
+            action is the call itself. */}
+        {bookingEnabled && (
+          <Button
+            variant="ghost"
+            aria-label={cta.call}
+            className="w-12 shrink-0 !px-0"
+            href={`tel:${site.phone}`}
+            track={{ name: EVENTS.callClick, where: 'sticky' }}
+          >
+            <PhoneIcon />
+          </Button>
+        )}
       </div>
     </div>
   );

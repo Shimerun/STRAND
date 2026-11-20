@@ -1,8 +1,9 @@
 import { site } from '../../../data/site.js';
 import { formatLongDay } from '../../../lib/format.js';
+import CheckIcon from '../../CheckIcon.jsx';
 
 const DAY =
-  'relative flex h-11 items-center justify-center rounded border border-transparent text-sm font-bold tabular-nums transition-colors duration-300 hover:border-concrete peer-checked:border-text peer-checked:bg-text peer-checked:text-bg peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent';
+  'relative flex h-11 items-center justify-center rounded border border-transparent text-sm font-bold tabular-nums transition-colors duration-150 hover:border-concrete peer-checked:border-text peer-checked:bg-text peer-checked:text-bg peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent';
 const OFF = 'flex h-11 items-center justify-center text-sm tabular-nums text-concrete/40';
 
 /**
@@ -36,6 +37,7 @@ export default function DayCell({ iso, days }) {
       />
       <span className={DAY}>
         {day}
+        {value === iso && <CheckIcon size={10} className="absolute right-1 top-1" />}
         {iso === today && <span aria-hidden="true" className="absolute bottom-1.5 h-1 w-1 rounded-full bg-current" />}
       </span>
     </label>

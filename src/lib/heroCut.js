@@ -2,9 +2,9 @@
 // The hero pins for `pin` hero heights of scroll: the shears move onto a wavy line and cut it right to left,
 // snip by snip; then the halves part and swell towards the viewer while the next section shows through the cut.
 export const HERO_CUT = {
-  // Extra scroll while the hero stays pinned, in hero (frame) heights. Phones get fewer snips (minSnips), so a
-  // shorter pin keeps each snip under half a screen of scrolling; desktop (>= 1024px) has up to maxSnips.
-  pin: { mobile: 2, desktop: 3 },
+  // Extra scroll while the hero stays pinned, in hero (frame) heights. Phones get fewer snips (minSnips); desktop
+  // (>= 1024px) has up to maxSnips. Was 2 / 3 until 2026-11-20: the content took too long to come up.
+  pin: { mobile: 1, desktop: 1.5 },
   // At 0.08 the move onto the line ran 2-4x faster than the page (measured with a wheel, 2026-11-17).
   aimEnd: 0.15, // share of the pin: the shears move from the hero pose onto the line
   cutEnd: 0.76, // share of the pin: the last snip; the halves part over the rest

@@ -1,15 +1,13 @@
 import { site } from '../data/site.js';
 import { formatHours } from '../lib/format.js';
-import { BOOKING_ID, scrollToId } from '../lib/scroll.js';
 import { kyivNow } from '../lib/time.js';
-import { EVENTS } from '../lib/track.js';
-import Button from './Button.jsx';
+import BookButton from './BookButton.jsx';
 import OpenBadge from './OpenBadge.jsx';
 
 // Under the footer stencil: tagline, booking and open-now (phone and address follow in the footer).
 // data-own-cta: the mobile bar does not repeat its button.
 export default function Closing() {
-  const { cta, contacts } = site.ui;
+  const { contacts } = site.ui;
   const today = site.hours[kyivNow().weekday];
 
   return (
@@ -17,9 +15,7 @@ export default function Closing() {
       <p className="max-w-[18ch] text-balance text-2xl font-extrabold uppercase leading-tight tracking-heading sm:text-4xl">{site.tagline}</p>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-        <Button track={{ name: EVENTS.bookClick, where: 'closing' }} onClick={() => scrollToId(BOOKING_ID)}>
-          {cta.book}
-        </Button>
+        <BookButton track={{ where: 'closing' }} />
         <p className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <OpenBadge />
           <span className="text-xs font-medium uppercase tracking-heading text-concrete">

@@ -47,6 +47,18 @@
     background-color: theme('colors.bg');
     /* The cursor's dot-trail canvas (clip-path only hides its pixels) must not widen the page. */
     overflow-x: hidden;
+    /* Off: Chrome anchored some late changes and not others (Safari none), so the one late change above the
+       screen, the Google reviews, is corrected by script (useKeepPlace in Reviews.jsx). */
+    overflow-anchor: none;
+    /* A focused control and an anchor jump stop clear of the fixed header (and the mobile bar below lg). */
+    scroll-padding-top: calc(theme('spacing.header') + 1rem);
+    scroll-padding-bottom: 6rem;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-bottom: 1rem;
+    }
   }
 
   body {
@@ -72,6 +84,11 @@
 
   :focus-visible {
     @apply outline outline-2 outline-offset-2 outline-accent;
+  }
+
+  /* Sections and dialogs focused by script (tabindex -1) only mark where the next Tab starts. */
+  [tabindex='-1']:focus {
+    outline: none;
   }
 
   ::selection {

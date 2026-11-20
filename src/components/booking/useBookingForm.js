@@ -11,7 +11,7 @@ import { RULES, validate, withError } from './validation.js';
 const NO_DATES = new Set();
 
 export function useBookingForm(availability) {
-  const { selection, select } = useBooking();
+  const { selection, select, request } = useBooking();
   const [dates, setDates] = useState(bookingDates);
   const [values, setValues] = useState({ name: '', phone: '', date: dates[0] ?? '', time: '', addons: [], comment: '', website: '' });
   const [errors, setErrors] = useState({});
@@ -19,6 +19,7 @@ export function useBookingForm(availability) {
   const [booked, setBooked] = useState(null); // what the ticket shows, copied at submit
   const [slotTaken, setSlotTaken] = useState(false);
   const [focusRequest, setFocusRequest] = useState(0);
+  const [round, setRound] = useState(0); // bookings started after a ticket
   const formRef = useRef(null);
 
   const { barber } = selection;
@@ -57,6 +58,27 @@ export function useBookingForm(availability) {
     const target = invalid?.querySelector('input:checked') ?? invalid?.querySelector('input, select, textarea, [role="combobox"]');
     target?.focus();
   }, [focusRequest]);
+
+  // A new booking after a ticket: name and phone stay, the visit's time and comment go.
+  const again = () => {
+    setValues((prev) => ({ ...prev, time: '', comment: '' }));
+    setErrors({});
+    setBooked(null);
+    setStatus('idle');
+    setRound((n) => n + 1);
+  };
+
+  // An explicit "book this" from the page (Services, a profile) while the ticket shows opens a new form with it.
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  useEffect(() => {
+    if (request && statusRef.current === 'success') again();
+  }, [request]);
+
+  // The form replaces the ticket: focus its first choice, as the focused "again" button is gone.
+  useEffect(() => {
+    if (round) formRef.current?.querySelector('input:checked, input')?.focus({ preventScroll: true });
+  }, [round]);
 
   // Re-validates live only once a field already shows an error.
   const recheck = (key, value) => setErrors((prev) => (prev[key] ? withError(prev, key, RULES[key](value)) : prev));
@@ -141,5 +163,6 @@ export function useBookingForm(availability) {
     chooseService: (id) => choose('service', id || null),
     toggleAddon,
     submit,
+    again,
   };
 }

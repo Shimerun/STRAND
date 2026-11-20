@@ -4,12 +4,11 @@ import { site } from '../../data/site.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
 import { EASE_REVEAL } from '../../lib/motion.js';
 import { unlockScroll } from '../../lib/scroll.js';
-import { EVENTS } from '../../lib/track.js';
 import { useDialog } from '../../lib/useDialog.js';
+import BookButton from '../BookButton.jsx';
 import CloseButton from '../CloseButton.jsx';
-import Button from '../Button.jsx';
 import BarberPhoto from './BarberPhoto.jsx';
-import { PHOTO_RADIUS, PHOTO_TRANSITION, photoLayoutId } from './photo.js';
+import { PHOTO_RADIUS, PHOTO_TRANSITION, barberPhoto, photoLayoutId } from './photo.js';
 import ProfileDetails from './ProfileDetails.jsx';
 
 const backdrop = { duration: 0.4, ease: EASE_REVEAL };
@@ -34,12 +33,16 @@ export default function BarberProfile({ barber, onClose }) {
   const { openBooking } = useBooking();
   const { cta, team } = site.ui;
   const titleId = `profile-title-${barber.slug}`;
+  // Without a portrait there is no photo column: a large initials box would push the name and the booking
+  // button below the fold on a tablet. ProfileDetails shows a small monogram beside the name instead.
+  const hasPhoto = Boolean(barberPhoto(barber.slug));
 
-  // Scroll must be unlocked before scrolling: a stopped Lenis ignores scrollTo.
-  const book = () => {
+  // Scroll must be unlocked before scrolling: a stopped Lenis ignores scrollTo. `service`: a row of the
+  // barber's price list, booked with both chosen.
+  const book = (service) => {
     unlockScroll();
     onClose();
-    openBooking({ barber: barber.slug });
+    openBooking(service ? { barber: barber.slug, service } : { barber: barber.slug });
   };
 
   return (
@@ -63,32 +66,33 @@ export default function BarberProfile({ barber, onClose }) {
           </motion.div>
 
           {/* grid-cols-1: an auto track would grow to the works row's full scroll width and blow the photo up. */}
-          <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-8 px-5 pb-10 pt-2 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-16 lg:pt-6">
-            <div className="lg:sticky lg:top-[calc(theme(spacing.header)+1.5rem)] lg:self-start">
-              <motion.div
-                layoutId={reduce ? undefined : photoLayoutId(barber.slug)}
-                transition={PHOTO_TRANSITION}
-                style={{ borderRadius: PHOTO_RADIUS }}
-                className="aspect-[4/5] w-full overflow-hidden bg-surface lg:max-w-[min(100%,calc((100dvh-9rem)*0.8))]"
-                {...(reduce ? contentProps : undefined)}
-              >
-                <BarberPhoto
-                  barber={barber}
-                  className="h-full w-full object-cover"
-                  fallbackClassName="h-full text-8xl"
-                />
-              </motion.div>
-            </div>
+          <div
+            className={`mx-auto grid w-full flex-1 grid-cols-1 gap-8 px-5 pb-10 pt-2 lg:gap-16 lg:px-8 lg:pb-16 lg:pt-6 ${
+              hasPhoto ? 'max-w-6xl md:grid-cols-2' : 'max-w-3xl'
+            }`}
+          >
+            {/* Beside the details from md, so a tablet shows the name next to the photo, not under it. */}
+            {hasPhoto && (
+              <div className="md:sticky md:top-[calc(theme(spacing.header)+1.5rem)] md:self-start">
+                <motion.div
+                  layoutId={reduce ? undefined : photoLayoutId(barber.slug)}
+                  transition={PHOTO_TRANSITION}
+                  style={{ borderRadius: PHOTO_RADIUS }}
+                  className="aspect-[4/5] w-full overflow-hidden bg-surface md:max-w-[min(100%,calc((100dvh-9rem)*0.8))]"
+                  {...(reduce ? contentProps : undefined)}
+                >
+                  <BarberPhoto barber={barber} className="h-full w-full object-cover object-[50%_20%]" fallbackClassName="h-full text-8xl" />
+                </motion.div>
+              </div>
+            )}
 
             <motion.div {...contentProps}>
-              <ProfileDetails barber={barber} titleId={titleId} onBook={book} />
+              <ProfileDetails barber={barber} titleId={titleId} monogram={!hasPhoto} onBook={book} />
             </motion.div>
           </div>
 
           <motion.div {...contentProps} className="sticky bottom-0 mt-auto border-t border-line bg-bg/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 lg:hidden">
-            <Button className="w-full" track={{ name: EVENTS.bookClick, where: 'profile', barber: barber.slug }} onClick={book}>
-              {cta.bookWithBarber}
-            </Button>
+            <BookButton className="w-full" label={cta.bookWithBarber} track={{ where: 'profile', barber: barber.slug }} onClick={() => book()} />
           </motion.div>
         </div>
       </div>

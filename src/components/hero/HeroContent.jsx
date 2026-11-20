@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
-import { BOOKING_ID, scrollToId } from '../../lib/scroll.js';
-import { EVENTS } from '../../lib/track.js';
+import { scrollToId } from '../../lib/scroll.js';
+import BookButton from '../BookButton.jsx';
 import Button from '../Button.jsx';
 import Img from '../Img.jsx';
 import OpenBadge from '../OpenBadge.jsx';
 import Reveal from '../Reveal.jsx';
 
+const SERVICES_ID = 'services';
 const TAGLINE =
   'mt-5 text-balance text-[2.25rem] font-extrabold uppercase leading-[1.05] tracking-heading sm:text-6xl sm:leading-[1.02] xl:text-7xl';
 
@@ -47,19 +48,26 @@ export default function HeroContent({ parallaxY, copy = false }) {
           )}
         </div>
 
-        {/* Room for the shears under the headline on mobile; on desktop they take the right half. */}
-        <div aria-hidden="true" className="min-h-[22svh] flex-1 lg:hidden" />
+        {/* Room for the shears under the headline on mobile (less on short screens, so the address and the main action
+            still fit the first screen at 320x568); on desktop they take the right half. */}
+        <div aria-hidden="true" className="min-h-[12svh] flex-1 lg:hidden [@media(min-height:700px)]:min-h-[22svh]" />
 
         <div className="lg:mt-8 lg:w-1/2">
           <p className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base">
             {hero.subline} · {site.addressShort}
           </p>
           <div data-own-cta className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button tabIndex={tabIndex} track={{ name: EVENTS.bookClick, where: 'hero' }} onClick={() => scrollToId(BOOKING_ID)}>
-              {cta.book}
-            </Button>
-            <Button tabIndex={tabIndex} variant="ghost" href={`tel:${site.phone}`} track={{ name: EVENTS.callClick, where: 'hero' }}>
-              {cta.call}
+            <BookButton tabIndex={tabIndex} track={{ where: 'hero' }} />
+            <Button
+              tabIndex={tabIndex}
+              variant="ghost"
+              href={`#${SERVICES_ID}`}
+              onClick={(event) => {
+                event.preventDefault();
+                scrollToId(SERVICES_ID);
+              }}
+            >
+              {cta.services}
             </Button>
           </div>
         </div>

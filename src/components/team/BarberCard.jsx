@@ -31,13 +31,14 @@ export default function BarberCard({ barber, index, onOpen }) {
           layoutId={reduce ? undefined : photoLayoutId(slug)}
           transition={PHOTO_TRANSITION}
           style={{ borderRadius: PHOTO_RADIUS }}
-          className="overflow-hidden border border-line bg-surface"
+          className="overflow-hidden border border-line bg-bg"
         >
-          {/* alt="": the name is the heading right below; a screen reader would read it twice. */}
+          {/* alt="": the name is the heading right below; a screen reader would read it twice. The portraits
+              have the head in the upper third, so the crop keeps it (as in the profile and the booking form). */}
           <BarberPhoto
             barber={barber}
             alt=""
-            className="aspect-[4/5] w-full object-cover"
+            className="aspect-[4/5] w-full object-cover object-[50%_20%]"
             fallbackClassName="aspect-[4/5] text-6xl"
           />
         </motion.div>
@@ -52,9 +53,10 @@ export default function BarberCard({ barber, index, onOpen }) {
       </div>
 
       {/* Grows so the profile button lines up across cards whatever the name/role height. */}
-      <div className="mt-4 flex flex-1 items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-sm leading-snug">
+      {/* Name and rating on the first line, role and Instagram on the second, so the name keeps the width. */}
+      <div className="mt-4 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="min-w-0 text-base normal-case leading-snug tracking-normal">
             <button
               type="button"
               aria-haspopup="dialog"
@@ -64,28 +66,30 @@ export default function BarberCard({ barber, index, onOpen }) {
               {name}
             </button>
           </h3>
-          <span className="mt-2 inline-block rounded border border-line px-2 py-0.5 text-xs font-medium uppercase tracking-heading text-concrete">
-            {role}
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
           {rating != null && (
-            <p className="flex items-center gap-1 text-xs font-bold">
+            <p className="flex shrink-0 items-center gap-1 pt-0.5 text-xs font-bold">
               <StarIcon />
               <span className="sr-only">{team.rating}</span>
               {formatRating(rating)}
             </p>
           )}
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="rounded border border-line px-2 py-0.5 text-xs font-medium uppercase tracking-heading text-concrete">
+            {role}
+          </span>
           {instagram && (
-            // Negative margins keep the 44px touch target without making the row taller.
+            // Its own labelled link, above the card's stretched button; negative margins keep the 44px touch
+            // target without making the row taller.
             <a
               href={instagram}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`Instagram — ${name}`}
-              className="relative z-10 -my-3 -mr-3 flex h-11 w-11 items-center justify-center rounded text-concrete transition-colors duration-300 hover:text-text"
+              aria-label={`${team.instagram} — ${name}`}
+              className="relative z-10 -my-3 -mr-2 flex min-h-11 items-center gap-1.5 rounded px-2 text-xs font-medium text-concrete transition-colors duration-150 hover:text-text"
             >
               <InstagramIcon />
+              {team.instagram}
             </a>
           )}
         </div>

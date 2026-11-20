@@ -1,7 +1,9 @@
 // Matches the fixed header height (tailwind spacing.header).
-const HEADER_OFFSET = -72;
+export const HEADER_HEIGHT = 72;
+const HEADER_OFFSET = -HEADER_HEIGHT;
 
 export const TOP_ID = 'top';
+export const MAIN_ID = 'main';
 export const BOOKING_ID = 'booking';
 
 let lenis = null;
@@ -31,18 +33,29 @@ export function unlockScroll() {
   else document.documentElement.style.overflow = '';
 }
 
-export function scrollToId(id) {
+// Keyboard focus and the address bar follow the scroll: the next Tab starts inside the section, and the link
+// can be shared. tabindex -1 makes a section focusable by script only (index.css hides its ring).
+function arriveAt(el, id) {
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+  el.focus({ preventScroll: true });
+  history.replaceState(null, '', `#${id}`);
+}
+
+// immediate: jump without the smooth scroll (opening a link with #id).
+export function scrollToId(id, { immediate = false } = {}) {
   const el = document.getElementById(id);
   if (!el) return;
+  arriveAt(el, id);
   // A section that is held on screen part of the time (the one pinned under the hero) is not where it looks:
   // its holder names the page position it comes to rest at, and that is the place to scroll to.
   const rest = el.parentElement?.dataset.restTop;
-  if (lenis) {
+  const top = rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET;
+  // A jump goes past Lenis: right after load it still clamps to the page height it measured before the content
+  // was in, and stopped 160px short of the booking form. Lenis follows the native scroll.
+  if (lenis && !immediate) {
     wakeLenis?.();
-    if (rest) lenis.scrollTo(Number(rest));
-    else lenis.scrollTo(el, { offset: HEADER_OFFSET });
+    lenis.scrollTo(top);
     return;
   }
-  const top = rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET;
-  window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  window.scrollTo({ top, behavior: immediate || prefersReducedMotion() ? 'auto' : 'smooth' });
 }

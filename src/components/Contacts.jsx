@@ -2,6 +2,7 @@ import { site } from '../data/site.js';
 import { formatHours } from '../lib/format.js';
 import { kyivNow } from '../lib/time.js';
 import { EVENTS } from '../lib/track.js';
+import ArrowIcon from './ArrowIcon.jsx';
 import Button from './Button.jsx';
 import PhoneLink from './PhoneLink.jsx';
 import Reveal from './Reveal.jsx';
@@ -10,7 +11,9 @@ import SectionTitle from './SectionTitle.jsx';
 
 const { lat, lng } = site.geo;
 const MAP_EMBED_URL = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
-export const ROUTE_URL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+// Google Maps URLs API: `dir` starts a route to the point (from wherever the visitor is), `search` shows it.
+export const ROUTE_URL = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+const MAP_URL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 const TERM = 'text-xs font-medium uppercase tracking-heading text-concrete';
 
 // Rows of the hours table: one "every day" row while all days share the hours, otherwise a row per day.
@@ -77,16 +80,21 @@ export default function Contacts() {
             </table>
           </Reveal>
 
-          <Button
-            variant="ghost"
-            href={ROUTE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            track={{ name: EVENTS.routeClick, where: 'contacts' }}
-            className="mt-8"
-          >
-            {cta.route}
-          </Button>
+          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-2">
+            <Button
+              variant="ghost"
+              href={ROUTE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              track={{ name: EVENTS.routeClick, where: 'contacts' }}
+            >
+              {cta.route}
+            </Button>
+            <Button variant="link" href={MAP_URL} target="_blank" rel="noopener noreferrer">
+              {cta.openMap}
+              <ArrowIcon className="-rotate-45" />
+            </Button>
+          </div>
         </div>
 
         <div className="min-h-[320px] overflow-hidden rounded border border-line bg-bg">
