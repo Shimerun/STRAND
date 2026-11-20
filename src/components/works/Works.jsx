@@ -12,28 +12,19 @@ import PhotoReveal from '../PhotoReveal.jsx';
 import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
-import StripArrows from '../StripArrows.jsx';
 import Lightbox from './Lightbox.jsx';
+import { useColumnSides } from './useColumnSides.js';
 import { useWorksGL } from './useWorksGL.js';
 
-// three.js and R3F: loaded only where WebGL is on and only once the strip comes near the screen.
+// three.js and R3F: loaded only where WebGL is on and only once the grid comes near the screen.
 const WorksGL = lazy(() => import('./gl/WorksGL.jsx'));
 
-const STRIP_ID = 'works-strip';
 const PHOTO_SIZE = { width: 1200, height: 1500 };
-// A filmstrip of even 4:5 frames (photos are cropped to fit), six works and then a button for the rest; the
-// lightbox still pages through all of them.
+// An even grid of 4:5 frames (photos are cropped to fit): six works, three rows of two on phones and two rows
+// of three from md, then a button for the rest. The lightbox still pages through all of them.
 const LIMIT = 6;
 const FRAME = 'aspect-[4/5] rounded';
-// Each photo opens from the right as the strip comes into view, so the row unfolds the way it scrolls.
-const FROM = 'right';
-const barberName = (slug) => site.team.find((member) => member.slug === slug)?.name ?? null;
 
-/**
- * The works as a sideways strip under a heading that stays put: native swipe with snapping (the next photo peeks
- * in at the edge), a trackpad's sideways scroll, and arrows for a mouse or keyboard. Each photo opens the
- * lightbox, which hands focus back to it and leaves the strip where it was.
- */
 export default function Works() {
   const [openIndex, setOpenIndex] = useState(null);
   const close = useCallback(() => setOpenIndex(null), []);
@@ -54,45 +45,37 @@ export default function Works() {
   };
   const reduce = useReducedMotion();
   const listRef = useRef(null);
+  const sideOf = useColumnSides(listRef);
   const { works, social, ui } = site;
   const gl = useWorksGL(listRef, works.length > 0);
   const [expanded, setExpanded] = useState(false);
   const collapsed = !expanded && works.length > LIMIT;
   const shown = collapsed ? works.slice(0, LIMIT) : works;
 
-  // The button goes away once pressed, so focus moves on to the first work it brought in, and the strip to it.
+  // The button goes away once pressed, so focus moves on to the first work it brought in.
   useEffect(() => {
-    const item = expanded ? listRef.current?.children[LIMIT] : null;
-    if (!item) return;
-    item.querySelector('button')?.focus({ preventScroll: true });
-    item.scrollIntoView({ block: 'nearest', inline: 'start', behavior: reduce ? 'auto' : 'smooth' });
-  }, [expanded, reduce]);
+    if (expanded) listRef.current?.children[LIMIT]?.querySelector('button')?.focus({ preventScroll: true });
+  }, [expanded]);
 
   return (
     <Section id="works">
-      <div className="flex items-end justify-between gap-4">
-        <SectionTitle>{ui.sections.works}</SectionTitle>
-        <StripArrows rowRef={listRef} rowId={STRIP_ID} />
-      </div>
+      <SectionTitle>{ui.sections.works}</SectionTitle>
 
-      {/* Bleeds to the screen edges (works-strip in index.css past the content width), so the next photo runs off
-          the edge, and the WebGL planes, drawn over the whole screen, never show past the strip's own edges. */}
-      <ul
-        ref={listRef}
-        id={STRIP_ID}
-        className="works-strip -ml-5 -mr-[var(--gutter)] mt-8 flex snap-x snap-mandatory scroll-pl-5 gap-4 overflow-x-auto overscroll-x-contain pb-2 pl-5 pr-[var(--gutter)] pt-1 [scrollbar-width:none] md:mt-10 md:gap-6"
-      >
+      <ul ref={listRef} className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
         {works.length === 0
           ? // TODO: fill site.works with real photos; placeholders until then.
-            Array.from({ length: LIMIT }, (_, index) => (
-              <li key={index} aria-hidden="true" className="w-[80%] shrink-0 snap-start sm:w-[45%] md:w-[38%] lg:w-[30%]">
-                <PhotoReveal from={FROM} openBy="inView" width={4} height={5} className={FRAME} />
-              </li>
-            ))
-          : shown.map((work, index) => {
-              const author = barberName(work.barber);
+            Array.from({ length: LIMIT }, (_, index) => {
+              const from = sideOf(index);
               return (
-                <li key={work.src} className="w-[80%] shrink-0 snap-start sm:w-[45%] md:w-[38%] lg:w-[30%]">
+                <li key={index} aria-hidden="true">
+                  <PhotoReveal key={from} from={from} openBy="inView" width={4} height={5} className={FRAME} />
+                </li>
+              );
+            })
+          : shown.map((work, index) => {
+              const from = sideOf(index);
+              return (
+                <li key={work.src}>
                   <motion.button
                     type="button"
                     aria-haspopup="dialog"
@@ -101,15 +84,17 @@ export default function Works() {
                     className="block w-full rounded"
                   >
                     {/* The frame the WebGL plane follows; it hides this DOM photo while it draws it (gl/WorkPlane.jsx). */}
-                    <div ref={gl.register(index)} data-from={FROM}>
+                    <div ref={gl.register(index)} data-from={from}>
+                      {/* Keyed by side: the column is known only after layout, and the clip is set up once per mount. */}
                       <PhotoReveal
-                        from={FROM}
+                        key={from}
+                        from={from}
                         openBy="inView"
                         src={assetUrl(work.src)}
-                        // Phones take the 600px copy where it is enough; from md the full photo, which the WebGL
+                        // Phones (two columns) take the 600px copy; from md the full photo, which the WebGL
                         // layer loads anyway, so a desktop never downloads both.
                         srcSet={work.thumb ? `${assetUrl(work.thumb)} 600w, ${assetUrl(work.src)} ${work.width}w` : undefined}
-                        sizes={work.thumb ? `(min-width: 768px) ${work.width}px, 80vw` : undefined}
+                        sizes={work.thumb ? `(min-width: 768px) ${work.width}px, 50vw` : undefined}
                         alt={work.alt}
                         width={work.width ?? PHOTO_SIZE.width}
                         height={work.height ?? PHOTO_SIZE.height}
@@ -117,7 +102,6 @@ export default function Works() {
                       />
                     </div>
                   </motion.button>
-                  {author && <p className="mt-3 text-sm font-medium text-concrete">{author}</p>}
                 </li>
               );
             })}
@@ -134,7 +118,7 @@ export default function Works() {
         <Reveal className="mt-6 md:mt-8">
           <Button variant="link" href={social.instagram} target="_blank" rel="noopener noreferrer">
             {ui.cta.moreWorks}
-            <ArrowIcon className="transition-transform duration-150 motion-safe:group-hover:translate-x-1" />
+            <ArrowIcon className="transition-transform duration-300 motion-safe:group-hover:translate-x-1" />
           </Button>
         </Reveal>
       )}

@@ -14,11 +14,15 @@ const TAGLINE =
 
 /**
  * Photo, headline and calls to action of the first screen. parallaxY: motion value for the photo shift
- * (none under reduced motion). The buttons are marked data-own-cta, which keeps the mobile bar away while they
- * are on screen.
+ * (none under reduced motion). copy: the duplicate drawn for the lower half of the cut, kept out of the
+ * accessibility tree by its parent, so it carries no h1 and no alt text. Its buttons still take clicks (the
+ * top piece is clipped away under them while the flap sags) but are left out of the tab order.
+ * Both sets of buttons are marked data-own-cta, which keeps the mobile bar away while either is on screen
+ * (each is partly clipped away during the cut, so neither alone covers the whole of it).
  */
-export default function HeroContent({ parallaxY }) {
+export default function HeroContent({ parallaxY, copy = false }) {
   const { cta, hero } = site.ui;
+  const tabIndex = copy ? -1 : undefined;
 
   return (
     <div className="relative flex min-h-svh flex-col overflow-hidden">
@@ -27,30 +31,35 @@ export default function HeroContent({ parallaxY }) {
         className={`absolute inset-x-0 top-0 h-[120%] ${parallaxY ? 'will-change-transform' : ''}`}
         style={parallaxY ? { y: parallaxY } : undefined}
       >
-        <Img src={assetUrl(site.images.hero)} alt={site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
+        <Img src={assetUrl(site.images.hero)} alt={copy ? '' : site.ui.alt.hero} width={1600} height={1067} priority className="h-full w-full object-cover" />
       </motion.div>
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/40 to-bg" />
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-24 lg:justify-center lg:pb-16 [@media(min-height:600px)]:pt-28">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16">
         <div className="lg:w-1/2">
           <OpenBadge />
-          <Reveal as="h1" className={TAGLINE}>
-            {site.tagline}
-          </Reveal>
+          {/* The copy is only seen once the cut starts, long after the reveal, so it is drawn revealed. */}
+          {copy ? (
+            <p className={TAGLINE}>{site.tagline}</p>
+          ) : (
+            <Reveal as="h1" className={TAGLINE}>
+              {site.tagline}
+            </Reveal>
+          )}
         </div>
 
-        {/* Room for the shears under the headline on mobile, less on short screens: the frame is pinned, so whatever
-            falls below the first screen (at 320x568, the second button) could never be seen or focused while it is.
-            On desktop the shears take the right half. */}
-        <div aria-hidden="true" className="flex-1 lg:hidden [@media(min-height:600px)]:min-h-[12svh] [@media(min-height:700px)]:min-h-[22svh]" />
+        {/* Room for the shears under the headline on mobile (less on short screens, so the address and the main action
+            still fit the first screen at 320x568); on desktop they take the right half. */}
+        <div aria-hidden="true" className="min-h-[12svh] flex-1 lg:hidden [@media(min-height:700px)]:min-h-[22svh]" />
 
         <div className="lg:mt-8 lg:w-1/2">
           <p className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base">
             {hero.subline} · {site.addressShort}
           </p>
           <div data-own-cta className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <BookButton track={{ where: 'hero' }} />
+            <BookButton tabIndex={tabIndex} track={{ where: 'hero' }} />
             <Button
+              tabIndex={tabIndex}
               variant="ghost"
               href={`#${SERVICES_ID}`}
               onClick={(event) => {

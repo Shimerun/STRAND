@@ -1,5 +1,5 @@
 // Pure pose math shared by the 3D shears and the 2D fallback; must not import three.js.
-import { HERO_CUT, TAU, bladeOpen } from '../../lib/heroCut.js';
+import { HERO_CUT, TAU, cutState } from '../../lib/heroCut.js';
 
 const DEG = Math.PI / 180;
 const HEADER_PX = 72; // tailwind spacing.header
@@ -29,15 +29,15 @@ export const TRACK = {
   mobile: { length: 130, drift: 14, edge: 0.8, top: 16, bottom: 96 },
 };
 const DOCK_END = 0.6; // fraction of the hero height scrolled when the shears sit on the track
-// With the hero cut, docking starts this share of the pin in (just after the snip) and ends with the pin.
-const DOCK_FROM_PIN = HERO_CUT.snipEnd + 0.05;
+// With the hero cut, docking starts this share of the pin in (after the cut) and ends with the pin.
+const DOCK_FROM_PIN = HERO_CUT.cutEnd + 0.08;
 const CUT_TILT = 0.18; // rad the shears pitch with the blades wide open
 const CUT_WOBBLE = 0.05; // rad of side wobble mid-snip
-const SNIP_SCALE = 0.7; // the snipping pair, relative to its hero size
-// While snipping, the shears turn on their long axis so the blades open into the screen: one above the photo,
-// one under it (the 3D rig hides what is under the photo), the way paper sits between real blades. Partly
-// edge-on, as a hand holds them, yet open enough across the screen that the one snip reads.
-export const CUT_ROLL = 40 * DEG;
+// While cutting, the shears turn on their long axis so the blades open into the screen: one above the photo,
+// one under it (the 3D rig hides what is under the photo), the way paper sits between real blades. Near edge-on,
+// as a hand holds them: the upper blade then runs along the cut instead of lying open across the photo, while
+// the rings still read as shears.
+export const CUT_ROLL = 70 * DEG;
 
 /** Scroll range in px over which the shears dock onto the track; the track starts at `to`. */
 export function dockRange(heroHeight, pin) {
@@ -48,23 +48,20 @@ export function dockRange(heroHeight, pin) {
 export const nearAngle = (angle, ref) => angle + TAU * Math.round((ref - angle) / TAU);
 
 /**
- * The one snip (heroCutPhases): the pair stands tips down on the inner edge of the right gutter, the line its
- * track runs down afterwards, halfway down the hero; the blades open on the way there and shut once across the
- * photo. width / height: hero frame in CSS px; length: the hero pose's length in px.
+ * Shears cutting the hero at progress `along`: the pivot (= the centre) on the line, the tips pointing the way
+ * they cut, the blades one snip step long and opening as cutState says. width / height: hero frame in CSS px.
  */
-export function snipPose(phases, width, height, gutter, length, maxOpen) {
-  const open = bladeOpen(phases);
-  const half = (length * SNIP_SCALE) / 2;
-  // Effort while the blades move: a slight wobble and tilt, zero when they are shut.
+export function cutPose(along, width, height, maxOpen) {
+  const { pivot, dir, blade, open, cutEnd } = cutState(along, width, height);
+  // Effort while the blades move: a slight wobble and tilt, zero when they are shut so the tips meet the cut.
   const effort = 4 * open * (1 - open);
   return {
-    x: width - gutter,
-    y: height / 2,
-    length: 2 * half,
-    rotation: { x: CUT_TILT * open, y: 0, z: Math.PI + CUT_WOBBLE * effort },
+    x: pivot.x,
+    y: pivot.y,
+    length: 2 * blade,
+    rotation: { x: CUT_TILT * open, y: 0, z: Math.atan2(-dir.x, -dir.y) + CUT_WOBBLE * effort },
     open: maxOpen * HERO_CUT.openShare * open,
-    // px from the pivot to where the blades cross: the sheet is cut that far as they shut.
-    reach: phases.snip > 0 ? half * (1 - open) : 0,
+    reach: Math.hypot(cutEnd.x - pivot.x, cutEnd.y - pivot.y), // px from the pivot to where the blades cross
   };
 }
 export const END_OFFSET = 0.3; // track ends this many viewports before the end element scrolls into view

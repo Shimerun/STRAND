@@ -31,17 +31,9 @@ function useOwnCtaOnScreen() {
   return onScreen;
 }
 
-const BAR_ROOM = '5rem'; // the bar's height, kept clear under a focused control while it shows (index.css)
-
 export default function MobileBar() {
   const hidden = useOwnCtaOnScreen();
   const { cta } = site.ui;
-
-  // Written only when the bar comes or goes; lg:hidden takes it away on a desktop, so it needs no room there.
-  useEffect(() => {
-    const shown = !hidden && !window.matchMedia('(min-width: 1024px)').matches;
-    document.documentElement.style.setProperty('--bar', shown ? BAR_ROOM : '0px');
-  }, [hidden]);
 
   return (
     <div

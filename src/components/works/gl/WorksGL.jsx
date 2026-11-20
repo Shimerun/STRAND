@@ -52,8 +52,6 @@ function Ticker({ running }) {
     const stop = scrollY.on('change', wake);
     window.addEventListener('pointermove', wake, { passive: true });
     window.addEventListener('pointerdown', wake, { passive: true });
-    // Capture: also the works strip's own sideways scroll, which moves the photos while the page stands still.
-    window.addEventListener('scroll', wake, { passive: true, capture: true });
     // The page growing or shrinking (late content, a resize) moves the photos without any scroll.
     const resized = new ResizeObserver(wake);
     resized.observe(document.body);
@@ -61,7 +59,6 @@ function Ticker({ running }) {
       stop();
       window.removeEventListener('pointermove', wake);
       window.removeEventListener('pointerdown', wake);
-      window.removeEventListener('scroll', wake, { capture: true });
       resized.disconnect();
       cancelAnimationFrame(frame);
     };
