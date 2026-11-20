@@ -2,7 +2,7 @@
 import { TAU, clamp01, ease, heroCutPhases } from '../../lib/heroCut.js';
 import {
   BURST_DURATION, CUT_FADE, CUT_LINE, CUT_ROLL, DESKTOP_MIN_PX, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
-  applyScene, cutPose, dockRange, idleSnip, lerp, mix, nearAngle, scrollSnip, trackPoint, trackTurn, withBurst,
+  applyScene, dockRange, idleSnip, lerp, mix, nearAngle, scrollSnip, snipPose, trackPoint, trackTurn, withBurst,
 } from './pose.js';
 import { burstElapsed, getScene, rig } from './rig.js';
 
@@ -39,12 +39,6 @@ export function heroPose(screen, unit, length, time = 0, idle = 1) {
     rotation: { x: 0, y: hero.yaw + idle * SWAY.amp * Math.sin(TAU * SWAY.hz * time), z: hero.tilt },
   };
 }
-
-// The About text fills the screen through the hero cut: rather than fly across it from the cut's end (left edge)
-// to the track (right edge), the shears fade out early in the dock and back in at its end, on the track.
-const DOCK_DIP = { out: 0.1, in: 0.92 };
-const dockVisibility = (dock) =>
-  1 - ease(clamp01(dock / DOCK_DIP.out)) + ease(clamp01((dock - DOCK_DIP.in) / (1 - DOCK_DIP.in)));
 
 /**
  * Returns step(input) → frame. input: { dt (s), scrollY, dock (0..1), signals, screen, unit, length, maxOpen }.
@@ -90,7 +84,8 @@ export function createRigMotion() {
     // Hero cut: raw scroll (no lag) keeps the tip on the line the hero draws.
     const phases = heroCutPhases(scrollY, signals.cutPin);
     const aim = ease(phases.aim);
-    const cut = cutPose(phases.along, signals.pageWidth, signals.heroHeight, maxOpen);
+    // The snip happens on the track's own line, so docking only slides the pair up it: no flight across the page.
+    const cut = snipPose(phases, signals.pageWidth, signals.heroHeight, signals.gutter, hero.length, maxOpen);
     const before = {
       x: lerp(hero.x, cut.x, aim),
       y: lerp(hero.y, cut.y, aim),
@@ -110,8 +105,7 @@ export function createRigMotion() {
     const holding = pastCut && (now - cutAt) / 1000 < BURST_DURATION; // the final snips play before the fade
     const target = pastCut && !holding ? 0 : 1;
     shown = shown === null ? target : clamp01(shown + Math.sign(target - shown) * (dt / CUT_FADE));
-    const docking = dockVisibility(dock);
-    const opacity = Math.round(ease(shown) * docking * 1000) / 1000;
+    const opacity = Math.round(ease(shown) * 1000) / 1000;
     const leaning = Math.abs(leanX - lean.x) + Math.abs(leanY - lean.y) > POINTER.settle;
 
     const frame = {

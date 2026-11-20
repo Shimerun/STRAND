@@ -50,15 +50,11 @@
     /* Off: Chrome anchored some late changes and not others (Safari none), so the one late change above the
        screen, the Google reviews, is corrected by script (useKeepPlace in Reviews.jsx). */
     overflow-anchor: none;
-    /* A focused control and an anchor jump stop clear of the fixed header (and the mobile bar below lg). */
+    /* A focused control and an anchor jump stop clear of the fixed header, and of the mobile bar while it shows
+       (--bar, set by MobileBar.jsx). Room for a hidden bar made the browser scroll for a focused hero button, which
+       sits in the pinned frame and cannot move: the scroll only played the hero's snip. */
     scroll-padding-top: calc(theme('spacing.header') + 1rem);
-    scroll-padding-bottom: 6rem;
-  }
-
-  @media (min-width: 1024px) {
-    html {
-      scroll-padding-bottom: 1rem;
-    }
+    scroll-padding-bottom: calc(1rem + var(--bar, 0px));
   }
 
   body {
@@ -369,4 +365,18 @@ html.lenis body {
 
 .lenis.lenis-stopped {
   overflow: hidden;
+}
+
+/* The works strip past the 72rem content width: out to the screen edges, its padding keeping the first photo on the
+   content's left edge (the same 100vw in margin and padding, so a classic scrollbar does not shift it). Unlayered,
+   so it wins over the strip's -ml-5 / pl-5 utilities. */
+@media (min-width: 1152px) {
+  .works-strip {
+    --bleed: calc((100vw - 72rem) / 2);
+    margin-left: calc(-1 * (var(--bleed) + 1.25rem));
+    margin-right: calc(-1 * (var(--bleed) + var(--gutter)));
+    padding-left: calc(var(--bleed) + 1.25rem);
+    padding-right: calc(var(--bleed) + var(--gutter));
+    scroll-padding-left: calc(var(--bleed) + 1.25rem);
+  }
 }

@@ -93,11 +93,11 @@ export default function App() {
       <Intro />
       <Header />
       <main id={MAIN_ID} tabIndex={-1}>
-        {/* The section inside the hero is what shows through its cut. */}
+        {/* The section inside the hero is the one it slides away to. */}
         <Hero>
-          <About />
+          <Services />
         </Hero>
-        <Services />
+        <About />
         <Team />
         <Works />
         <Reviews />

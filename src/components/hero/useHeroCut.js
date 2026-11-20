@@ -1,28 +1,16 @@
 import { useLayoutEffect } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
-import { clamp01, cutGeometry, cutSoFar, cutState, heroCutPhases } from '../../lib/heroCut.js';
-import { FOLD, creaseAt, fallAt, foldAt, foldTransform, folded, wedged } from './paper.js';
+import { clamp01, ease, heroCutPhases } from '../../lib/heroCut.js';
 
-// Once the cut is through, the halves part and swell a little: the top springs up (ease-out, shift in frame
-// heights), the flap falls like paper (paper.js). Both are off screen when the pin ends.
-const PART = { top: { y: -0.75, rotate: -3 }, zoom: 0.2 };
-// While the cut runs, the flap below it sags from the cutting point: by `drop` of the frame height at the right
-// edge once the cut is through (growing with the square of the cut, so it starts gently), never steeper than maxTan.
-const SAG = { drop: 0.04, maxTan: 0.1 };
-// The top piece reaches `overlap` px under the flap along their shared edge (from `below` px under the cutting
-// point down), so no hairline shows between the two.
-const SEAM = { overlap: 1.5, below: 4 };
-const UNDERLAY_FROM = 0.9; // the next section grows from this scale to 1 as the halves part
+const SLIDE_PAST = 1.04; // the photo travels this share of its width to the left: its edge shadow leaves too
+const UNDERLAY_FROM = 0.3; // the next section starts this share of the width to the right and slides in under it
 const PARALLAX = 20; // % of the photo height over the whole hero scroll
-const polygon = (points) => `polygon(${points.map(({ x, y }) => `${x}px ${y}px`).join(', ')})`;
-const started = (points) => points?.length > 1; // the cut has entered the frame
 
 /**
- * Motion values for the hero cut. The top piece keeps everything above the line plus the part not cut yet;
- * the flap is the cut-off part below it, hinged at the cutting point and sagging as the cut grows, so the gap
- * between them opens onto the underlay: the content after the hero, which CSS holds under the frame for the
- * whole pin (see Hero.jsx). Afterwards the halves fly apart while the underlay grows to full size.
- * underlayRef: the sticky element holding that content (absent under reduced motion).
+ * Motion values for the hero's exit (src/lib/heroCut.js): one snip on the photo's right edge, then the photo
+ * slides off to the left and the underlay, the section after the hero that CSS holds under the frame for the
+ * whole pin (see Hero.jsx), slides in from the right into its own place.
+ * underlayRef: the sticky element holding that section (absent under reduced motion).
  */
 export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const { scrollY } = useScroll();
@@ -51,94 +39,46 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
     const observer = new ResizeObserver(measure);
     observer.observe(section);
     observer.observe(frame);
+    // Tab into the section while the photo still covers it: skip to where it rests, so the focused control shows.
+    const uncover = () => {
+      const rest = Number(underlay?.dataset.restTop);
+      if (rest && window.scrollY < rest - 1) window.scrollTo({ top: rest, behavior: 'auto' });
+    };
+    underlay?.addEventListener('focusin', uncover);
     return () => {
+      underlay?.removeEventListener('focusin', uncover);
       observer.disconnect();
       if (!underlay) return;
       wrapper.style.marginTop = '';
       delete underlay.dataset.restTop;
-      Object.assign(underlay.style, { transform: '', transformOrigin: '', willChange: '' });
+      Object.assign(underlay.style, { transform: '', willChange: '' });
     };
   }, [sectionRef, frameRef, underlayRef, enabled, width, height, pin]);
 
   const phases = useTransform([scrollY, pin], ([y, p]) => heroCutPhases(y, p));
-  const state = useTransform([phases, width, height], ([phase, w, h]) => (w ? cutState(phase.along, w, h) : null));
-  const split = useTransform(phases, (phase) => phase.split);
-  const soFar = useTransform([state, width, height], ([s, w, h]) => (s ? cutSoFar(cutGeometry(w, h), s.cutEnd) : null));
-  const share = useTransform(state, (s) => s?.share ?? 0);
-  const flapEdge = useTransform([soFar, state], ([points, s]) => (started(points) ? wedged(points, s.press) : points));
-  const fold = useTransform(share, foldAt);
-  const fall = useTransform([split, width, height], ([s, w, h]) => fallAt(s, w, h));
-  const sag = useTransform([soFar, share, width, height], ([points, sh, w, h]) =>
-    started(points) ? Math.min((SAG.drop * h * sh * sh) / Math.max(w - points.at(-1).x, 1), SAG.maxTan) : 0,
-  );
-  const zoomOrigin = useTransform([width, height], ([w, h]) => {
-    if (!w) return { x: '50%', y: '50%' };
-    const { points } = cutGeometry(w, h);
-    return { x: `${w / 2}px`, y: `${points[points.length >> 1].y}px` };
-  });
+  const slide = useTransform(phases, (phase) => ease(phase.slide));
 
-  // Under the frame the underlay is a bit smaller, so the gap shows it at a distance; it grows to full size as
-  // the halves part. Only the scale is scripted (its place is held by CSS), and as a string, so the style is
-  // written when the scale changes, not on every scroll frame. While scaled it is a layer of its own (otherwise
-  // every frame of the split repaints the whole screen, which Safari on a phone cannot keep up with); once the
-  // pin is over the layer goes, so the text comes back crisp at full size.
-  const underlayScale = useTransform([scrollY, pin, split], ([y, p, s]) =>
-    p > 0 && y < p ? `scale(${UNDERLAY_FROM + (1 - UNDERLAY_FROM) * s})` : '',
+  // Only the shift is scripted (its place is held by CSS), and as a string, so the style is written when it
+  // changes, not on every scroll frame; it is a layer of its own only while it moves.
+  const underlayShift = useTransform([scrollY, pin, slide, width], ([y, p, s, w]) =>
+    p > 0 && y < p ? `translate3d(${Math.round((1 - s) * UNDERLAY_FROM * w)}px, 0, 0)` : '',
   );
-  useMotionValueEvent(underlayScale, 'change', (transform) => {
+  useMotionValueEvent(underlayShift, 'change', (transform) => {
     const underlay = underlayRef.current;
     if (!underlay) return;
     underlay.style.transform = transform;
-    underlay.style.transformOrigin = transform ? `50% ${height.get() / 2}px` : '';
     underlay.style.willChange = transform ? 'transform' : '';
   });
 
   return {
-    state,
-    split,
-    soFar,
-    // The paper the closing blades press around the cutting point (CutMarks).
-    crease: useTransform([state, width, height], ([s, w, h]) => (s && w ? creaseAt(cutGeometry(w, h), s) : null)),
-    // The strip's edge on screen, sagged and folded, for the cut marks.
-    flapLine: useTransform([flapEdge, soFar, sag, fold], ([points, cut, tan, deg]) => (started(cut) ? folded(points, cut, tan, deg) : null)),
     aim: useTransform(phases, (phase) => phase.aim),
-    // Gone once the halves have parted, so the invisible frame never covers the section beneath.
-    frameVisibility: useTransform(split, (s) => (s >= 1 ? 'hidden' : 'visible')),
-    origin: { x: useTransform(zoomOrigin, (o) => o.x), y: useTransform(zoomOrigin, (o) => o.y) },
-    swell: useTransform(split, (s) => 1 + PART.zoom * s),
-    top: {
-      // Unclipped until measured and until the cut enters the frame, so the first paint and the LCP photo never
-      // come out empty.
-      clip: useTransform([soFar, width, height], ([points, w, h]) => {
-        if (!started(points)) return 'none';
-        const { x, y } = points.at(-1);
-        const seam = x + SEAM.overlap;
-        return polygon([{ x: 0, y: 0 }, { x: w, y: 0 }, ...points, { x: seam, y: y + SEAM.below }, { x: seam, y: h }, { x: 0, y: h }]);
-      }),
-      y: useTransform([split, height], ([s, h]) => (1 - (1 - s) ** 2) * PART.top.y * h),
-      rotate: useTransform(split, (s) => s * PART.top.rotate),
-    },
-    flap: {
-      clip: useTransform([flapEdge, width, height], ([points, w, h]) =>
-        points ? polygon([...[...points].reverse(), { x: w, y: h }, { x: points.at(-1).x, y: h }]) : 'none',
-      ),
-      // The strip turns away from the light as it lifts: the shade over it (Hero.jsx) comes up with the fold.
-      shade: useTransform(fold, (deg) => deg / FOLD.deg),
-      // About the cutting point: a skew bends the flap down without moving its edge under the uncut part, and
-      // the fold lifts it towards the viewer.
-      origin: useTransform(soFar, (points) => (points ? `${points.at(-1).x}px ${points.at(-1).y}px` : '100% 50%')),
-      transform: useTransform([soFar, sag, fold], ([cut, tan, deg]) => (started(cut) ? foldTransform(cut, tan, deg) : 'none')),
-      visibility: useTransform(soFar, (points) => (started(points) ? 'visible' : 'hidden')),
-      // The fall, on a wrapper turning about the strip's middle.
-      fall: {
-        x: useTransform(fall, (f) => f.x),
-        y: useTransform(fall, (f) => f.y),
-        rotate: useTransform(fall, (f) => f.rotate),
-        rotateX: useTransform(fall, (f) => f.rotateX),
-        rotateY: useTransform(fall, (f) => f.rotateY),
-        transformPerspective: useTransform(fall, (f) => f.perspective),
-      },
-    },
+    // 1 once the blades have shut: the photo jolts (useSnipJolt).
+    snipped: useTransform(phases, (phase) => (phase.snip >= 1 ? 1 : 0)),
+    // The fresh cut along the photo's right edge comes up as the blades shut.
+    edge: useTransform(phases, (phase) => phase.snip),
+    slideX: useTransform([slide, width], ([s, w]) => -s * SLIDE_PAST * w),
+    // Gone once the photo has left, so the invisible frame never covers the section beneath.
+    frameVisibility: useTransform(phases, (phase) => (phase.slide >= 1 ? 'hidden' : 'visible')),
     parallaxY: useTransform([scrollY, height, pin], ([y, h, p]) => `${clamp01(y / (h + p || 1)) * PARALLAX}%`),
   };
 }

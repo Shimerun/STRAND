@@ -141,8 +141,8 @@ export const site = {
   // Need a new string later? Add it here first, then use it in the component.
   ui: {
     nav: [
-      { id: "about", label: "Про нас" },
       { id: "services", label: "Послуги" },
+      { id: "about", label: "Про нас" },
       { id: "team", label: "Команда" },
       { id: "works", label: "Роботи" },
       { id: "reviews", label: "Відгуки" },
@@ -165,7 +165,7 @@ export const site = {
     status: { open: "Зараз відчинено", closed: "Зараз зачинено" },
     hero: { subline: "Барбершоп у Житомирі" }, // component appends " · " + site.addressShort
     alt: { hero: "Барбершоп Strand у Житомирі", about: "Майстер Strand за роботою" }, // barber photos use the barber's name
-    sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", contacts: "Контакти" },
+    sections: { about: "Про нас", services: "Послуги та ціни", team: "Команда", works: "Роботи", reviews: "Відгуки", contacts: "Контакти" },
     services: { main: "Стрижки та борода", more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від" },
     units: { min: "хв", hour: "год", currency: "₴" },
     team: { instagram: "Instagram", prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },

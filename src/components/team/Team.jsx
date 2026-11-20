@@ -14,7 +14,7 @@ export default function Team() {
 
   return (
     // Clips the orbiting works of a right-hand card at the screen edge instead of widening the page.
-    <Section id="team" tone="surface" className="overflow-x-clip">
+    <Section id="team" className="overflow-x-clip">
       <SectionTitle>{site.ui.sections.team}</SectionTitle>
 
       {/* Horizontal scroll-snap on mobile, bleeding to the left edge; grid from md up. */}

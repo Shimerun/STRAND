@@ -1,146 +1,32 @@
-// Scroll-driven cut of the hero, shared by the hero (DOM) and the shears (rig) so the blades and the cut agree.
-// The hero pins for `pin` hero heights of scroll: the shears move onto a wavy line and cut it right to left,
-// snip by snip; then the halves part and swell towards the viewer while the next section shows through the cut.
+// Scroll-driven exit of the hero, shared by the hero (DOM) and the shears (rig) so the snip and the slide agree.
+// The hero pins for `pin` frame heights of scroll: the shears move onto the photo's right edge and snip it once,
+// then the photo slides off to the left while the services slide in from the right.
 export const HERO_CUT = {
-  // Extra scroll while the hero stays pinned, in hero (frame) heights. Phones get fewer snips (minSnips); desktop
-  // (>= 1024px) has up to maxSnips. Was 2 / 3 until 2026-11-20: the content took too long to come up.
-  pin: { mobile: 1, desktop: 1.5 },
-  // At 0.08 the move onto the line ran 2-4x faster than the page (measured with a wheel, 2026-11-17).
-  aimEnd: 0.15, // share of the pin: the shears move from the hero pose onto the line
-  cutEnd: 0.76, // share of the pin: the last snip; the halves part over the rest
-  right: 0.44, // line height at the right edge, share of the frame height
-  left: 0.56, // line height at the left edge (before the wave)
-  wave: [
-    { amp: 0.07, cycles: 1.1, phase: 0 }, // the main bend, share of the height / cycles across the width
-    { amp: 0.012, cycles: 3.3, phase: 1 }, // a small wobble, as if cut by hand
-  ],
-  overshoot: 0.04, // the cut starts and ends this share of the width beyond the edges
-  snipWidth: 210, // px of screen width per snip
-  minSnips: 3,
-  maxSnips: 7,
-  openShare: 0.8, // how wide the blades open while cutting, share of the model's max opening
+  // Short, so one scroll gesture starts it and the page carries on. Until 2026-11-20 it was a cut of 3 to 7 snips
+  // along a wavy line over 1 / 1.5 screens (in git before that date).
+  pin: { mobile: 0.8, desktop: 1 },
+  aimEnd: 0.25, // share of the pin: the shears move from the hero pose onto the edge, opening as they go
+  snipEnd: 0.45, // share of the pin: the blades shut once; the photo slides away over the rest
+  openShare: 0.8, // how wide the blades open, share of the model's max opening
   bite: 3, // power of the closing ease: the blades press slowly, then snap shut
-  // Share of each snip's scroll the blades spend closing in place; the shears move forward over the rest. At half,
-  // they stood still for half the scroll and then ran at up to 3x its speed.
-  closeShare: 0.35,
 };
 
-// Points along the line: one per SAMPLE_PX of width, within these bounds. Every point goes into the two clip
-// paths and the cut marks redrawn on each scroll frame, so a phone gets ~70 instead of a fixed 160.
-const SAMPLE_PX = 6;
-const SAMPLES = { min: 48, max: 160 };
-const KINK_PX = 1.2; // how far off the line one snip can run
-const PRESS_BUILD = 0.3; // share of a closing over which the blades come to bear on the paper
-const PRESS_RELEASE = 0.12; // and the last share, as they snap through, over which the paper springs back
 // Shared with the shears, the hero and the footer stencil.
 export const TAU = Math.PI * 2;
 export const clamp01 = (value) => Math.min(Math.max(value, 0), 1);
 export const ease = (t) => t * t * (3 - 2 * t); // smoothstep on 0..1
 
-/** Progress 0..1 of each phase at `scrollY` for a pin of `pin` px (0 = no cut, everything stays 0). */
+// Progress through [from, to] at t; exactly 1 from `to` on (floating point left 0.9999… at the very end of the pin,
+// where a link to the next section lands).
+const span = (t, from, to) => (t >= to ? 1 : clamp01((t - from) / (to - from)));
+
+/** Progress 0..1 of each phase at `scrollY` for a pin of `pin` px (0 = no pin, everything stays 0). */
 export function heroCutPhases(scrollY, pin) {
-  if (pin <= 0) return { aim: 0, along: 0, split: 0 };
-  const aimEnd = HERO_CUT.aimEnd * pin;
-  const cutEnd = HERO_CUT.cutEnd * pin;
-  return {
-    aim: clamp01(scrollY / aimEnd),
-    along: clamp01((scrollY - aimEnd) / (cutEnd - aimEnd)),
-    split: clamp01((scrollY - cutEnd) / (pin - cutEnd)),
-  };
+  if (pin <= 0) return { aim: 0, snip: 0, slide: 0 };
+  const t = scrollY / pin;
+  const { aimEnd, snipEnd } = HERO_CUT;
+  return { aim: span(t, 0, aimEnd), snip: span(t, aimEnd, snipEnd), slide: span(t, snipEnd, 1) };
 }
 
-// The wave is scaled by the width too, so a tall phone screen gets a gentle bend the blades can follow.
-const BEND_PER_WIDTH = 0.6;
-
-// u: 0 at the right edge, 1 at the left edge (the way the shears cut).
-function curvePoint(u, width, height) {
-  const bend = HERO_CUT.wave.reduce((sum, { amp, cycles, phase }) => sum + amp * Math.sin(TAU * cycles * u + phase), 0);
-  const base = height * (HERO_CUT.right + (HERO_CUT.left - HERO_CUT.right) * u);
-  return { x: width * (1 - u), y: base + bend * Math.min(height, width * BEND_PER_WIDTH) };
-}
-
-let cached = null;
-
-/**
- * The cut line in frame px, sampled from past the right edge to past the left edge with the distance
- * along it: { points: [{ x, y, d }], total, snips, step }. Cached for the last frame size.
- */
-export function cutGeometry(width, height) {
-  if (cached && cached.width === width && cached.height === height) return cached;
-  const { overshoot } = HERO_CUT;
-  const points = [];
-  const samples = Math.min(Math.max(Math.round(width / SAMPLE_PX), SAMPLES.min), SAMPLES.max);
-  let d = 0;
-  for (let i = 0; i <= samples; i++) {
-    const point = curvePoint(-overshoot + ((1 + 2 * overshoot) * i) / samples, width, height);
-    if (i > 0) d += Math.hypot(point.x - points[i - 1].x, point.y - points[i - 1].y);
-    points.push({ ...point, d });
-  }
-  const snips = Math.min(Math.max(Math.round(width / HERO_CUT.snipWidth), HERO_CUT.minSnips), HERO_CUT.maxSnips);
-  const step = d / snips;
-  // Each snip runs a hair off the last one, so the edge steps a little at every closing, as a hand-held cut does.
-  points.forEach((point) => {
-    point.y += KINK_PX * ((((Math.floor(point.d / step) * 0.618) % 1) * 2) - 1);
-  });
-  cached = { width, height, points, total: d, snips, step };
-  return cached;
-}
-
-/** Point at distance `d` along the line; past either end it carries on straight. */
-export function pointAt(geometry, d) {
-  const { points } = geometry;
-  let i = 1;
-  while (i < points.length - 1 && points[i].d < d) i++;
-  const a = points[i - 1];
-  const b = points[i];
-  const t = (d - a.d) / (b.d - a.d || 1);
-  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
-/**
- * Blades at cut progress `along` (0..1). Each snip first closes in place, so the cutting point runs from
- * the pivot to the tips and the cut grows by one blade, then opens while the shears push forward one blade.
- * The blades (the model's pivot is its centre, so blade = half the length) span the chord to where they
- * will next shut and aim along it, so the tips meet the curve exactly when they close.
- */
-export function cutState(along, width, height) {
-  const geometry = cutGeometry(width, height);
-  const { step, snips, total } = geometry;
-  const progress = along * snips;
-  const snip = Math.floor(progress);
-  const phase = progress - snip;
-  const { closeShare } = HERO_CUT;
-  const closing = phase < closeShare;
-  const closeT = phase / closeShare; // 0..1 through the closing
-  const t = closing ? closeT ** HERO_CUT.bite : ease((phase - closeShare) / (1 - closeShare));
-  const pivotD = snip * step + (closing ? 0 : step * t);
-  const cut = Math.min(snip * step + (closing ? step * t : step), total);
-  const pivot = pointAt(geometry, pivotD);
-  const ahead = pointAt(geometry, pivotD + step);
-  const chord = Math.hypot(ahead.x - pivot.x, ahead.y - pivot.y) || 1;
-  return {
-    pivot,
-    cutEnd: pointAt(geometry, cut),
-    cut,
-    share: cut / total,
-    open: closing ? 1 - t : t,
-    dir: { x: (ahead.x - pivot.x) / chord, y: (ahead.y - pivot.y) / chord },
-    blade: chord,
-    closings: Math.min(Math.floor(progress + 1 - closeShare), snips),
-    // 0..1: how hard the closing blades bear on the paper ahead of the cut (nothing while they open), and where
-    // along the line they will meet.
-    press: closing ? ease(Math.min(closeT / PRESS_BUILD, 1)) * (1 - ease(clamp01((closeT - 1 + PRESS_RELEASE) / PRESS_RELEASE))) : 0,
-    shut: Math.min((snip + 1) * step, total),
-  };
-}
-
-/**
- * Line points from the right edge of the frame up to the cutting point, in cutting order. The last one is
- * the hinge the cut-off flap hangs from (the right edge itself until the cut enters the frame).
- */
-export function cutSoFar(geometry, cutEnd) {
-  const edge = curvePoint(0, geometry.width, geometry.height);
-  if (cutEnd.x >= edge.x) return [edge];
-  const inside = geometry.points.filter((point) => point.x < edge.x && point.x > cutEnd.x);
-  return [edge, ...inside, cutEnd];
-}
+/** How far the blades are open, 0..1: they open on the way to the edge and shut over the snip. */
+export const bladeOpen = ({ aim, snip }) => (snip > 0 ? 1 - snip ** HERO_CUT.bite : ease(aim));

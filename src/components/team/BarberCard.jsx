@@ -31,7 +31,7 @@ export default function BarberCard({ barber, index, onOpen }) {
           layoutId={reduce ? undefined : photoLayoutId(slug)}
           transition={PHOTO_TRANSITION}
           style={{ borderRadius: PHOTO_RADIUS }}
-          className="overflow-hidden border border-line bg-bg"
+          className="overflow-hidden border border-line bg-surface"
         >
           {/* alt="": the name is the heading right below; a screen reader would read it twice. The portraits
               have the head in the upper third, so the crop keeps it (as in the profile and the booking form). */}
