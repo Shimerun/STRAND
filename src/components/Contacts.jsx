@@ -9,11 +9,13 @@ import Reveal from './Reveal.jsx';
 import Section from './Section.jsx';
 import SectionTitle from './SectionTitle.jsx';
 
-const { lat, lng } = site.geo;
-const MAP_EMBED_URL = `https://www.google.com/maps?q=${lat},${lng}&output=embed`;
-// Google Maps URLs API: `dir` starts a route to the point (from wherever the visitor is), `search` shows it.
-export const ROUTE_URL = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-const MAP_URL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+// Name and address, not coordinates: Google then opens the barbershop's own card (name, reviews, hours) instead of
+// a bare pin. Checked 2026-11-25: this query resolves to the "Strand Барбершоп" card.
+const PLACE = encodeURIComponent(`${site.name} ${site.ui.brand.sub}, ${site.address}`);
+const MAP_EMBED_URL = `https://www.google.com/maps?q=${PLACE}&output=embed`;
+// Google Maps URLs API: `dir` starts a route to the place (from wherever the visitor is), `search` shows it.
+export const ROUTE_URL = `https://www.google.com/maps/dir/?api=1&destination=${PLACE}`;
+const MAP_URL = `https://www.google.com/maps/search/?api=1&query=${PLACE}`;
 const TERM = 'text-xs font-medium uppercase tracking-heading text-concrete';
 
 // Rows of the hours table: one "every day" row while all days share the hours, otherwise a row per day.
