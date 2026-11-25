@@ -49,7 +49,11 @@ export function scrollToId(id, { immediate = false } = {}) {
   // A section that is held on screen part of the time (the one pinned under the hero) is not where it looks:
   // its holder names the page position it comes to rest at, and that is the place to scroll to.
   const rest = el.parentElement?.dataset.restTop;
-  const top = rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET;
+  scrollToY(rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET, { immediate });
+}
+
+/** Scrolls the page to `top` (px): smoothly through Lenis where it runs, natively otherwise. */
+export function scrollToY(top, { immediate = false } = {}) {
   // A jump goes past Lenis: right after load it still clamps to the page height it measured before the content
   // was in, and stopped 160px short of the booking form. Lenis follows the native scroll.
   if (lenis && !immediate) {

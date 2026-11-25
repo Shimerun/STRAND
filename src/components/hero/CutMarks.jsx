@@ -102,7 +102,7 @@ export function useCutMarks(cut) {
 /** Drawn with the top piece (same box and transform): its lit edge and the shadow it casts into the gap. */
 export default function CutMarks({ cut, paths }) {
   return (
-    <motion.div aria-hidden="true" style={{ y: cut.top.y, rotate: cut.top.rotate }} className="pointer-events-none absolute inset-0 z-10">
+    <motion.div aria-hidden="true" style={cut.top.motion} className="pointer-events-none absolute inset-0 z-10">
       <svg className="h-full w-full overflow-visible">
         <motion.g style={{ opacity: paths.shadow }} className="fill-bg">
           <motion.path d={paths.dim} fillOpacity={SHADOW.base} />

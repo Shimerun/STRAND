@@ -157,6 +157,7 @@ export const site = {
       route: "Маршрут",
       openMap: "Відкрити на карті",
       skip: "Перейти до вмісту",
+      skipIntro: "Пропустити інтро", // jumps past the hero's cut and flight to the section under it
       bookWithBarber: "Записатись до майстра",
       moreWorks: "Більше робіт в Instagram",
       menu: "Меню",

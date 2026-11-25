@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { cutSlope } from '../../lib/heroCut.js';
 import { EASE_REVEAL } from '../../lib/motion.js';
 import { TOP_ID } from '../../lib/scroll.js';
 import { CUT_LINE } from './pose.js';
@@ -14,10 +15,16 @@ const SECTIONS = `main section[id]:not(#${TOP_ID}):not([data-hero-underlay] sect
 
 let lastId = 0;
 
-// One cut, anchored to the document so it stays where the page was cut.
+// One cut, anchored to the document so it stays where the page was cut. It runs from the shears' tip to the left
+// edge at the slant of the hero's cut (lower on the left), so every section is cut along the same line; lengthened
+// by 1/cos so it still reaches the edge.
 function Cut({ cut, onDone }) {
+  const length = cut.x / Math.cos(cut.angle);
   return (
-    <div className="absolute left-0 top-0" style={{ width: cut.x, transform: `translateY(${cut.y}px)` }}>
+    <div
+      className="absolute top-0"
+      style={{ left: cut.x - length, width: length, transform: `translateY(${cut.y}px) rotate(${-cut.angle}rad)`, transformOrigin: '100% 0' }}
+    >
       <motion.div
         className="cut-dashed relative h-px"
         style={{ originX: 1 }}
@@ -47,8 +54,10 @@ export default function CutReveal() {
 
   useEffect(() => {
     const addCut = (viewportY) => {
-      const x = Math.min(rig.tipX, document.documentElement.clientWidth);
-      setCuts((list) => [...list, { id: ++lastId, x, y: window.scrollY + viewportY }]);
+      const width = document.documentElement.clientWidth;
+      const x = Math.min(rig.tipX, width);
+      const angle = Math.atan(cutSlope(width, window.innerHeight));
+      setCuts((list) => [...list, { id: ++lastId, x, y: window.scrollY + viewportY, angle }]);
     };
 
     const sections = new IntersectionObserver(

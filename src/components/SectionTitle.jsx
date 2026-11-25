@@ -1,7 +1,9 @@
-import { Fragment, useRef } from 'react';
-import { motion, useReducedMotion, useScroll } from 'framer-motion';
+import { Fragment, useContext, useEffect, useRef } from 'react';
+import { motion, useAnimationControls, useReducedMotion, useScroll } from 'framer-motion';
+import { PORTAL } from '../lib/heroCut.js';
 import { maskWord, maskWords, revealViewport } from '../lib/motion.js';
 import { useScrollWeight } from '../lib/scrollWeight.js';
+import { PortalCamera } from './hero/portalPlanes.js';
 import Reveal from './Reveal.jsx';
 
 // The hairline is drawn by the scroll while the title travels from the bottom edge to 60% of the screen.
@@ -14,10 +16,28 @@ const H2_WEIGHT = 800; // font-extrabold, the h2 base style
 // scroll speed; contain keeps a weight change from re-laying out the section.
 function MaskedWords({ text }) {
   const layerRef = useRef(null);
+  // Under the hero cut the section is on screen (beneath the hero) from the start, so in view says nothing: the
+  // words rise as the flight through the cut lands instead, once; already landed (a jump to it): in place at once.
+  const camera = useContext(PortalCamera);
+  const controls = useAnimationControls();
   useScrollWeight(layerRef, H2_WEIGHT);
+  useEffect(() => {
+    if (!camera) return undefined;
+    // A flag, not an unsubscribe: leaving mid-notify makes the value skip the next listener (the flight's own).
+    let landed = false;
+    const land = (c) => {
+      if (landed || c < PORTAL.title) return;
+      landed = true;
+      if (c < 1) controls.start('visible');
+      else controls.set('visible');
+    };
+    land(camera.get());
+    return camera.on('change', land);
+  }, [camera, controls]);
+  const reveal = camera ? { animate: controls } : { whileInView: 'visible', viewport: revealViewport };
 
   return (
-    <motion.h2 variants={maskWords} initial="hidden" whileInView="visible" viewport={revealViewport} className={`relative ${H2}`}>
+    <motion.h2 variants={maskWords} initial="hidden" {...reveal} className={`relative ${H2}`}>
       <span className="text-transparent">{text}</span>
       <span ref={layerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 select-none [contain:layout_size]">
         {text.split(' ').map((word, index) => (

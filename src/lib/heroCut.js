@@ -3,11 +3,12 @@
 // snip by snip; then the halves part and swell towards the viewer while the next section shows through the cut.
 export const HERO_CUT = {
   // Extra scroll while the hero stays pinned, in hero (frame) heights. Phones get fewer snips (minSnips); desktop
-  // (>= 1024px) has up to maxSnips. Was 2 / 3 until 2026-11-20: the content took too long to come up.
-  pin: { mobile: 1, desktop: 1.5 },
+  // (>= 1024px) has up to maxSnips. Was 2 / 3 until 2026-11-20: the content took too long to come up; 1 / 1.5 until
+  // 2026-11-21, when the flight through the cut (PORTAL) got room of its own and the cut ~9% less.
+  pin: { mobile: 1.15, desktop: 1.7 },
   // At 0.08 the move onto the line ran 2-4x faster than the page (measured with a wheel, 2026-11-17).
-  aimEnd: 0.15, // share of the pin: the shears move from the hero pose onto the line
-  cutEnd: 0.76, // share of the pin: the last snip; the halves part over the rest
+  aimEnd: 0.13, // share of the pin: the shears move from the hero pose onto the line
+  cutEnd: 0.62, // share of the pin: the last snip; the camera flies through the cut over the rest
   right: 0.44, // line height at the right edge, share of the frame height
   left: 0.56, // line height at the left edge (before the wave)
   wave: [
@@ -48,6 +49,49 @@ export function heroCutPhases(scrollY, pin) {
     split: clamp01((scrollY - cutEnd) / (pin - cutEnd)),
   };
 }
+
+// Once the cut is through, one camera flies through it: the hero swells past the viewer (`depth`: ×1/(1-depth) by the
+// end) while the section under the cut comes in as planes (marked data-portal in it, see portalPlanes.js), each `z`
+// travel units deeper than where it lands (1/(1+z) of its size as the camera sets off), turned `turn` deg off facing
+// the viewer, `pull` of the way from its place to the middle of the screen (where the camera is aimed: the photo is
+// what the cut opens onto, on a phone too, where it lies under the text), shown over `show` of the flight; all land
+// together as the camera stops. The section's band stays put
+// behind them, the far wall, at `wall` opacity as the camera sets off. rise: share of the screen height over which
+// the planes also rise into place, at the scroll's own pace at the end, so they scroll on with no change of speed.
+// The photo leads, then the title, then the text under it (as the camera nears, both in full view before it stops).
+// title: camera travel at which the title's words rise out of their masks (SectionTitle), once, as it fades in.
+export const PORTAL = {
+  depth: 0.78,
+  rise: 0.25,
+  planes: {
+    photo: { z: 0.8, turn: -14, pull: 0.55, show: null },
+    title: { z: 0.35, turn: 0, pull: 0, show: [0.55, 0.7] },
+    text: { z: 0.35, turn: 0, pull: 0, show: [0.7, 0.92] },
+  },
+  wall: 0.45,
+  title: 0.55,
+};
+
+/** Camera travel 0..1 over the flight (split 0..1): it sets off and lands at rest. */
+export const portalCamera = (split) => ease(split);
+
+/** Scale of the hero at camera travel c. */
+export const heroScale = (c) => 1 / (1 - PORTAL.depth * c);
+
+/** Scale of a plane of the next section `z` travel units deeper than where it lands, at camera travel c. */
+export const planeScale = (c, z) => 1 / (1 + z * (1 - c));
+
+/**
+ * Px the next section still sits below its place while `left` px of the pin remain, rising over `room` px. Constant
+ * (room / 2) until then, 0 at the end, and falling by 1 px per px of scroll just as the pin ends.
+ */
+export const riseAt = (left, room) => (left >= room ? room / 2 : left - (left * left) / (2 * room));
+
+/**
+ * Rise of the cut's chord per px of width (its right end is higher than its left): the slant every later section is
+ * cut at (CutReveal), so the page keeps the hero's line.
+ */
+export const cutSlope = (width, height) => (width > 0 ? ((HERO_CUT.left - HERO_CUT.right) * height) / width : 0);
 
 // The wave is scaled by the width too, so a tall phone screen gets a gentle bend the blades can follow.
 const BEND_PER_WIDTH = 0.6;

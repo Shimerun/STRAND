@@ -97,8 +97,7 @@
 }
 
 /* Fixed 3D overlay; lvh keeps the iOS address bar from resizing the drawing buffer. */
-.scissors-layer,
-.works-layer {
+.scissors-layer {
   position: fixed;
   left: 0;
   top: 0;
@@ -106,15 +105,7 @@
   height: 100vh;
   height: 100lvh;
   pointer-events: none;
-}
-
-.scissors-layer {
   z-index: 40;
-}
-
-/* Works photos sit above the page content, below every other overlay. */
-.works-layer {
-  z-index: 5;
 }
 
 /* PriceMenu: a row opens smoothly where the browser can animate to an auto height; elsewhere it just opens. */

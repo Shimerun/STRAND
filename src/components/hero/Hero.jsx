@@ -1,15 +1,19 @@
 import { useRef } from 'react';
 import { motion, useReducedMotion, useTransform } from 'framer-motion';
+import { site } from '../../data/site.js';
 import { HERO_CUT } from '../../lib/heroCut.js';
-import { TOP_ID } from '../../lib/scroll.js';
+import { TOP_ID, scrollToId } from '../../lib/scroll.js';
 import CutDebris from './CutDebris.jsx';
 import CutMarks, { FlapEdge, useCutMarks } from './CutMarks.jsx';
+import CutSlivers from './CutSlivers.jsx';
 import HeroContent from './HeroContent.jsx';
+import { PortalCamera } from './portalPlanes.js';
 import ScrollCue from './ScrollCue.jsx';
 import { useHeroCut } from './useHeroCut.js';
 import { useSnipJolt } from './useSnipJolt.js';
 
 const CUE_GONE_AT = 0.5; // share of the aim: the scroll cue has faded out
+const SKIP_GONE_AT = 0.25; // share of the flight: past this there is little left to skip
 const FALL_ORIGIN_Y = '75%'; // the strip turns about its middle as it falls
 const FLAP_SHADE = 'linear-gradient(90deg, transparent 30%, rgb(10 10 10 / 0.5))'; // bg token, see tailwind.config
 // The scroll the hero stays pinned for. Used twice: as the hero's own scroll room, and after the underlay.
@@ -21,7 +25,8 @@ const PIN_ROOM = {
 /**
  * First screen. While it is pinned, the shears cut it along a wavy line (src/lib/heroCut.js): the cut-off
  * flap (a duplicate clipped below the line) sags from the cutting point, opening a gap onto the underlay;
- * once the cut is through the halves fly apart while the underlay grows to full size.
+ * once the cut is through, one camera flies through it (PORTAL): the halves swing apart and swell past the viewer,
+ * slivers spring off the cut, and the underlay's planes (data-portal) come in at their own depths to land in place.
  * children: the content that follows the hero and shows through the cut (the underlay).
  * Reduced motion: no pin, no cut, no parallax; the children simply follow.
  */
@@ -33,7 +38,14 @@ export default function Hero({ children }) {
   const cut = useHeroCut(sectionRef, frameRef, underlayRef, !reduce);
   const jolt = useSnipJolt(cut.state);
   const cueOpacity = useTransform(cut.aim, [0, CUE_GONE_AT], [1, 0]);
+  const skipOpacity = useTransform(cut.split, [0, SKIP_GONE_AT], [1, 0]);
+  const skipVisibility = useTransform(skipOpacity, (o) => (o > 0 ? 'visible' : 'hidden'));
   const paths = useCutMarks(cut);
+  // Straight to the section under the cut, keyboard focus with it.
+  const skip = () => {
+    const id = underlayRef.current?.querySelector('section[id]')?.id;
+    if (id) scrollToId(id, { immediate: true });
+  };
 
   if (reduce) {
     return (
@@ -68,8 +80,10 @@ export default function Hero({ children }) {
             style={{ y: jolt, scale: cut.swell, originX: cut.origin.x, originY: cut.origin.y }}
             className="relative will-change-transform"
           >
-            <motion.div style={{ y: top.y, rotate: top.rotate, clipPath: top.clip }} className="relative will-change-transform">
-              <HeroContent parallaxY={parallaxY} />
+            <motion.div style={top.motion} className="relative will-change-transform">
+              <motion.div style={{ clipPath: top.clip }} className="will-change-transform">
+                <HeroContent parallaxY={parallaxY} />
+              </motion.div>
             </motion.div>
 
             {/* The cut-off strip: the wrapper carries its fall, the inner piece its sag and fold about the cutting
@@ -98,8 +112,17 @@ export default function Hero({ children }) {
             <CutMarks cut={cut} paths={paths} />
           </motion.div>
 
+          <CutSlivers cut={cut} />
           <CutDebris state={cut.state} />
           <ScrollCue opacity={cueOpacity} />
+          <motion.button
+            type="button"
+            onClick={skip}
+            style={{ opacity: skipOpacity, visibility: skipVisibility }}
+            className="absolute right-3 top-[calc(theme(spacing.header)+0.25rem)] z-20 flex min-h-11 items-center rounded px-2 text-xs font-medium uppercase tracking-heading text-text/70 transition-colors duration-300 hover:text-text lg:bottom-7 lg:right-[calc(var(--gutter)+0.5rem)] lg:top-auto"
+          >
+            {site.ui.cta.skipIntro}
+          </motion.button>
         </motion.div>
         {/* Scroll room for the pin; inside the section so the sticky frame stays put over it. */}
         <div aria-hidden="true" {...PIN_ROOM} />
@@ -111,7 +134,7 @@ export default function Hero({ children }) {
           text seen through the cut shook. */}
       <div data-hero-underlay>
         <div ref={underlayRef} className="sticky top-0">
-          {children}
+          <PortalCamera.Provider value={cut.camera}>{children}</PortalCamera.Provider>
         </div>
         <div aria-hidden="true" {...PIN_ROOM} />
       </div>
