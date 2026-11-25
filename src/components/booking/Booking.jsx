@@ -1,7 +1,8 @@
 import { site } from '../../data/site.js';
-import { bookingEnabled } from '../../lib/booking.js';
+import { bookingEnabled, externalBookingUrl, phoneOnly } from '../../lib/booking.js';
 import { BOOKING_ID } from '../../lib/scroll.js';
 import { EVENTS } from '../../lib/track.js';
+import BookButton from '../BookButton.jsx';
 import Button from '../Button.jsx';
 import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
@@ -25,6 +26,21 @@ function Unavailable() {
   );
 }
 
+// No web app, but the shop's EasyWeek page takes bookings: lead there, with the phone as the other way.
+function External() {
+  return (
+    <div className="space-y-6">
+      <p className="text-lg leading-relaxed">{site.ui.form.external}</p>
+      <div className="flex flex-col gap-3 md:flex-row">
+        <BookButton track={{ where: 'booking_external' }} className="w-full md:w-auto" />
+        <Button variant="ghost" href={`tel:${site.phone}`} track={{ name: EVENTS.callClick, where: 'booking_external' }} className="w-full md:w-auto">
+          {site.phoneDisplay}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Booking() {
   const availability = useAvailability();
   const form = useBookingForm(availability);
@@ -37,7 +53,7 @@ export default function Booking() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-16">
         <div>
           <div className="lg:sticky lg:top-[calc(theme(spacing.header)+2rem)]">
-            <SectionTitle>{bookingEnabled ? copy.title : cta.bookByPhone}</SectionTitle>
+            <SectionTitle>{phoneOnly ? cta.bookByPhone : copy.title}</SectionTitle>
             {bookingEnabled && (
               <Reveal as="p" className="mt-4 leading-relaxed text-concrete md:text-lg">
                 {copy.subtitle}
@@ -62,6 +78,8 @@ export default function Booking() {
                 <BookingForm form={form} availability={availability} />
               )}
             </>
+          ) : externalBookingUrl ? (
+            <External />
           ) : (
             <Unavailable />
           )}

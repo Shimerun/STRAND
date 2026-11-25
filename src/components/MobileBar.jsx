@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { site } from '../data/site.js';
-import { bookingEnabled } from '../lib/booking.js';
+import { phoneOnly } from '../lib/booking.js';
 import { BOOKING_ID } from '../lib/scroll.js';
 import { EVENTS } from '../lib/track.js';
 import BookButton from './BookButton.jsx';
@@ -45,9 +45,9 @@ export default function MobileBar() {
     >
       <div className="flex gap-3 px-5 py-3">
         <BookButton className="flex-1 !px-3" track={{ where: 'sticky' }} />
-        {/* The call as an icon, so the main action keeps its full label at 320px; without the form the main
-            action is the call itself. */}
-        {bookingEnabled && (
+        {/* The call as an icon, so the main action keeps its full label at 320px; when booking is by phone
+            only, the main action is the call itself. */}
+        {!phoneOnly && (
           <Button
             variant="ghost"
             aria-label={cta.call}

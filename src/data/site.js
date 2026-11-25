@@ -20,6 +20,9 @@ export const site = {
   booking: {
     daysAhead: 30, slotMinutes: 60, minLeadMinutes: 60, // must match DAYS_AHEAD, SLOT_MIN, MIN_LEAD_MIN in Code.gs
     maxBlocks: 4, // longest visit in slots; must match MAX_BLOCKS in integrations/google-sheets/Code.gs
+    // The shop's own EasyWeek booking page: every "book" button opens it while the site's form is off (no web app).
+    // null: those buttons call instead.
+    externalUrl: "https://strand.easyweek.com.ua/",
     // Services offered as extras to the main one in the booking form (ids from `services`, in display order).
     addons: ["scalp-peeling", "face-care", "gray-beard", "gray-head", "kids", "beard"]
   },
@@ -229,7 +232,8 @@ export const site = {
       },
       success: "Заявку отримано. Зателефонуємо для підтвердження",
       errorText: "Не вдалося надіслати заявку. Зателефонуйте нам:",
-      unavailable: "Онлайн-запис тимчасово не працює. Зателефонуйте — запишемо вас на зручний час."
+      unavailable: "Онлайн-запис тимчасово не працює. Зателефонуйте — запишемо вас на зручний час.",
+      external: "Онлайн-запис працює через нашу сторінку в EasyWeek: там видно вільний час кожного майстра."
     }
   }
 };

@@ -1,8 +1,13 @@
+import { site } from '../data/site.js';
+
 // The only module that knows the Google Apps Script web app (see integrations/google-sheets): bookings,
 // busy slots, prices from the sheet and Google reviews.
 const ENDPOINT = import.meta.env.VITE_BOOKING_ENDPOINT;
-// A production build without the web app cannot take bookings: the section shows the phone instead of the form.
+// A production build without the web app cannot take bookings: the section points elsewhere instead of the form.
 export const bookingEnabled = Boolean(ENDPOINT) || import.meta.env.DEV;
+// Without the form, booking goes to the shop's EasyWeek page; without that page too, the phone is the only way.
+export const externalBookingUrl = bookingEnabled ? null : site.booking.externalUrl;
+export const phoneOnly = !bookingEnabled && !externalBookingUrl;
 const FETCH_TIMEOUT_MS = 15_000;
 // Apps Script can cold-start and then wait up to 10 s for its lock.
 const SUBMIT_TIMEOUT_MS = 30_000;

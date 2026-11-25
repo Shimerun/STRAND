@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { site } from '../data/site.js';
 import { EASE_REVEAL } from '../lib/motion.js';
-import { bookingEnabled } from '../lib/booking.js';
+import { phoneOnly } from '../lib/booking.js';
 import { BOOKING_ID, scrollToId, unlockScroll } from '../lib/scroll.js';
 import { useDialog } from '../lib/useDialog.js';
 import BookButton from './BookButton.jsx';
@@ -86,8 +86,8 @@ export default function MobileMenu({ id, onClose }) {
 
         <div className="shrink-0 space-y-5 px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
           <BookButton className="w-full" track={{ where: 'menu' }} onClick={go(BOOKING_ID)} />
-          {/* Without the form the button above is the call already. */}
-          {bookingEnabled && (
+          {/* When booking is by phone only, the button above is the call already. */}
+          {!phoneOnly && (
             <PhoneLink
               where="menu"
               className="flex min-h-11 items-center justify-center text-sm font-medium tracking-heading text-concrete transition-colors duration-150 hover:text-text"
