@@ -65,3 +65,13 @@ export function isOpenNow(hours, now = kyivNow()) {
   const day = hours?.[now.weekday];
   return Boolean(day) && now.minutes >= toMinutes(day.open) && now.minutes < toMinutes(day.close);
 }
+
+/** "HH:MM" the shop next opens at, seen from `now` while it is closed; null when no day has hours. */
+export function nextOpening(hours, now = kyivNow()) {
+  const today = WEEKDAYS.indexOf(now.weekday);
+  for (let ahead = 0; ahead <= WEEKDAYS.length; ahead += 1) { // up to the same weekday next week
+    const day = hours?.[WEEKDAYS[(today + ahead) % WEEKDAYS.length]];
+    if (day && (ahead > 0 || now.minutes < toMinutes(day.open))) return day.open;
+  }
+  return null;
+}

@@ -162,14 +162,14 @@ export const site = {
       route: "Маршрут",
       openMap: "Відкрити на карті",
       skip: "Перейти до вмісту",
-      skipIntro: "Пропустити інтро", // jumps past the hero's cut and flight to the section under it
+      skipIntro: "Пропустити анімацію", // jumps past the hero's cut and flight to the section under it
       bookWithBarber: "Записатись до майстра",
       newTab: "відкриється EasyWeek у новій вкладці", // screen readers only, after a book button's label
       moreWorks: "Більше робіт в Instagram",
       menu: "Меню",
       close: "Закрити"
     },
-    status: { open: "Зараз відчинено", closed: "Зараз зачинено" },
+    status: { open: "Відчинено до {time}", reopens: "Зачинено · з {time}", closed: "Зараз зачинено" }, // {time}: HH:MM from `hours`
     hero: { subline: "Барбершоп у Житомирі" }, // component appends " · " + site.addressShort
     alt: { hero: "Барбершоп Strand у Житомирі", about: "Майстер Strand за роботою" }, // barber photos use the barber's name
     sections: { about: "Про нас", services: "Послуги", team: "Команда", works: "Роботи", reviews: "Відгуки", contacts: "Контакти" },

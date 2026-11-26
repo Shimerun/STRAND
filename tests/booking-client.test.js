@@ -5,6 +5,16 @@ import { RULES } from '../src/components/booking/validation.js';
 import { formatPhone, isValidPhone, normalizePhone } from '../src/lib/phone.js';
 import { blocksFor, bookingDates, freeTimes } from '../src/lib/slots.js';
 import { site } from '../src/data/site.js';
+import { nextOpening } from '../src/lib/time.js';
+
+test('next opening: today before it opens, else the next day with hours', () => {
+  const day = { open: '10:00', close: '21:00' };
+  const hours = { mon: day, tue: null, wed: { open: '11:00', close: '20:00' } };
+  assert.equal(nextOpening(hours, { weekday: 'mon', minutes: 9 * 60 }), '10:00');
+  assert.equal(nextOpening(hours, { weekday: 'mon', minutes: 22 * 60 }), '11:00'); // Tuesday has no hours
+  assert.equal(nextOpening({ sun: day }, { weekday: 'sun', minutes: 22 * 60 }), '10:00'); // a week later
+  assert.equal(nextOpening({}, { weekday: 'mon', minutes: 0 }), null);
+});
 
 test('every barber opens their own EasyWeek booking page', () => {
   assert.match(site.booking.externalBarberUrl, /\{id\}/);

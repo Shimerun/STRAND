@@ -4,6 +4,7 @@ import { site } from '../../data/site.js';
 import { formatRating, pluralUk } from '../../lib/format.js';
 import { HEADER_HEIGHT } from '../../lib/scroll.js';
 import { hoverLift } from '../../lib/motion.js';
+import { MAP_URL } from '../Contacts.jsx';
 import Reveal from '../Reveal.jsx';
 import Section from '../Section.jsx';
 import SectionTitle from '../SectionTitle.jsx';
@@ -68,11 +69,10 @@ export default function Reviews() {
               <p className="mt-2 text-xs font-medium uppercase tracking-heading text-concrete">
                 {rating.count} {countLabel}
               </p>
-              {google?.url && (
-                <a href={google.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-xs font-bold text-text underline-offset-4 hover:underline">
-                  {labels.googleMaps}
-                </a>
-              )}
+              {/* Without Google's own reviews (no web app) it opens the shop's card there, where they all are. */}
+              <a href={google?.url ?? MAP_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-xs font-bold text-text underline-offset-4 hover:underline">
+                {google ? labels.googleMaps : labels.open}
+              </a>
             </div>
           </Reveal>
         </div>

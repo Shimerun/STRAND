@@ -15,7 +15,7 @@ const PLACE = encodeURIComponent(`${site.name} ${site.ui.brand.sub}, ${site.addr
 const MAP_EMBED_URL = `https://www.google.com/maps?q=${PLACE}&output=embed`;
 // Google Maps URLs API: `dir` starts a route to the place (from wherever the visitor is), `search` shows it.
 export const ROUTE_URL = `https://www.google.com/maps/dir/?api=1&destination=${PLACE}`;
-const MAP_URL = `https://www.google.com/maps/search/?api=1&query=${PLACE}`;
+export const MAP_URL = `https://www.google.com/maps/search/?api=1&query=${PLACE}`;
 const TERM = 'text-xs font-medium uppercase tracking-heading text-concrete';
 
 // Rows of the hours table: one "every day" row while all days share the hours, otherwise a row per day.
