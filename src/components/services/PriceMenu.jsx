@@ -1,5 +1,7 @@
+import { site } from '../../data/site.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
-import { formatDuration, formatPriceRange } from '../../lib/format.js';
+import { formatDuration, formatPrice, formatPriceRange } from '../../lib/format.js';
+import { offers } from '../../lib/pricing.js';
 import ArrowIcon from '../ArrowIcon.jsx';
 import BookButton from '../BookButton.jsx';
 
@@ -33,9 +35,35 @@ function BookLink({ service }) {
   );
 }
 
+/** Where the price depends on the barber: who does it for how much, each row booking with that barber. */
+function BarberPrices({ service }) {
+  const { openBooking } = useBooking();
+  return (
+    <ul className="mt-4 border-t border-line">
+      {site.team.filter(({ slug }) => offers(service, slug)).map(({ slug, name }) => (
+        <li key={slug} className="border-b border-line">
+          <BookButton
+            variant="link"
+            className="w-full !justify-between !normal-case !tracking-normal"
+            label={<><span className="sr-only">{site.ui.cta.book}: </span>{name}</>}
+            barber={slug}
+            track={{ where: 'price-menu', service: service.id, barber: slug }}
+            onClick={() => openBooking({ service: service.id, barber: slug })}
+          >
+            <span className="flex items-center gap-3 tabular-nums">
+              {formatPrice(service.prices[slug])}
+              <ArrowIcon className="text-concrete transition-[transform,color] duration-150 group-hover:translate-x-1 group-hover:text-text" />
+            </span>
+          </BookButton>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /**
  * The services that are not cards, as a price menu: name, time and price on one row; opening a row shows what
- * the service is and the way to book it. Native <details>, so it works without script and with a keyboard;
+ * the service is and the way to book it (per barber when their prices differ). Native <details>, so it works without script and with a keyboard;
  * two columns from lg, each flowing on its own so an opened row never stretches its neighbour.
  */
 export default function PriceMenu({ services }) {
@@ -58,7 +86,7 @@ export default function PriceMenu({ services }) {
             </summary>
             <div className="pb-5 pr-7">
               <p className="max-w-prose text-sm leading-relaxed text-concrete">{service.description}</p>
-              <BookLink service={service} />
+              {new Set(Object.values(service.prices)).size > 1 ? <BarberPrices service={service} /> : <BookLink service={service} />}
             </div>
           </details>
         </li>
