@@ -12,8 +12,8 @@ export const CONFIG = {
 };
 
 // Below desktop the shears are at most ~240px long, so phones load a copy made from scissors.glb with
-// @gltf-transform/cli (dequantize → simplify 0.5 → resize 1024 → meshopt): 344 KB instead of 894 KB and
-// about a quarter of the texture memory, same nodes, bounds and Snip clip. Chosen once, at load.
+// @gltf-transform/cli (dequantize → simplify --ratio 0 --error 0.001 → resize 512 → meshopt): 128 KB instead
+// of 894 KB, 11k triangles, a sixteenth of the texture memory, same nodes, bounds and Snip clip. Chosen once, at load.
 const MODEL_FILE = window.matchMedia(`(min-width: ${DESKTOP_MIN_PX}px)`).matches ? 'scissors.glb' : 'scissors-mobile.glb';
 const MODEL_URL = `${import.meta.env.BASE_URL}models/${MODEL_FILE}`;
 const USE_DRACO = false; // model is meshopt-compressed; never fetch a Draco decoder from a CDN
