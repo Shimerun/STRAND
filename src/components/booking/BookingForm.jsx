@@ -29,7 +29,15 @@ export default function BookingForm({ form, availability }) {
   return (
     <form ref={form.formRef} noValidate onSubmit={form.submit} className="space-y-6">
       <Step index={1} title={copy.steps.choice}>
-        <BarberPicker barbers={site.team} service={service} value={barber} error={errors.barber} onChange={form.chooseBarber} />
+        <BarberPicker
+          barbers={site.team}
+          service={service}
+          value={barber}
+          error={errors.barber}
+          onChange={form.chooseBarber}
+          collapsed={form.barberFolded}
+          onExpand={form.unfoldBarber}
+        />
         <ServicePicker
           services={services}
           barber={barber}

@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { formatRating, pluralUk } from '../../lib/format.js';
 import { HEADER_HEIGHT } from '../../lib/scroll.js';
@@ -11,6 +10,7 @@ import SectionTitle from '../SectionTitle.jsx';
 import StarIcon from '../StarIcon.jsx';
 import { GoogleReview, SiteReview } from './ReviewCard.jsx';
 import { useGoogleReviews } from './useGoogleReviews.js';
+import { usePrefersReducedMotion } from '../../lib/useMediaQuery.js';
 
 const MAX_STARS = 5;
 
@@ -38,7 +38,7 @@ const GOOGLE_LIST =
  * until then, or without them, the reviews and rating from site.js.
  */
 export default function Reviews() {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const rootRef = useRef(null);
   const google = useGoogleReviews(rootRef);
   useKeepPlace(rootRef, google);

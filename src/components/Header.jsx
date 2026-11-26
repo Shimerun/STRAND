@@ -3,6 +3,7 @@ import { AnimatePresence, useMotionValueEvent, useScroll } from 'framer-motion';
 import { site } from '../data/site.js';
 import { MAIN_ID, TOP_ID, scrollToId } from '../lib/scroll.js';
 import BookButton from './BookButton.jsx';
+import Intro from './Intro.jsx';
 import Logo from './Logo.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import ScrollProgress from './ScrollProgress.jsx';
@@ -54,7 +55,9 @@ export default function Header() {
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-6 px-5">
           <a href={`#${TOP_ID}`} onClick={goTo(TOP_ID)} className="flex items-center gap-3 rounded">
             <SpinningPole />
-            <Logo />
+            <Intro>
+              <Logo />
+            </Intro>
           </a>
 
           <nav aria-label={cta.menu} className="hidden lg:block">

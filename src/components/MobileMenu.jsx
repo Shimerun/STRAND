@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { site } from '../data/site.js';
 import { EASE_REVEAL } from '../lib/motion.js';
 import { phoneOnly } from '../lib/booking.js';
@@ -10,6 +10,7 @@ import CloseButton from './CloseButton.jsx';
 import Logo from './Logo.jsx';
 import PhoneLink from './PhoneLink.jsx';
 import SpinningPole from './SpinningPole.jsx';
+import { usePrefersReducedMotion } from '../lib/useMediaQuery.js';
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
 
@@ -25,7 +26,7 @@ export default function MobileMenu({ id, onClose }) {
   const closeRef = useRef(null);
   // Header restores focus to the menu toggle itself.
   const onKeyDown = useDialog(rootRef, closeRef, onClose, { restoreFocus: false });
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const { nav, cta } = site.ui;
 
   useEffect(() => {

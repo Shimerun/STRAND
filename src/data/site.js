@@ -25,6 +25,21 @@ export const site = {
     externalUrl: "https://booking.easyweek.com.ua/strand?lang=uk-UA&theme=custom",
     // The same with the barber already chosen: {id} takes team[].easyweekId (their id in EasyWeek's team list).
     externalBarberUrl: "https://booking.easyweek.com.ua/strand/team/303068/{id}?lang=uk-UA&theme=custom",
+    // Barber and service chosen, only the time is left: {service} takes externalServices[barber][serviceId].
+    externalServiceUrl: "https://booking.easyweek.com.ua/strand/team/303068/{id}/{service}?lang=uk-UA&theme=custom",
+    // A service the same for every barber who does it (one id shared by all of them): EasyWeek asks for the barber.
+    externalAnyBarberUrl: "https://booking.easyweek.com.ua/strand/303068/{service}?lang=uk-UA&theme=custom",
+    // EasyWeek's id of each barber's own variant of a service, read from the public booking widget on 2026-11-26
+    // (names, prices and lengths checked there). A pair not listed opens the barber's page, where the visitor picks
+    // the service: Люба's "Коротка стрижка під насадку" is "Стрижка машинкою" there, at another price.
+    externalServices: {
+      "oleh-dok": { haircut: 961628, scissors: 967112, clipper: 961634, beard: 961631, kids: 961643, "gray-head": 961640, "gray-beard": 961700, "face-care": 961706, "scalp-care": 1012288, "scalp-peeling": 961505, styling: 961703 },
+      "liubov-zainchkovska": { haircut: 961325, scissors: 961484, beard: 961490, kids: 961502, "gray-head": 961640, "gray-beard": 961700, perm: 961715, "face-care": 961706, "scalp-care": 1012288, "scalp-peeling": 961505, styling: 961703 },
+      "liliia-pavlenko": { haircut: 994714, clipper: 994717, beard: 994720, kids: 994723, "gray-head": 961640, "gray-beard": 961700, perm: 961715, "face-care": 961706, "scalp-care": 1012288, "scalp-peeling": 961505, styling: 961703 },
+      "daryna-badio": { haircut: 995008, clipper: 995014, beard: 995017, kids: 995020, "gray-head": 961640, "gray-beard": 961700, "face-care": 961706, "scalp-care": 1012288, "scalp-peeling": 961505, styling: 961703 },
+      "roman-mykhailovskyi": { haircut: 1058261, clipper: 1058267, beard: 1058264, kids: 1058270 },
+      "dmytro-puhach": { haircut: 1058261, clipper: 1058267, beard: 1058264, kids: 1058270, "scalp-care": 1012288, "scalp-peeling": 961505 }
+    },
     // Services offered as extras to the main one in the booking form (ids from `services`, in display order).
     addons: ["scalp-peeling", "face-care", "gray-beard", "gray-head", "kids", "beard"]
   },
@@ -165,6 +180,13 @@ export const site = {
       skipIntro: "Пропустити анімацію", // jumps past the hero's cut and flight to the section under it
       bookWithBarber: "Записатись до майстра",
       newTab: "відкриється EasyWeek у новій вкладці", // screen readers only, after a book button's label
+      // What is still to choose once EasyWeek opens (booking.js externalChoiceFor), shown beside price-row links.
+      handoff: {
+        time: "У EasyWeek майстер і послуга вже обрані — залишиться вибрати час.",
+        barber: "У EasyWeek послуга вже обрана — залишиться вибрати майстра й час.",
+        service: "У EasyWeek майстер уже обраний — залишиться вибрати послугу й час.",
+        all: "У EasyWeek оберете майстра, послугу й час."
+      },
       moreWorks: "Більше робіт в Instagram",
       menu: "Меню",
       close: "Закрити"
@@ -176,7 +198,7 @@ export const site = {
     services: { main: "Стрижки та борода", more: "Догляд і колір", priceNote: "Ціна залежить від майстра", from: "від" },
     units: { min: "хв", hour: "год", currency: "₴" },
     team: { instagram: "Instagram", prices: "Ціни майстра", rating: "Рейтинг", profile: "Профіль майстра", works: "Роботи майстра" },
-    works: { author: "Майстер", prev: "Попереднє фото", next: "Наступне фото", showAll: "Показати всі роботи" },
+    works: { author: "Майстер", prev: "Попереднє фото", next: "Наступне фото", showAll: "Показати всі роботи", collapse: "Згорнути роботи" },
     brand: { sub: "Barbershop" },
     reviews: {
       count: ["відгук", "відгуки", "відгуків"],
@@ -214,6 +236,7 @@ export const site = {
       sending: "Надсилаємо…",
       consent: "Натискаючи «Записатись», ви погоджуєтесь на обробку персональних даних для запису.",
       serviceReset: "Цей майстер не виконує обрану послугу — оберіть іншу.",
+      change: "Змінити", // shows every barber again when one came chosen (a price row, a profile)
       notOffered: "Не виконує цю послугу",
       errors: {
         nameRequired: "Вкажіть ім'я",
@@ -230,7 +253,8 @@ export const site = {
         pickService: "Оберіть майстра та послугу, щоб побачити вільний час",
         none: "На цей день вільного часу немає — оберіть іншу дату або майстра.",
         taken: "Цей час уже недоступний. Список оновлено — оберіть інший.",
-        loadFailed: "Не вдалося перевірити вільний час. Ви можете надіслати заявку — ми підтвердимо її по телефону.",
+        loadFailed: "Не вдалося завантажити вільний час, тож обрати його поки не можна. Спробуйте ще раз або зателефонуйте — запишемо вас по телефону:",
+        stale: "Не вдалося оновити список. Показуємо вільний час з останньої перевірки — перед записом перевіримо його ще раз.",
         retry: "Перевірити ще раз"
       },
       success: "Заявку отримано. Зателефонуємо для підтвердження",

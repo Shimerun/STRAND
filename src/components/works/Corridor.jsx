@@ -22,7 +22,7 @@ function Frame({ work, index, count, camera, width, look, onOpen, onFocusFrame }
     <motion.button
       type="button"
       aria-haspopup="dialog"
-      onClick={() => onOpen(index)}
+      onClick={(event) => onOpen(index, event.currentTarget)}
       onFocus={(event) => event.currentTarget.matches(':focus-visible') && onFocusFrame(index)}
       style={{
         transform: useTransform(pose, (p) => p.transform),
@@ -51,7 +51,7 @@ function Frame({ work, index, count, camera, width, look, onOpen, onFocusFrame }
 /**
  * The works as a corridor of facing mirrors (corridor.js): pinned for a few screens while the camera walks down it,
  * each work turning to face the viewer as it comes level, then passing to its side. A counter names the work in
- * front and its barber. title: the section heading, shown above the corridor. onOpen(index): open that work.
+ * front and its barber. title: the section heading, shown above the corridor. onOpen(index, opener): open that work.
  */
 export default function Corridor({ works, title, onOpen }) {
   const pinRef = useRef(null);

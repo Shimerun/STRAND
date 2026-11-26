@@ -3,6 +3,11 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      // A phone on its side: the first screen gets two columns so the main action fits above the fold.
+      // Keep in step with isShortLandscape in src/components/scissors/restPose.js (the shears' resting pose).
+      screens: {
+        short: { raw: '(orientation: landscape) and (max-height: 500px) and (max-width: 1023px)' },
+      },
       colors: {
         bg: '#0A0A0A',
         surface: '#141414',

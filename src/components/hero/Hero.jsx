@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useReducedMotion, useTransform } from 'framer-motion';
+import { motion, useTransform } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { HERO_CUT } from '../../lib/heroCut.js';
 import { TOP_ID, scrollToId } from '../../lib/scroll.js';
@@ -11,6 +11,7 @@ import { PortalCamera } from './portalPlanes.js';
 import ScrollCue from './ScrollCue.jsx';
 import { useHeroCut } from './useHeroCut.js';
 import { useSnipJolt } from './useSnipJolt.js';
+import { usePrefersReducedMotion } from '../../lib/useMediaQuery.js';
 
 const CUE_GONE_AT = 0.5; // share of the aim: the scroll cue has faded out
 const SKIP_GONE_AT = 0.25; // share of the flight: past this there is little left to skip
@@ -32,7 +33,7 @@ const PIN_ROOM = {
  * Reduced motion: no pin, no cut, no parallax; the children simply follow.
  */
 export default function Hero({ children }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const sectionRef = useRef(null);
   const frameRef = useRef(null);
   const underlayRef = useRef(null);
@@ -76,9 +77,6 @@ export default function Hero({ children }) {
           style={{ visibility: cut.frameVisibility }}
           className="pointer-events-auto sticky top-0 overflow-hidden"
         >
-          {/* Stands in for the buttons (data-own-cta) until the cut is through and the strip carrying them falls,
-              so the mobile bar comes up as they go. */}
-          <motion.div aria-hidden="true" data-own-cta style={{ y: ctaY }} className="pointer-events-none absolute inset-0" />
           {/* will-change: each piece gets its own layer, so the per-frame clip path re-masks it on the GPU
               instead of repainting the photo (Safari repainted the whole screen on every scroll frame). */}
           <motion.div
@@ -87,20 +85,23 @@ export default function Hero({ children }) {
           >
             <motion.div style={top.motion} className="relative will-change-transform">
               <motion.div style={{ clipPath: top.clip }} className="will-change-transform">
-                <HeroContent parallaxY={parallaxY} ownCta={false} />
+                {/* ctaAway: the booking button's stand-in (data-own-cta) leaves the screen as the strip carrying
+                    the button falls, so the mobile bar comes up as it goes. */}
+                <HeroContent parallaxY={parallaxY} ownCta={false} ctaAway={ctaY} />
               </motion.div>
             </motion.div>
 
             {/* The cut-off strip: the wrapper carries its fall, the inner piece its sag and fold about the cutting
-                point. */}
+                point. Only the clipped piece takes taps: the full-frame wrapper caught the ones meant for the
+                booking button still uncut beneath it. */}
             <motion.div
               aria-hidden="true"
               style={{ ...flap.fall, originX: '50%', originY: FALL_ORIGIN_Y, visibility: flap.visibility }}
-              className="absolute inset-0 will-change-transform"
+              className="pointer-events-none absolute inset-0 will-change-transform"
             >
               <motion.div
                 style={{ transform: flap.transform, transformOrigin: flap.origin, clipPath: flap.clip }}
-                className="absolute inset-0 will-change-transform"
+                className="pointer-events-auto absolute inset-0 will-change-transform"
               >
                 <HeroContent parallaxY={parallaxY} copy ownCta={false} />
                 {/* Shade over the strip, darker the further it lifts; only its opacity moves, on its own
@@ -108,7 +109,7 @@ export default function Hero({ children }) {
                 <motion.div
                   aria-hidden="true"
                   style={{ opacity: flap.shade, backgroundImage: FLAP_SHADE, willChange: 'opacity' }}
-                  className="absolute inset-0"
+                  className="pointer-events-none absolute inset-0"
                 />
               </motion.div>
               <FlapEdge paths={paths} />

@@ -32,7 +32,7 @@ export function createSheet() {
     });
   }
 
-  return function update({ group, paper, reach, gl, shadow }) {
+  function update({ group, paper, reach, gl, shadow }) {
     if (!attached) attach(group);
     planes[0].constant = EPS + DEPTH * (1 - paper);
     blade.set(0, 1, 0).transformDirection(group.matrixWorld); // the model's blades point +Y
@@ -43,5 +43,9 @@ export function createSheet() {
       shadow.visible = paper > 0;
       shadow.material.opacity = SHADOW_OPACITY * paper;
     }
-  };
+  }
+  // Called as soon as the model is mounted, before its shaders are compiled: clipping planes set on the first
+  // frame changed every program and made the browser link them again in the middle of that frame.
+  update.attach = (group) => !attached && attach(group);
+  return update;
 }

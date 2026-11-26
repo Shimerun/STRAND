@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion, useSpring } from 'framer-motion';
+import { motion, useSpring } from 'framer-motion';
 import { hoverLift, tapPress } from '../lib/motion.js';
 import { hasMouse } from '../lib/scroll.js';
 import { track } from '../lib/track.js';
+import { usePrefersReducedMotion } from '../lib/useMediaQuery.js';
 
 const BASE =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded px-6 py-3 text-sm font-bold uppercase tracking-heading transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50';
@@ -53,7 +54,7 @@ export default function Button({
   children,
   ...rest
 }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const [mouse] = useState(hasMouse);
   const magnetic = magnetOn && variant === 'primary' && mouse && !reduce;
   const magnet = useMagnet(magnetic);

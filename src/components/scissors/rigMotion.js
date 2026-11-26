@@ -1,9 +1,10 @@
 // Renderer-free motion of the shears in CSS px, shared by the 3D rig and the 2D fallback.
 import { TAU, clamp01, ease, heroCutPhases } from '../../lib/heroCut.js';
 import {
-  BURST_DURATION, CUT_FADE, CUT_LINE, CUT_ROLL, DESKTOP_MIN_PX, END_OFFSET, FLOAT, HERO, SWAY, TRACK,
+  BURST_DURATION, CUT_FADE, CUT_LINE, CUT_ROLL, DESKTOP_MIN_PX, END_OFFSET, FLOAT, SWAY, TRACK,
   applyScene, cutPose, dockRange, idleSnip, lerp, mix, nearAngle, scrollSnip, trackPoint, trackTurn, withBurst,
 } from './pose.js';
+import { fitHeroPose, heroPoseFor } from './restPose.js';
 import { burstElapsed, getScene, rig } from './rig.js';
 
 const POINTER = { max: 8 * (Math.PI / 180), lerp: 0.08, settle: 1e-4 };
@@ -28,15 +29,18 @@ function readTrack({ heroHeight, cutPin, endTop, pageHeight, viewHeight: viewpor
 /**
  * Hero pose for a layer of `screen` size: centre and long axis in CSS px, rotation as Euler radians
  * (z = tilt in the screen plane, y = yaw, x = pitch). unit: px per world unit; length: long axis in world units.
- * idle: 0..1, how much of the float and sway plays.
+ * idle: 0..1, how much of the float and sway plays. band: the free band under the headline ({ top, bottom } px),
+ * where a phone too short for the usual pose lays the shears (fitHeroPose).
  */
-export function heroPose(screen, unit, length, time = 0, idle = 1) {
-  const hero = screen.width >= DESKTOP_MIN_PX ? HERO.desktop : HERO.mobile;
+export function heroPose(screen, unit, length, time = 0, idle = 1, band = null) {
+  const hero = heroPoseFor(screen);
+  const fit = fitHeroPose(hero, screen, hero.scale * length * unit, band);
+  const y = fit ? fit.y : screen.height / 2 - hero.y * screen.height;
   return {
     x: screen.width / 2 + hero.x * screen.width,
-    y: screen.height / 2 - hero.y * screen.height - idle * FLOAT.amp * unit * Math.sin(TAU * FLOAT.hz * time),
-    length: hero.scale * length * unit,
-    rotation: { x: 0, y: hero.yaw + idle * SWAY.amp * Math.sin(TAU * SWAY.hz * time), z: hero.tilt },
+    y: y - idle * FLOAT.amp * unit * Math.sin(TAU * FLOAT.hz * time),
+    length: (fit?.scale ?? hero.scale) * length * unit,
+    rotation: { x: 0, y: hero.yaw + idle * SWAY.amp * Math.sin(TAU * SWAY.hz * time), z: fit?.tilt ?? hero.tilt },
   };
 }
 
@@ -83,7 +87,7 @@ export function createRigMotion() {
     lean.x += (leanX - lean.x) * k;
     lean.y += (leanY - lean.y) * k;
 
-    const hero = heroPose(screen, unit, length, time, idle);
+    const hero = heroPose(screen, unit, length, time, idle, signals.heroBand);
     hero.rotation.x += lean.x;
     hero.rotation.y += lean.y;
 

@@ -1,4 +1,5 @@
 import { site } from '../../data/site.js';
+import { externalBookingUrl, externalChoiceFor } from '../../lib/booking.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
 import { formatDuration, formatPrice, formatPriceRange } from '../../lib/format.js';
 import { offers } from '../../lib/pricing.js';
@@ -25,39 +26,68 @@ function PlusIcon() {
   );
 }
 
-/** A service's booking link in the price menu: the form opens with the service chosen. */
+// While booking goes through EasyWeek: what is left to choose there once a link opens it (choice: see booking.js).
+function Handoff({ choice, id, className = '' }) {
+  if (!externalBookingUrl) return null;
+  return (
+    <p id={id} className={`text-xs leading-relaxed text-concrete ${className}`}>
+      {site.ui.cta.handoff[choice]}
+    </p>
+  );
+}
+
+/** A service's booking link in the price menu: the form (or EasyWeek) opens with the service chosen. */
 function BookLink({ service }) {
   const { openBooking } = useBooking();
+  const hintId = `handoff-${service.id}`;
   return (
-    <BookButton variant="link" track={{ where: 'price-menu', service: service.id }} onClick={() => openBooking({ service: service.id })}>
-      <ArrowIcon className="transition-transform duration-150 motion-safe:group-hover:translate-x-1" />
-    </BookButton>
+    <>
+      <BookButton
+        variant="link"
+        service={service.id}
+        aria-describedby={externalBookingUrl ? hintId : undefined}
+        track={{ where: 'price-menu', service: service.id }}
+        onClick={() => openBooking({ service: service.id })}
+      >
+        <ArrowIcon className="transition-transform duration-150 motion-safe:group-hover:translate-x-1" />
+      </BookButton>
+      <Handoff id={hintId} choice={externalChoiceFor(null, service.id)} />
+    </>
   );
 }
 
 /** Where the price depends on the barber: who does it for how much, each row booking with that barber. */
 function BarberPrices({ service }) {
   const { openBooking } = useBooking();
+  const barbers = site.team.filter(({ slug }) => offers(service, slug));
+  const choices = barbers.map(({ slug }) => externalChoiceFor(slug, service.id));
+  // One note for the list; a row that EasyWeek cannot open with the service chosen says so itself.
+  const common = choices.includes('time') ? 'time' : choices[0];
   return (
-    <ul className="mt-4 border-t border-line">
-      {site.team.filter(({ slug }) => offers(service, slug)).map(({ slug, name }) => (
-        <li key={slug} className="border-b border-line">
-          <BookButton
-            variant="link"
-            className="w-full !justify-between !normal-case !tracking-normal"
-            label={<><span className="sr-only">{site.ui.cta.book}: </span>{name}</>}
-            barber={slug}
-            track={{ where: 'price-menu', service: service.id, barber: slug }}
-            onClick={() => openBooking({ service: service.id, barber: slug })}
-          >
-            <span className="flex items-center gap-3 tabular-nums">
-              {formatPrice(service.prices[slug])}
-              <ArrowIcon className="text-concrete transition-[transform,color] duration-150 group-hover:translate-x-1 group-hover:text-text" />
-            </span>
-          </BookButton>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="mt-4 border-t border-line">
+        {barbers.map(({ slug, name }, index) => (
+          <li key={slug} className="border-b border-line">
+            <BookButton
+              variant="link"
+              className="w-full !justify-between !normal-case !tracking-normal"
+              label={<><span className="sr-only">{site.ui.cta.book}: </span>{name}</>}
+              barber={slug}
+              service={service.id}
+              track={{ where: 'price-menu', service: service.id, barber: slug }}
+              onClick={() => openBooking({ service: service.id, barber: slug })}
+            >
+              <span className="flex items-center gap-3 tabular-nums">
+                {formatPrice(service.prices[slug])}
+                <ArrowIcon className="text-concrete transition-[transform,color] duration-150 group-hover:translate-x-1 group-hover:text-text" />
+              </span>
+            </BookButton>
+            {choices[index] !== common && <Handoff choice={choices[index]} className="-mt-2 pb-3" />}
+          </li>
+        ))}
+      </ul>
+      <Handoff choice={common} className="mt-3" />
+    </>
   );
 }
 

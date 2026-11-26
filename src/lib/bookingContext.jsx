@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePricesVersion } from './livePrices.js';
 import { priceFor } from './pricing.js';
 import { BOOKING_ID, scrollToId } from './scroll.js';
@@ -40,11 +40,17 @@ export function BookingProvider({ children }) {
     [select],
   );
 
+  // opener: the control that opened the profile, which gets focus back when it closes (useDialog).
+  const profileOpener = useRef(null);
+  const openProfile = useCallback((slug, opener = null) => {
+    profileOpener.current = opener;
+    setProfile(slug);
+  }, []);
   const closeProfile = useCallback(() => setProfile(null), []);
 
   const value = useMemo(
-    () => ({ selection, select, request, openBooking, profile, openProfile: setProfile, closeProfile }),
-    [selection, select, request, openBooking, profile, closeProfile],
+    () => ({ selection, select, request, openBooking, profile, profileOpener, openProfile, closeProfile }),
+    [selection, select, request, openBooking, profile, openProfile, closeProfile],
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

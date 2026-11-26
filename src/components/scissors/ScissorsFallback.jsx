@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { FLAT, VIEW_HEIGHT } from './pose.js';
 import { createRigMotion, heroPose } from './rigMotion.js';
 import Shears2D, { SVG } from './Shears2D.jsx';
-import { useScissorsSignals } from './useScissorsSignals.js';
+import { measureHeroBand, useScissorsSignals } from './useScissorsSignals.js';
 
 const screenOf = (layer) => ({ width: layer.clientWidth, height: layer.clientHeight });
 
@@ -89,7 +89,7 @@ function StillShears() {
   useLayoutEffect(() => {
     const placeStill = () => {
       const screen = screenOf(layerRef.current);
-      place(svgRef.current, heroPose(screen, screen.height / VIEW_HEIGHT, FLAT.length));
+      place(svgRef.current, heroPose(screen, screen.height / VIEW_HEIGHT, FLAT.length, 0, 0, measureHeroBand()));
     };
     placeStill();
     window.addEventListener('resize', placeStill);

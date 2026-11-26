@@ -13,12 +13,6 @@ export const VIEW_HEIGHT = 2 * CAMERA.position[2] * Math.tan((CAMERA.fov / 2) * 
 // Mirrors CONFIG.SCALE and CONFIG.MAX_OPEN in Shears.jsx, which the fallback can't import without three.js.
 export const FLAT = { length: 4, maxOpen: 30 };
 
-// Hero pose: x / y as fractions of the viewport (world units at z = 0), scale relative to CONFIG.SCALE.
-// tilt 145°: tips down to the left, rings up to the right.
-export const HERO = {
-  desktop: { x: 0.22, y: 0, scale: 1, tilt: 145 * DEG, yaw: 18 * DEG },
-  mobile: { x: 0, y: -0.04, scale: 0.62, tilt: 145 * DEG, yaw: 18 * DEG },
-};
 export const FLOAT = { amp: 0.06, hz: 0.8 };
 export const SWAY = { amp: 12 * DEG, hz: 0.25 };
 

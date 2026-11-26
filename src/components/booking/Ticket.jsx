@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { formatLongDay, formatPrice } from '../../lib/format.js';
 import { EVENTS } from '../../lib/track.js';
@@ -7,6 +7,7 @@ import ArrowIcon from '../ArrowIcon.jsx';
 import Button from '../Button.jsx';
 import { ROUTE_URL } from '../Contacts.jsx';
 import TicketSnip from './TicketSnip.jsx';
+import { usePrefersReducedMotion } from '../../lib/useMediaQuery.js';
 
 const STUB_FALL = { y: 140, rotate: 7, opacity: 0, transition: { duration: 0.7, ease: [0.4, 0, 1, 1] } };
 const NOTCH = 'absolute top-0 h-6 w-6 -translate-y-1/2 rounded-full border border-line bg-surface';
@@ -17,7 +18,7 @@ const NOTCH = 'absolute top-0 h-6 w-6 -translate-y-1/2 rounded-full border borde
  * `booked` is a copy taken at submit, so later picks elsewhere on the page or live prices cannot change it.
  */
 export default function Ticket({ booked }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const { summary, ticket } = site.ui.form;
   const [stage, setStage] = useState(reduce ? 'done' : 'cut'); // cut → fall → done
   const [width, setWidth] = useState(0);

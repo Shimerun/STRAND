@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { useCallback, useEffect, useRef } from 'react';
+import { motion, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
 import { site } from '../data/site.js';
 import { clamp01, ease } from '../lib/heroCut.js';
 import { setScene } from './scissors/rig.js';
 import StencilBand, { BAND, VIEW, shearsAt } from './StencilBand.jsx';
+import { useMediaQuery, usePrefersReducedMotion } from '../lib/useMediaQuery.js';
 
 const WORD = site.name.toUpperCase();
 // The pinned stage in screen heights: its height, and the extra scroll it is held for while the band is cut. Phones
@@ -11,15 +12,16 @@ const WORD = site.name.toUpperCase();
 // scrolling was mostly black. The lower stage also lets the footer rise under the scene as it ends.
 // shears: their size as a share of the rig's track length, a big pair laid along the cut.
 const STAGE = { full: { height: 1, pin: 2, shears: 1.4 }, compact: { height: 0.7, pin: 1, shears: 1.1 } };
-const COMPACT = '(max-width: 767px)';
+// Phones either way up: a phone on its side is wide but short, and held three screens there for the word.
+const COMPACT = '(max-width: 767px), (orientation: landscape) and (max-height: 500px)';
 // The shears come over from their track while the stage rises to its pin (its top from this share of the screen).
 // From 0.35 they crossed the screen 5-10x faster than the page moved (wheel recording, 2026-11-17).
 const ARRIVE = ['start 0.9', 'start start'];
 // Shares of the pin. The cut is about as long as the scroll that drives it, so the two are tied 1:1.
 const CUT_RANGE = [0.04, 0.6]; // the shears cut the band off
 const DROP_RANGE = [0.6, 0.9]; // the band falls away
-// Late in the drop: what stands under the word comes in.
-const CLOSING_RANGE = [0.78, 0.95];
+// As the band starts to fall: what stands under the word (the booking button) comes in, well before the scene ends.
+const CLOSING_RANGE = [0.62, 0.78];
 const CLOSING_AWAY = 10_000; // px, far below the screen; the track's overflow-clip keeps the page from growing
 const LEAVE = 0.6; // share of the drop over which the shears go back to their track (0.2 threw them across)
 const WORD_PROPS = {
@@ -38,12 +40,21 @@ const span = (value, [from, to]) => clamp01((value - from) / (to - from));
  * and uncovers the word, then the band falls away.
  * children: what stands under the word once it is uncovered (the closing call to action); it rises in as the band
  * falls and cannot be reached or read before that. Reduced motion: shown already cut, the children with it.
+ * The stage follows the screen as it is now (turned or loaded that way up alike): a new stage mounts a new scene.
  */
 export default function Stencil({ children }) {
-  const reduce = useReducedMotion();
+  const compact = useMediaQuery(COMPACT);
+  return (
+    <StencilScene key={compact ? 'compact' : 'full'} stage={compact ? STAGE.compact : STAGE.full}>
+      {children}
+    </StencilScene>
+  );
+}
+
+function StencilScene({ stage, children }) {
+  const reduce = usePrefersReducedMotion();
   const trackRef = useRef(null);
   const rootRef = useRef(null);
-  const [stage] = useState(() => (window.matchMedia(COMPACT).matches ? STAGE.compact : STAGE.full));
   // Progress over the pin: from the stage reaching the top of the screen to its release.
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', `end ${stage.height}`] });
   const { scrollYProgress: arrive } = useScroll({ target: trackRef, offset: ARRIVE });

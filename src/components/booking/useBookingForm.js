@@ -6,6 +6,7 @@ import { blocksFor, bookingDates, freeTimes, fullDates } from '../../lib/slots.j
 import { EVENTS, track } from '../../lib/track.js';
 import { bookingRequest } from './request.js';
 import { useAddons } from './useAddons.js';
+import { useBarberFold, useTimeStillFree } from './useChoiceGuards.js';
 import { RULES, validate, withError } from './validation.js';
 
 const NO_DATES = new Set();
@@ -28,13 +29,15 @@ export function useBookingForm(availability) {
   const { durationMin } = extras;
   const ready = Boolean(service && barber);
   const { busy } = availability;
+  // Times come only from a list that really loaded (busy is null until then): a failed first read proves nothing free.
   // Not memoised: each render takes the current time, so slots inside the lead time drop out of the list.
-  const freeNow = () => (ready ? freeTimes({ dateISO: values.date, durationMin, barberSlug: barber, busy }) : []);
+  const freeIn = (list) => (ready && list ? freeTimes({ dateISO: values.date, durationMin, barberSlug: barber, busy: list }) : []);
+  const freeNow = () => freeIn(busy);
   const times = freeNow();
   // Days with nothing left are crossed out in the calendar, but only once the busy list really loaded.
   const full = useMemo(
-    () => (ready && availability.state === 'ready' ? fullDates({ dates, durationMin, barberSlug: barber, busy }) : NO_DATES),
-    [ready, availability.state, dates, durationMin, barber, busy],
+    () => (ready && busy ? fullDates({ dates, durationMin, barberSlug: barber, busy }) : NO_DATES),
+    [ready, dates, durationMin, barber, busy],
   );
   const price = visitPrice(extras.services, barber, extras.candidates);
   // A time that is no longer free (refetch, another barber or service) counts as not chosen.
@@ -55,7 +58,8 @@ export function useBookingForm(availability) {
   useEffect(() => {
     if (!focusRequest) return;
     const invalid = formRef.current?.querySelector('[data-invalid="true"]');
-    const target = invalid?.querySelector('input:checked') ?? invalid?.querySelector('input, select, textarea, [role="combobox"]');
+    // data-focus-fallback: a field with nothing to pick yet (no times loaded) offers its retry instead.
+    const target = invalid?.querySelector('input:checked') ?? invalid?.querySelector('input, select, textarea, [role="combobox"], [data-focus-fallback]');
     target?.focus();
   }, [focusRequest]);
 
@@ -74,6 +78,8 @@ export function useBookingForm(availability) {
   useEffect(() => {
     if (request && statusRef.current === 'success') again();
   }, [request]);
+
+  const [barberFolded, unfoldBarber] = useBarberFold(request, barber);
 
   // The form replaces the ticket: focus its first choice, as the focused "again" button is gone.
   useEffect(() => {
@@ -101,12 +107,15 @@ export function useBookingForm(availability) {
       addons: prev.addons.includes(id) ? prev.addons.filter((addon) => addon !== id) : [...prev.addons, id],
     }));
 
-  // The chosen time is gone (booked by someone else, or now inside the lead time): ask for another one.
-  const timeGone = () => {
+  // The chosen time is gone (booked by someone else, or now inside the lead time): ask for another one. Every other
+  // choice stays. focus: false for a list refreshed in the background, which must not pull focus away.
+  const timeGone = ({ focus = true } = {}) => {
     setValues((prev) => ({ ...prev, time: '' }));
     setSlotTaken(true);
-    setFocusRequest((n) => n + 1);
+    if (focus) setFocusRequest((n) => n + 1);
   };
+
+  useTimeStillFree({ busy, time: values.time, idle: status === 'idle', freeIn, onGone: () => timeGone({ focus: false }) });
 
   const submit = async (event) => {
     event.preventDefault();
@@ -121,9 +130,17 @@ export function useBookingForm(availability) {
     const { data, receipt } = bookingRequest({ values, time, barber, service, extras, price });
     const meta = { barber, service: service.id, addons: extras.addons.length };
 
-    track(EVENTS.bookingSubmit, meta);
     setStatus('sending');
     setSlotTaken(false);
+    // The last refresh failed: check the time against a fresh list first (the server checks it again either way).
+    if (availability.state === 'stale') {
+      const fresh = await availability.refetch();
+      if (fresh && !freeIn(fresh).includes(time)) {
+        setStatus('idle');
+        return timeGone();
+      }
+    }
+    track(EVENTS.bookingSubmit, meta);
     try {
       await submitBooking(data);
       availability.addBusy({ date: data.date, time, blocks: blocksFor(durationMin), barber });
@@ -158,6 +175,8 @@ export function useBookingForm(availability) {
     full,
     price,
     serviceReset: selection.serviceReset,
+    barberFolded,
+    unfoldBarber,
     setField,
     chooseBarber: (slug) => choose('barber', slug),
     chooseService: (id) => choose('service', id || null),

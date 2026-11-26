@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { fadeReveal, revealViewport } from '../lib/motion.js';
 import { DRIFT, OPEN_FROM, RADIUS, ZOOM } from '../lib/photoMotion.js';
 import Img from './Img.jsx';
+import { usePrefersReducedMotion } from '../lib/useMediaQuery.js';
 
 const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visible', viewport: revealViewport };
 
@@ -13,7 +14,7 @@ const fadeProps = { variants: fadeReveal, initial: 'hidden', whileInView: 'visib
  */
 export default function PhotoReveal({ from = 'sides', openBy = 'center', className = '', ...imgProps }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   // Share of the pass the opening takes: 'center' (start end → center center) is exactly half; 'inView' (start
   // end → end end) depends on the frame and screen heights, so it is measured on resize, not every scroll frame.
   const openShare = useRef(0.5);

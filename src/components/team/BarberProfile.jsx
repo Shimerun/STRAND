@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
 import { EASE_REVEAL } from '../../lib/motion.js';
@@ -10,6 +10,7 @@ import CloseButton from '../CloseButton.jsx';
 import BarberPhoto from './BarberPhoto.jsx';
 import { PHOTO_RADIUS, PHOTO_TRANSITION, barberPhoto, photoLayoutId } from './photo.js';
 import ProfileDetails from './ProfileDetails.jsx';
+import { usePrefersReducedMotion } from '../../lib/useMediaQuery.js';
 
 const backdrop = { duration: 0.4, ease: EASE_REVEAL };
 // Everything but the photo comes in once the photo has (nearly) landed and leaves first.
@@ -28,9 +29,9 @@ const contentProps = { variants: content, initial: 'hidden', animate: 'visible',
 export default function BarberProfile({ barber, onClose }) {
   const rootRef = useRef(null);
   const closeRef = useRef(null);
-  const reduce = useReducedMotion();
-  const onKeyDown = useDialog(rootRef, closeRef, onClose);
-  const { openBooking } = useBooking();
+  const reduce = usePrefersReducedMotion();
+  const { openBooking, profileOpener } = useBooking();
+  const onKeyDown = useDialog(rootRef, closeRef, onClose, { opener: profileOpener.current });
   const { cta, team } = site.ui;
   const titleId = `profile-title-${barber.slug}`;
   // Without a portrait there is no photo column: a large initials box would push the name and the booking
@@ -61,7 +62,11 @@ export default function BarberProfile({ barber, onClose }) {
       >
         <div className="flex min-h-full flex-col">
           <motion.div {...contentProps} className="sticky top-0 z-10 flex h-header shrink-0 items-center justify-between bg-bg px-5 lg:px-8">
-            <p className="text-xs font-medium uppercase tracking-heading text-concrete">{team.profile}</p>
+            {/* The name stays in view however far the works and prices scroll (phones show it alone). */}
+            <p className="min-w-0 truncate text-xs font-medium uppercase tracking-heading text-concrete">
+              <span className="hidden sm:inline">{team.profile} · </span>
+              {barber.name}
+            </p>
             <CloseButton ref={closeRef} onClick={onClose} />
           </motion.div>
 

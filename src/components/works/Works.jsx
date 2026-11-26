@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
 import { useBooking } from '../../lib/bookingContext.jsx';
@@ -14,6 +14,7 @@ import SectionTitle from '../SectionTitle.jsx';
 import Corridor from './Corridor.jsx';
 import Lightbox from './Lightbox.jsx';
 import { useColumnSides } from './useColumnSides.js';
+import { usePrefersReducedMotion } from '../../lib/useMediaQuery.js';
 
 const PHOTO_SIZE = { width: 1200, height: 1500 };
 // The first LIMIT works walk past in the mirror corridor; the rest come as a grid under it when asked for. Without
@@ -24,6 +25,12 @@ const FRAME = 'aspect-[4/5] rounded';
 
 export default function Works() {
   const [openIndex, setOpenIndex] = useState(null);
+  // The work that opened the lightbox: focus goes back to it, or on to the profile opened from it.
+  const opener = useRef(null);
+  const open = useCallback((index, el) => {
+    opener.current = el ?? null;
+    setOpenIndex(index);
+  }, []);
   const close = useCallback(() => setOpenIndex(null), []);
   const { openProfile } = useBooking();
   // A work's "barber's profile" opens it only once the lightbox has gone: its exit hands focus back to the work,
@@ -37,29 +44,38 @@ export default function Works() {
     [close],
   );
   const afterLightbox = () => {
-    if (profileNext.current) openProfile(profileNext.current);
+    if (profileNext.current) openProfile(profileNext.current, opener.current);
     profileNext.current = null;
   };
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const listRef = useRef(null);
   const sideOf = useColumnSides(listRef);
   const { works, social, ui } = site;
   const corridor = !reduce && works.length > 0;
   const [expanded, setExpanded] = useState(false);
-  const more = !expanded && works.length > LIMIT;
   // The grid's first work is works[start].
   const start = corridor ? LIMIT : 0;
-  const grid = corridor ? (expanded ? works.slice(LIMIT) : []) : works.slice(0, more ? LIMIT : undefined);
+  const grid = works.slice(start, expanded ? undefined : LIMIT);
 
-  // The button goes away once pressed, so focus moves on to the first work it brought in.
+  // Move focus to the first added work so keyboard users can explore the expanded grid.
   useEffect(() => {
     if (expanded) listRef.current?.children[LIMIT - start]?.querySelector('button')?.focus({ preventScroll: true });
   }, [expanded, start]);
 
+  const toggleWorks = (event) => {
+    setExpanded(!expanded);
+    if (expanded) {
+      const button = event.currentTarget;
+      button.focus({ preventScroll: true });
+      // The button moves when the extra rows disappear.
+      requestAnimationFrame(() => button.scrollIntoView({ block: 'nearest' }));
+    }
+  };
+
   const title = <SectionTitle>{ui.sections.works}</SectionTitle>;
   const rest = (
     <>
-      <ul ref={listRef} className={`grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 ${grid.length || !works.length ? 'mt-10' : ''}`}>
+      <ul id="works-grid" ref={listRef} className={`grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 ${grid.length || !works.length ? 'mt-10' : ''}`}>
         {works.length === 0
           ? // TODO: fill site.works with real photos; placeholders until then.
             Array.from({ length: LIMIT }, (_, index) => {
@@ -77,7 +93,7 @@ export default function Works() {
                   <motion.button
                     type="button"
                     aria-haspopup="dialog"
-                    onClick={() => setOpenIndex(start + index)}
+                    onClick={(event) => open(start + index, event.currentTarget)}
                     whileHover={reduce ? undefined : hoverLift}
                     className="block w-full rounded"
                   >
@@ -101,10 +117,16 @@ export default function Works() {
             })}
       </ul>
 
-      {more && (
-        <Button variant="ghost" onClick={() => setExpanded(true)} className="mt-6 w-full">
-          {ui.works.showAll}
-          <span className="tabular-nums text-concrete">{works.length}</span>
+      {works.length > LIMIT && (
+        <Button
+          variant="ghost"
+          aria-expanded={expanded}
+          aria-controls="works-grid"
+          onClick={toggleWorks}
+          className="mt-6 w-full"
+        >
+          {expanded ? ui.works.collapse : ui.works.showAll}
+          {!expanded && <span className="tabular-nums text-concrete">{works.length}</span>}
         </Button>
       )}
 
@@ -121,7 +143,7 @@ export default function Works() {
       {createPortal(
         <AnimatePresence onExitComplete={afterLightbox}>
           {openIndex !== null && (
-            <Lightbox works={works} index={openIndex} onIndexChange={setOpenIndex} onClose={close} onProfile={toProfile} />
+            <Lightbox works={works} index={openIndex} onIndexChange={setOpenIndex} onClose={close} onProfile={toProfile} opener={opener.current} />
           )}
         </AnimatePresence>,
         document.body,
@@ -142,7 +164,7 @@ export default function Works() {
   return (
     <section id="works" className="band relative scroll-mt-header pb-20 md:pb-28">
       <div aria-hidden="true" className="band-bg" />
-      <Corridor works={works.slice(0, LIMIT)} title={title} onOpen={setOpenIndex} />
+      <Corridor works={works.slice(0, LIMIT)} title={title} onOpen={open} />
       <div className="mx-auto max-w-6xl pl-5 pr-[var(--gutter)]">{rest}</div>
     </section>
   );

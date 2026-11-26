@@ -52,6 +52,60 @@ export function scrollToId(id, { immediate = false } = {}) {
   scrollToY(rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY + HEADER_OFFSET, { immediate });
 }
 
+// The reader's place, kept for a reload or a return through history: the section at the top of the screen and how
+// far into it, since the page above can come out a little taller or shorter next time (fonts, reviews, pins).
+const PLACE_KEY = 'strand:place';
+const PLACE_ANCHORS = 'main > section[id], main [data-hero-underlay] section[id], footer';
+
+// Page top of a section: where a pinned one comes to rest (see scrollToId), else its box.
+function restTopOf(el) {
+  const rest = el.parentElement?.dataset.restTop;
+  return rest ? Number(rest) : el.getBoundingClientRect().top + window.scrollY;
+}
+
+function anchors() {
+  return [...document.querySelectorAll(PLACE_ANCHORS)].map((el) => ({ el, top: restTopOf(el) })).sort((a, b) => a.top - b.top);
+}
+
+/** Saves where the reader is (sessionStorage; nothing when storage is blocked). */
+export function rememberPlace() {
+  const y = window.scrollY;
+  const line = y + HEADER_HEIGHT;
+  const current = anchors().filter(({ top }) => top <= line).at(-1);
+  const offset = current ? y - current.top : y;
+  const place = {
+    id: current ? current.el.id || 'footer' : '',
+    offset: Math.round(offset),
+    // The share of the section read, for a screen of another width (the phone turned), where heights change.
+    share: current ? Math.min(offset / Math.max(current.el.offsetHeight, 1), 1) : null,
+    width: window.innerWidth,
+    path: window.location.pathname,
+  };
+  try {
+    sessionStorage.setItem(PLACE_KEY, JSON.stringify(place));
+  } catch {
+    /* storage blocked: a reload starts at the top */
+  }
+}
+
+/** The saved place as a page position, or null. Clamped into its section, which may have come out shorter. */
+export function savedPlaceTop() {
+  let place;
+  try {
+    place = JSON.parse(sessionStorage.getItem(PLACE_KEY) ?? 'null');
+  } catch {
+    return null;
+  }
+  if (!place || place.path !== window.location.pathname) return null;
+  if (!place.id) return place.offset;
+  const el = place.id === 'footer' ? document.querySelector('footer') : document.getElementById(place.id);
+  if (!el) return null;
+  const top = restTopOf(el);
+  const height = el.offsetHeight;
+  if (place.width !== window.innerWidth && place.share !== null) return top + place.share * height;
+  return top + Math.min(place.offset, Math.max(height - HEADER_HEIGHT, 0));
+}
+
 /** Scrolls the page to `top` (px): smoothly through Lenis where it runs, natively otherwise. */
 export function scrollToY(top, { immediate = false } = {}) {
   // A jump goes past Lenis: right after load it still clamps to the page height it measured before the content

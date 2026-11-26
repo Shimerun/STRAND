@@ -1,10 +1,11 @@
 import { Fragment, useContext, useEffect, useRef } from 'react';
-import { motion, useAnimationControls, useReducedMotion, useScroll } from 'framer-motion';
+import { motion, useAnimationControls, useScroll } from 'framer-motion';
 import { PORTAL } from '../lib/heroCut.js';
 import { maskWord, maskWords, revealViewport } from '../lib/motion.js';
 import { useScrollWeight } from '../lib/scrollWeight.js';
 import { PortalCamera } from './hero/portalPlanes.js';
 import Reveal from './Reveal.jsx';
+import { usePrefersReducedMotion } from '../lib/useMediaQuery.js';
 
 // The hairline is drawn by the scroll while the title travels from the bottom edge to 60% of the screen.
 const LINE_OFFSET = ['start end', 'start 0.6'];
@@ -58,7 +59,7 @@ function MaskedWords({ text }) {
 
 // The number above the title is a CSS counter (index.css), so sections stay numbered in page order.
 export default function SectionTitle({ className = '', children }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: LINE_OFFSET });
 

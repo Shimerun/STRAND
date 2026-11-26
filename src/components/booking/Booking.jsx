@@ -19,7 +19,7 @@ function Unavailable() {
   return (
     <div className="space-y-6">
       <p className="text-lg leading-relaxed">{site.ui.form.unavailable}</p>
-      <Button href={`tel:${site.phone}`} track={{ name: EVENTS.callClick, where: 'booking_unavailable' }} className="w-full md:w-auto">
+      <Button href={`tel:${site.phone}`} track={{ name: EVENTS.callClick, where: 'booking_unavailable' }} data-own-cta className="w-full md:w-auto">
         {site.phoneDisplay}
       </Button>
     </div>
@@ -32,7 +32,7 @@ function External() {
     <div className="space-y-6">
       <p className="text-lg leading-relaxed">{site.ui.form.external}</p>
       <div className="flex flex-col gap-3 md:flex-row">
-        <BookButton track={{ where: 'booking_external' }} className="w-full md:w-auto" />
+        <BookButton track={{ where: 'booking_external' }} data-own-cta className="w-full md:w-auto" />
         <Button variant="ghost" href={`tel:${site.phone}`} track={{ name: EVENTS.callClick, where: 'booking_external' }} className="w-full md:w-auto">
           {site.phoneDisplay}
         </Button>
@@ -63,7 +63,8 @@ export default function Booking() {
           </div>
         </div>
 
-        <div className="rounded border border-line bg-surface p-4 sm:p-5 md:p-8">
+        {/* data-own-cta-region: the mobile bar steps aside once the form reaches the middle of the screen. */}
+        <div data-own-cta-region={bookingEnabled || undefined} className="rounded border border-line bg-surface p-4 sm:p-5 md:p-8">
           {bookingEnabled ? (
             <>
               <div aria-live="polite">{success && <SuccessState />}</div>

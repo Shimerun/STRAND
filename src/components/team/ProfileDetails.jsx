@@ -1,5 +1,5 @@
 import { site } from '../../data/site.js';
-import { bookingEnabled } from '../../lib/booking.js';
+import { bookingEnabled, externalBookingUrl, externalBookingUrlFor, externalChoiceFor } from '../../lib/booking.js';
 import { formatDuration, formatRating, formatServicePrice } from '../../lib/format.js';
 import { servicesFor } from '../../lib/pricing.js';
 import { EVENTS, track } from '../../lib/track.js';
@@ -94,25 +94,40 @@ export default function ProfileDetails({ barber, titleId, monogram, onBook }) {
         <h3 className={LABEL}>{team.prices}</h3>
         <ul className="mt-3 border-t border-line">
           {servicesFor(slug).map((service) => {
+            const bookable = bookingEnabled || Boolean(externalBookingUrl);
+            const handoff = externalBookingUrl && externalChoiceFor(slug, service.id);
             const content = (
               <>
                 <span className="min-w-0">
                   <span className="block font-bold leading-snug">
-                    {bookingEnabled && <span className="sr-only">{cta.book}: </span>}
+                    {bookable && <span className="sr-only">{cta.book}: </span>}
                     {service.name}
                   </span>
                   <span className="mt-1 block text-sm text-concrete">{formatDuration(service.durationMin)}</span>
                   {service.note && <span className="mt-1 block text-sm text-accent-light">{service.note}</span>}
+                  {/* Only where EasyWeek cannot open on this service: the barber's page there asks for it again. */}
+                  {handoff && handoff !== 'time' && <span className="mt-1 block text-xs text-concrete">{cta.handoff[handoff]}</span>}
                 </span>
                 <span className="flex shrink-0 items-center gap-3 font-bold tabular-nums">
                   {formatServicePrice(service, slug)}
-                  {bookingEnabled && <ArrowIcon className="text-concrete transition-[transform,color] duration-150 group-hover:translate-x-1 group-hover:text-text" />}
+                  {bookable && <ArrowIcon className="text-concrete transition-[transform,color] duration-150 group-hover:translate-x-1 group-hover:text-text" />}
+                  {externalBookingUrl && <span className="sr-only"> ({cta.newTab})</span>}
                 </span>
               </>
             );
             return (
               <li key={service.id} className="border-b border-line">
-                {bookingEnabled ? (
+                {externalBookingUrl ? (
+                  <a
+                    href={externalBookingUrlFor(slug, service.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => track(EVENTS.bookClick, { where: 'profile-price', barber: slug, service: service.id })}
+                    className={`group ${ROW}`}
+                  >
+                    {content}
+                  </a>
+                ) : bookingEnabled ? (
                   <button type="button" onClick={() => bookService(service.id)} className={`group ${ROW}`}>
                     {content}
                   </button>
@@ -123,6 +138,7 @@ export default function ProfileDetails({ barber, titleId, monogram, onBook }) {
             );
           })}
         </ul>
+        {externalBookingUrl && <p className="mt-3 text-xs leading-relaxed text-concrete">{cta.handoff.time}</p>}
       </section>
 
     </div>

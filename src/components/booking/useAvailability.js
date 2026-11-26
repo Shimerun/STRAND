@@ -3,25 +3,34 @@ import { site } from '../../data/site.js';
 import { fetchBusy } from '../../lib/booking.js';
 import { addDaysISO, kyivNow } from '../../lib/time.js';
 
-// state: 'loading' until the first answer, then 'ready' or 'failed'.
-// On failure the last known list stays (empty at first = everything free); the server checks again.
+/**
+ * Busy slots from the sheet. state: 'loading' (no answer yet, or the visitor's own retry), 'ready', 'failed' (no
+ * list has ever loaded: no time can be offered) or 'stale' (a refresh failed; `busy` is the last list that loaded,
+ * and the server checks the time again on submit). busy: null until the first list loads.
+ * refetch() resolves to the new list, or null when it failed or a newer request overtook it.
+ */
 export function useAvailability() {
-  const [busy, setBusy] = useState([]);
+  const [busy, setBusy] = useState(null);
   const [state, setState] = useState('loading');
   const requestId = useRef(0);
+  const loaded = useRef(false);
 
   const refetch = useCallback(async () => {
     const id = ++requestId.current;
     const from = kyivNow().dateISO;
     try {
       const list = await fetchBusy({ from, to: addDaysISO(from, site.booking.daysAhead) });
-      if (id !== requestId.current) return;
+      // An answer to an older request never overwrites a newer one.
+      if (id !== requestId.current) return null;
+      loaded.current = true;
       setBusy(list);
       setState('ready');
+      return list;
     } catch (error) {
-      if (id !== requestId.current) return;
+      if (id !== requestId.current) return null;
       console.warn('[booking] could not load busy slots:', error);
-      setState('failed');
+      setState(loaded.current ? 'stale' : 'failed');
+      return null;
     }
   }, []);
 
@@ -34,7 +43,7 @@ export function useAvailability() {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [refetch]);
 
-  const addBusy = useCallback((item) => setBusy((prev) => [...prev, item]), []);
+  const addBusy = useCallback((item) => setBusy((prev) => [...(prev ?? []), item]), []);
   // The visitor's own "check again": shows the loading state, unlike the quiet refetch after a booking.
   const retry = useCallback(() => {
     setState('loading');

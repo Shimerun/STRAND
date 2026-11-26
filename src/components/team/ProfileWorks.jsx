@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
 import ArrowIcon from '../ArrowIcon.jsx';
 import Img from '../Img.jsx';
+import { usePrefersReducedMotion } from '../../lib/useMediaQuery.js';
+
+const THUMB_SIZES = "(min-width: 640px) 176px, 144px"; // w-36 / sm:w-44
 
 const ROW_ID = 'profile-works';
 const PAGE = 0.8; // share of the row's width one arrow press scrolls; snapping then lines the cards up
@@ -15,7 +17,7 @@ const ARROW =
  * show only when the row does not fit and dim at either end. `heading` sits on the arrows' line.
  */
 export default function ProfileWorks({ works, heading }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const rowRef = useRef(null);
   const [edges, setEdges] = useState({ start: true, end: true });
   const { prev, next } = site.ui.works;
@@ -64,7 +66,16 @@ export default function ProfileWorks({ works, heading }) {
       >
         {works.map((work) => (
           <li key={work.src} className="w-36 shrink-0 snap-start overflow-hidden rounded bg-surface sm:w-44">
-            <Img src={assetUrl(work.src)} alt={work.alt} width={work.width} height={work.height} className="aspect-[4/5] h-auto w-full object-cover" />
+            {/* Cards are 144 / 176 px: the gallery's 600px copy covers them at 3x (the full photo is for the lightbox). */}
+            <Img
+              src={assetUrl(work.src)}
+              srcSet={work.thumb ? `${assetUrl(work.thumb)} 600w, ${assetUrl(work.src)} ${work.width}w` : undefined}
+              sizes={work.thumb ? THUMB_SIZES : undefined}
+              alt={work.alt}
+              width={work.width}
+              height={work.height}
+              className="aspect-[4/5] h-auto w-full object-cover"
+            />
           </li>
         ))}
       </ul>

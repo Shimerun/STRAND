@@ -9,21 +9,22 @@ import Button from '../Button.jsx';
 import Img from '../Img.jsx';
 import OpenBadge from '../OpenBadge.jsx';
 import PhoneIcon from '../PhoneIcon.jsx';
-import Reveal from '../Reveal.jsx';
 
 const SERVICES_ID = 'services';
 const TAGLINE =
-  'mt-5 text-balance text-[2.25rem] font-extrabold uppercase leading-[1.05] tracking-heading sm:text-6xl sm:leading-[1.02] xl:text-7xl';
+  'mt-5 text-balance text-[2.25rem] font-extrabold uppercase leading-[1.05] tracking-heading sm:text-6xl sm:leading-[1.02] xl:text-7xl short:mt-3 short:text-[length:clamp(1.5rem,8.5svh,2.25rem)] short:leading-[1.05]';
 
 /**
  * Photo, headline and calls to action of the first screen. parallaxY: motion value for the photo shift
  * (none under reduced motion). copy: the duplicate drawn for the lower half of the cut, kept out of the
  * accessibility tree by its parent, so it carries no h1 and no alt text. Its buttons still take clicks (the
  * top piece is clipped away under them while the flap sags) but are left out of the tab order.
- * ownCta marks the buttons data-own-cta, which keeps the mobile bar away while they are on screen; during the cut
- * Hero.jsx marks a stand-in instead, since clipped and fallen buttons still count as on screen for an observer.
+ * ownCta marks the booking button data-own-cta, which keeps the mobile bar away while it is wholly on screen. During
+ * the cut Hero.jsx passes ctaAway instead: a stand-in the size of the button, moved off screen (by that motion value)
+ * once the strip carrying the button falls, since a fallen button still counts as on screen for an observer.
+ * On a phone on its side (short:) the actions move beside the headline, so the main one stays above the fold.
  */
-export default function HeroContent({ parallaxY, copy = false, ownCta = true }) {
+export default function HeroContent({ parallaxY, copy = false, ownCta = true, ctaAway }) {
   const { cta, hero } = site.ui;
   const tabIndex = copy ? -1 : undefined;
 
@@ -38,29 +39,27 @@ export default function HeroContent({ parallaxY, copy = false, ownCta = true }) 
       </motion.div>
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/40 to-bg" />
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16">
-        <div className="lg:w-1/2">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col pb-10 pl-5 pr-[var(--gutter)] pt-28 lg:justify-center lg:pb-16 short:grid short:grid-cols-[minmax(0,1fr)_16rem] short:grid-rows-[auto_1fr] short:gap-x-5 short:pb-4 short:pt-[calc(theme(spacing.header)+0.5rem)]">
+        <div data-hero-band="top" className="lg:w-1/2 short:col-start-1 short:row-start-1">
           <OpenBadge />
-          {/* The copy is only seen once the cut starts, long after the reveal, so it is drawn revealed. */}
-          {copy ? (
-            <p className={TAGLINE}>{site.tagline}</p>
-          ) : (
-            <Reveal as="h1" className={TAGLINE}>
-              {site.tagline}
-            </Reveal>
-          )}
+          {/* Drawn at once, with no reveal: the headline and the booking button are usable from the first frame.
+              The copy for the cut-off strip carries no second h1. */}
+          {copy ? <p className={TAGLINE}>{site.tagline}</p> : <h1 className={TAGLINE}>{site.tagline}</h1>}
         </div>
 
         {/* Room for the shears under the headline on mobile (less on short screens, so the address and the main action
             still fit the first screen at 320x568); on desktop they take the right half. */}
-        <div aria-hidden="true" className="min-h-[12svh] flex-1 lg:hidden [@media(min-height:700px)]:min-h-[22svh]" />
+        <div aria-hidden="true" className="min-h-[12svh] flex-1 lg:hidden short:hidden [@media(min-height:700px)]:min-h-[22svh]" />
 
-        <div className="lg:mt-8 lg:w-1/2">
-          <p className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base">
+        {/* short: the address sits under the headline and the actions take the right column, low, under the shears. */}
+        <div className="lg:mt-8 lg:w-1/2 short:contents">
+          <p data-hero-band="bottom" className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base short:col-start-1 short:row-start-2 short:self-end short:text-xs">
             {hero.subline} · {site.addressShort}
           </p>
-          <div data-own-cta={ownCta || undefined} className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <BookButton tabIndex={tabIndex} track={{ where: 'hero' }} />
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row short:col-start-2 short:row-span-2 short:row-start-1 short:mt-0 short:flex-col short:self-end">
+            <BookButton tabIndex={tabIndex} track={{ where: 'hero' }} data-own-cta={ownCta || undefined} className={`[overflow-wrap:anywhere] ${ctaAway ? 'relative' : ''}`}>
+              {ctaAway && <motion.span aria-hidden="true" data-own-cta style={{ y: ctaAway }} className="pointer-events-none absolute inset-0" />}
+            </BookButton>
             {/* The call, since the mobile bar that carries it stays away on this screen; beside the second action, so
                 the main one keeps its full width and one-line label down to 320px. */}
             <div className="flex gap-3">

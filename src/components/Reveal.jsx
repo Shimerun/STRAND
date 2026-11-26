@@ -1,9 +1,10 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { fadeReveal, revealViewport, textReveal } from '../lib/motion.js';
+import { usePrefersReducedMotion } from '../lib/useMediaQuery.js';
 
 // index: position in a list, used to stagger items of the same row.
 export default function Reveal({ as = 'div', index = 0, ...rest }) {
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const Tag = motion[as];
 
   return (

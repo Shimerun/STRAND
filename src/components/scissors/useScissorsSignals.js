@@ -8,6 +8,26 @@ import { END_SELECTOR, bindRig } from './rig.js';
 const DOCK_SPRING = { stiffness: 120, damping: 24 };
 const FRAME_SELECTOR = '[data-hero-frame]';
 
+// Layout offset of an element inside the frame, walking offset parents: transforms on the pieces of the cut never
+// skew it.
+function offsetTopIn(el, frame) {
+  let top = 0;
+  for (let node = el; node && node !== frame; node = node.offsetParent) top += node.offsetTop;
+  return top;
+}
+
+/**
+ * The free band between the hero's headline and its address, in frame px ({ top, bottom }), where a phone too short
+ * for the usual resting pose lays the shears (pose.js fitHeroPose); null without a hero. The first match is the
+ * uncut piece (the strip's copy follows it).
+ */
+export function measureHeroBand(frame = document.querySelector(FRAME_SELECTOR)) {
+  const top = frame?.querySelector('[data-hero-band="top"]');
+  const bottom = frame?.querySelector('[data-hero-band="bottom"]');
+  if (!top || !bottom) return null;
+  return { top: offsetTopIn(top, frame) + top.offsetHeight, bottom: offsetTopIn(bottom, frame) };
+}
+
 const dockFor = (scrollY, { heroHeight, cutPin }) => {
   const { from, to } = dockRange(heroHeight, cutPin);
   return clamp01((scrollY - from) / (to - from));
@@ -31,6 +51,7 @@ export function useScissorsSignals(requestFrame) {
     endTop: null, // page-space top of the [data-scissors-end] element, px; null without one
     heroHeight: window.innerHeight, // the hero's visible frame (pinned while it is cut)
     cutPin: 0, // px of scroll the hero stays pinned for the cut; 0 = no cut
+    heroBand: null, // free band under the headline, see measureHeroBand
     heroVisible: true,
     pageHidden: document.hidden,
     pointer: { x: 0, y: 0 },
@@ -64,6 +85,7 @@ export function useScissorsSignals(requestFrame) {
       signals.current.endTop = end ? end.getBoundingClientRect().top + window.scrollY : null;
       signals.current.heroHeight = frame?.offsetHeight || window.innerHeight;
       signals.current.cutPin = hero && frame ? Math.max(hero.offsetHeight - frame.offsetHeight, 0) : 0;
+      signals.current.heroBand = frame ? measureHeroBand(frame) : null;
       dockTarget.set(dockFor(scrollY.get(), signals.current));
       wake();
     };

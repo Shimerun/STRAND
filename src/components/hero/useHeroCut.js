@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { useMotionValue, useMotionValueEvent, useScroll, useTransform } from 'framer-motion';
 import { PORTAL, clamp01, cutGeometry, cutSoFar, cutState, ease, heroCutPhases, heroScale, portalCamera, riseAt } from '../../lib/heroCut.js';
 import { FOLD, creaseAt, fallAt, foldAt, foldTransform, folded, wedged } from './paper.js';
-import { readPlanes, writePlanes } from './portalPlanes.js';
+import { writePlanes } from './portalPlanes.js';
+import { useHeroMeasure } from './useHeroMeasure.js';
 
 // In the flight through the cut (PORTAL) the halves swing away like a pair of doors: the top up (ease-out, frame
 // heights) and back about its top edge (`tilt` deg in its own perspective, px), the flap falling like paper (paper.js).
@@ -35,38 +36,7 @@ export function useHeroCut(sectionRef, frameRef, underlayRef, enabled) {
   const flight = useTransform([scrollY, pin, camera, height], ([y, p, c, h]) => (p > 0 && y < p ? { c, rise: riseAt(p - y, PORTAL.rise * h) } : null));
   useMotionValueEvent(flight, 'change', (state) => writePlanes(scene.current, state));
 
-  // A layout effect: the underlay is pulled up before the first paint (after it: a layout shift of 1.0).
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const frame = frameRef.current;
-    const underlay = underlayRef.current;
-    const wrapper = underlay?.parentElement;
-    const measure = () => {
-      const pinPx = Math.max(section.offsetHeight - frame.offsetHeight, 0);
-      width.set(frame.offsetWidth);
-      height.set(frame.offsetHeight);
-      pin.set(pinPx);
-      if (!enabled || !underlay) return;
-      // Up to the top of the hero, beneath it; where the content comes to rest once the pin is over.
-      wrapper.style.marginTop = `-${section.offsetHeight}px`;
-      underlay.dataset.restTop = String(section.offsetTop + pinPx);
-      writePlanes(scene.current, null); // measured where CSS has them
-      scene.current = readPlanes(underlay, frame.offsetWidth, frame.offsetHeight);
-      writePlanes(scene.current, flight.get());
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(section);
-    observer.observe(frame);
-    return () => {
-      observer.disconnect();
-      if (!underlay) return;
-      wrapper.style.marginTop = '';
-      delete underlay.dataset.restTop;
-      writePlanes(scene.current, null);
-      scene.current = null;
-    };
-  }, [sectionRef, frameRef, underlayRef, enabled, width, height, pin, flight]);
+  useHeroMeasure({ sectionRef, frameRef, underlayRef, enabled, width, height, pin, flight, scene });
 
   const state = useTransform([phases, width, height], ([phase, w, h]) => (w ? cutState(phase.along, w, h) : null));
   const soFar = useTransform([state, width, height], ([s, w, h]) => (s ? cutSoFar(cutGeometry(w, h), s.cutEnd) : null));

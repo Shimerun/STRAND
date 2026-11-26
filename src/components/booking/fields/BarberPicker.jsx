@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { site } from '../../../data/site.js';
 import { formatPrice } from '../../../lib/format.js';
 import { priceFor } from '../../../lib/pricing.js';
+import Button from '../../Button.jsx';
 import CheckIcon from '../../CheckIcon.jsx';
 import BarberPhoto from '../../team/BarberPhoto.jsx';
 import { FieldError, LABEL, errorId } from './Field.jsx';
@@ -12,16 +14,27 @@ const CARD =
 /**
  * Barbers as rows: avatar (initials without a photo), full name, role, and once a service is chosen its price at
  * each barber, so they compare at a glance. One column on phones, so long names never get cut. The chosen one is
- * inverted and ticked (not told by colour alone).
+ * inverted and ticked (not told by colour alone). collapsed: the barber came chosen (a price row, a profile), so
+ * only that row shows, with a "change" button (onExpand) that brings the whole list back.
  */
-export default function BarberPicker({ barbers, service, value, error, onChange }) {
-  const { fields, notOffered } = site.ui.form;
+export default function BarberPicker({ barbers, service, value, error, onChange, collapsed = false, onExpand }) {
+  const { fields, notOffered, change } = site.ui.form;
+  const listRef = useRef(null);
+  const expanded = useRef(false);
+  const shown = collapsed && value ? barbers.filter(({ slug }) => slug === value) : barbers;
+
+  // Opened by "change": the chosen barber's radio takes focus, so the keyboard carries on in the list.
+  useEffect(() => {
+    if (collapsed || !expanded.current) return;
+    expanded.current = false;
+    listRef.current?.querySelector('input:checked')?.focus();
+  }, [collapsed]);
 
   return (
     <fieldset id={ID} className="min-w-0" data-invalid={Boolean(error)} aria-describedby={error ? errorId(ID) : undefined}>
       <legend className={LABEL}>{fields.barber}</legend>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {barbers.map(({ slug, name, role }) => {
+      <div ref={listRef} className={`grid gap-2 ${shown.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+        {shown.map(({ slug, name, role }) => {
           const checked = value === slug;
           const price = service ? priceFor(service.id, slug) : null;
           return (
@@ -62,6 +75,19 @@ export default function BarberPicker({ barbers, service, value, error, onChange 
           );
         })}
       </div>
+      {shown.length < barbers.length && (
+        <Button
+          variant="link"
+          aria-label={`${change}: ${fields.barber}`}
+          onClick={() => {
+            expanded.current = true;
+            onExpand();
+          }}
+          className="mt-1"
+        >
+          {change}
+        </Button>
+      )}
       <FieldError id={ID} error={error} />
     </fieldset>
   );

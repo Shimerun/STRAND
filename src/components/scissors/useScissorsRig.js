@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Euler, Quaternion, Vector3 } from 'three';
 import { rig } from './rig.js';
@@ -7,6 +7,9 @@ import { createSheet } from './sheet.js';
 import { useScissorsSignals } from './useScissorsSignals.js';
 
 const RIG_PRIORITY = -1; // runs before Shears reads openRef; negative keeps auto-rendering on
+// s: the shears fade in where the scroll has them when they are first drawn, rather than popping in mid-cut.
+const REVEAL_S = 0.45;
+const MAX_REVEAL_STEP = 1 / 30; // s: the first frame's delta spans the whole load
 
 /**
  * Drives the 3D shears from the shared motion (rigMotion.js): writes the transform into groupRef, the roll
@@ -20,12 +23,19 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
   const shadowRef = useRef(null);
   const openRef = useRef(0);
   const opacityRef = useRef(-1);
+  const revealRef = useRef(0);
   const invalidate = useThree((state) => state.invalidate);
   const gl = useThree((state) => state.gl);
   const { signals, scrollY, dock } = useScissorsSignals(invalidate);
   const [step] = useState(() => createRigMotion());
   const [sheet] = useState(() => createSheet());
   const [tmp] = useState(() => ({ tip: new Vector3(), euler: new Euler(), qHero: new Quaternion(), qTrack: new Quaternion() }));
+
+  // The rig mounts with the loaded model (both wait on one Suspense): the materials take their clipping planes now,
+  // so the shaders compiled before the first frame are the ones it uses.
+  useLayoutEffect(() => {
+    if (groupRef.current) sheet.attach(groupRef.current);
+  }, [sheet]);
 
   useFrame(({ viewport, size, camera }, delta) => {
     const group = groupRef.current;
@@ -57,14 +67,16 @@ export function useScissorsRig({ maxOpen, length, layerRef, hold = null }) {
     else if (hold === 'closed') openRef.current = 0;
     else openRef.current = frame.open;
 
-    if (frame.opacity !== opacityRef.current && layerRef.current) layerRef.current.style.opacity = String(frame.opacity);
-    opacityRef.current = frame.opacity;
+    revealRef.current = Math.min(revealRef.current + Math.min(delta, MAX_REVEAL_STEP) / REVEAL_S, 1);
+    const opacity = Math.round(frame.opacity * revealRef.current * 1000) / 1000;
+    if (opacity !== opacityRef.current && layerRef.current) layerRef.current.style.opacity = String(opacity);
+    opacityRef.current = opacity;
 
     tip.set(0, length / 2, 0).applyMatrix4(group.matrixWorld).project(camera);
     rig.tipX = ((tip.x + 1) / 2) * size.width;
     rig.tipY = ((1 - tip.y) / 2) * size.height;
 
-    if (frame.active) invalidate();
+    if (frame.active || revealRef.current < 1) invalidate();
   }, RIG_PRIORITY);
 
   return { groupRef, rollRef, shadowRef, openRef };

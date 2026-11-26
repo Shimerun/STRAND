@@ -1,18 +1,20 @@
 import { site } from '../data/site.js';
+import { easyweekLink } from './easyweek.js';
 
 // The only module that knows the Google Apps Script web app (see integrations/google-sheets): bookings,
 // busy slots, prices from the sheet and Google reviews.
 const ENDPOINT = import.meta.env.VITE_BOOKING_ENDPOINT;
 // A production build without the web app cannot take bookings: the section points elsewhere instead of the form.
+// Kept a constant at build time, so a build without the endpoint leaves the form's code out.
 export const bookingEnabled = Boolean(ENDPOINT) || import.meta.env.DEV;
 // Without the form, booking goes to the shop's EasyWeek page; without that page too, the phone is the only way.
 export const externalBookingUrl = bookingEnabled ? null : site.booking.externalUrl;
 export const phoneOnly = !bookingEnabled && !externalBookingUrl;
-/** The EasyWeek booking with this barber (slug) already chosen; the general one without a barber or their id. */
-export function externalBookingUrlFor(barber) {
-  const id = site.team.find((member) => member.slug === barber)?.easyweekId;
-  return externalBookingUrl && id ? site.booking.externalBarberUrl.replace('{id}', id) : externalBookingUrl;
-}
+
+/** The EasyWeek booking with as much already chosen as EasyWeek allows (easyweek.js); null while the form works. */
+export const externalBookingUrlFor = (barber, service) => (externalBookingUrl ? easyweekLink(barber, service).url : null);
+/** What is left to choose in EasyWeek after that link: 'time', 'barber', 'service' or 'all' (easyweek.js). */
+export const externalChoiceFor = (barber, service) => easyweekLink(barber, service).choice;
 const FETCH_TIMEOUT_MS = 15_000;
 // Apps Script can cold-start and then wait up to 10 s for its lock.
 const SUBMIT_TIMEOUT_MS = 30_000;

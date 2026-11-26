@@ -50,19 +50,25 @@ export default function Studio() {
   const { gl, scene } = useThree();
 
   useEffect(() => {
-    const pmrem = new PMREMGenerator(gl);
-    const studio = buildStudio();
-    const envMap = pmrem.fromScene(studio, ROOM.blur).texture;
-    studio.traverse((object) => {
-      if (!object.isMesh) return;
-      object.geometry.dispose();
-      object.material.dispose();
-    });
-    pmrem.dispose();
-    scene.environment = envMap;
+    let envMap = null;
+    // Baked in a task of its own, apart from mounting the canvas: together they held the page for a long task.
+    // The shears' shaders are compiled once it is in (Scissors3D waits for scene.environment).
+    const bake = setTimeout(() => {
+      const pmrem = new PMREMGenerator(gl);
+      const studio = buildStudio();
+      envMap = pmrem.fromScene(studio, ROOM.blur).texture;
+      studio.traverse((object) => {
+        if (!object.isMesh) return;
+        object.geometry.dispose();
+        object.material.dispose();
+      });
+      pmrem.dispose();
+      scene.environment = envMap;
+    }, 0);
     return () => {
+      clearTimeout(bake);
       scene.environment = null;
-      envMap.dispose();
+      envMap?.dispose();
     };
   }, [gl, scene]);
 

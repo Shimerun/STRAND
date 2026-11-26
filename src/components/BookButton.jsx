@@ -9,13 +9,14 @@ const toForm = () => scrollToId(BOOKING_ID);
 /**
  * The page's main action. While online booking works it leads to the form (`onClick`, the form by default); a
  * build without the booking web app has no form, so the same button opens the shop's EasyWeek page in a new tab,
- * or places the call when there is none. `barber`: slug whose EasyWeek page opens with them already chosen.
+ * or places the call when there is none. `barber` (slug) and `service` (id): what EasyWeek opens with already
+ * chosen, as far as it has links for (booking.js externalBookingUrlFor).
  * `track`: analytics params ({ where, ... }); `children` follow the label.
  */
-export default function BookButton({ label = site.ui.cta.book, onClick = toForm, barber, track = {}, children, ...props }) {
+export default function BookButton({ label = site.ui.cta.book, onClick = toForm, barber, service, track = {}, children, ...props }) {
   if (externalBookingUrl) {
     return (
-      <Button href={externalBookingUrlFor(barber)} target="_blank" rel="noopener noreferrer" track={{ name: EVENTS.bookClick, ...track }} {...props}>
+      <Button href={externalBookingUrlFor(barber, service)} target="_blank" rel="noopener noreferrer" track={{ name: EVENTS.bookClick, ...track }} {...props}>
         {label}
         <span className="sr-only"> ({site.ui.cta.newTab})</span>
         {children}

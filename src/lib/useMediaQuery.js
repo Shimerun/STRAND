@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
 export function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
 
@@ -13,3 +15,6 @@ export function useMediaQuery(query) {
 
   return matches;
 }
+
+/** prefers-reduced-motion that follows a change made while the page is open (framer's hook reads it once). */
+export const usePrefersReducedMotion = () => useMediaQuery(REDUCED_MOTION_QUERY);

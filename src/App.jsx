@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import { useLivePrices } from './lib/livePrices.js';
-import { MAIN_ID, hasMouse, prefersReducedMotion, scrollToId, setLenis } from './lib/scroll.js';
+import { usePrefersReducedMotion } from './lib/useMediaQuery.js';
+import { useKeepPlaceAcross, usePlaceOnLoad } from './lib/usePlace.js';
+import { MAIN_ID, hasMouse, setLenis } from './lib/scroll.js';
 import About from './components/About.jsx';
 import Booking from './components/booking/Booking.jsx';
 import Contacts from './components/Contacts.jsx';
@@ -9,7 +11,6 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import Hero from './components/hero/Hero.jsx';
-import Intro from './components/Intro.jsx';
 import MobileBar from './components/MobileBar.jsx';
 import ScissorsLayer from './components/scissors/ScissorsLayer.jsx';
 import ScrollWeight from './components/ScrollWeight.jsx';
@@ -24,27 +25,35 @@ const Cursor = lazy(() => import('./components/cursor/Cursor.jsx'));
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_MS = 200;
 
-// Mount heavy, non-critical UI only after the first paint.
-function useAfterFirstPaint() {
+// Mount heavy, non-critical UI (the shears) once the page has loaded and the browser is idle: the headline and
+// the booking button never wait for it, nor share the network or the main thread with it.
+function useAfterLoad() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(() => setReady(true), { timeout: IDLE_TIMEOUT_MS });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = window.setTimeout(() => setReady(true), IDLE_FALLBACK_MS);
-    return () => window.clearTimeout(id);
+    let idle = 0;
+    let timer = 0;
+    const whenIdle = () => {
+      if ('requestIdleCallback' in window) idle = window.requestIdleCallback(() => setReady(true), { timeout: IDLE_TIMEOUT_MS });
+      else timer = window.setTimeout(() => setReady(true), IDLE_FALLBACK_MS);
+    };
+    if (document.readyState === 'complete') whenIdle();
+    else window.addEventListener('load', whenIdle, { once: true });
+    return () => {
+      window.removeEventListener('load', whenIdle);
+      if (idle) window.cancelIdleCallback(idle);
+      window.clearTimeout(timer);
+    };
   }, []);
 
   return ready;
 }
 
-function useLenis() {
+function useLenis(reduce) {
   useEffect(() => {
     // Touch screens scroll natively and Lenis would only listen to every scroll event there; anchors then use
     // the browser's smooth scroll (scrollToId) and dialogs lock the root element (lockScroll).
-    if (prefersReducedMotion() || !hasMouse()) return undefined;
+    if (reduce || !hasMouse()) return undefined;
     const lenis = new Lenis({ duration: 1.1 });
     // Frames only while Lenis animates (after a wheel turn or a scrollTo): a loop that never stops makes the
     // browser run a whole rendering pass 60 times a second on a page standing still.
@@ -65,32 +74,21 @@ function useLenis() {
       lenis.destroy();
       setLenis(null);
     };
-  }, []);
-}
-
-// A link to /#section opens at that section. The page is partly laid out by script (the hero pin pulls the next
-// section up), so the browser's own jump on load lands in the wrong place; this runs once the layout is in.
-function useHashOnLoad() {
-  useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.slice(1));
-    if (!id) return undefined;
-    const frame = requestAnimationFrame(() => scrollToId(id, { immediate: true }));
-    return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [reduce]);
 }
 
 export default function App() {
-  useLenis();
-  useHashOnLoad();
+  const reduce = usePrefersReducedMotion();
+  useLenis(reduce);
+  useKeepPlaceAcross(reduce);
+  usePlaceOnLoad();
   useLivePrices(); // re-renders the page when prices from the Google Sheet arrive
-  const showScissors = useAfterFirstPaint();
+  const showScissors = useAfterLoad();
   const [showCursor] = useState(hasMouse);
-  const [scrollWeight] = useState(() => !prefersReducedMotion());
 
   return (
     <>
-      {scrollWeight && <ScrollWeight />}
-      <Intro />
+      {!reduce && <ScrollWeight />}
       <Header />
       <main id={MAIN_ID} tabIndex={-1}>
         {/* The section inside the hero is what shows through its cut. */}

@@ -9,18 +9,18 @@ import Field, { CONTROL, borderFor, controlProps } from './Field.jsx';
 const ID = 'booking-service';
 const LIST_ID = `${ID}-list`;
 const optionId = (serviceId) => `${ID}-option-${serviceId}`;
-const OPEN_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Enter', ' ']);
+// Enter and Space open the list through the button's own click (so a virtual click, detail 0, does too); arrows here.
+const OPEN_KEYS = new Set(['ArrowDown', 'ArrowUp']);
 const THUMB = 40; // px
 
-/**
- * Select-only combobox (WAI-ARIA APG): focus stays on the button, the arrows move the active option,
- * Enter / Space picks it, Escape or leaving the field closes the list. Shows length and price per service.
- */
+// Select-only combobox (WAI-ARIA APG): focus stays on the button, arrows move the active option, Enter / Space picks
+// it, Escape or leaving the field closes the list. Shows length and price per service.
 export default function ServicePicker({ services, barber, value, error, hint, onChange }) {
   const { form } = site.ui;
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const listRef = useRef(null);
+  const swallowSpace = useRef(false); // Space that picked an option: its keyup must not click and reopen the list
   const selectedIndex = services.findIndex((service) => service.id === value);
   const selected = services[selectedIndex] ?? null;
   const activeService = open ? services[active] : null;
@@ -57,7 +57,13 @@ export default function ServicePicker({ services, barber, value, error, hint, on
     };
     if (!moves[event.key]) return;
     event.preventDefault();
+    if (event.key === ' ') swallowSpace.current = true;
     moves[event.key]();
+  };
+  const onKeyUp = (event) => {
+    if (event.key !== ' ' || !swallowSpace.current) return;
+    swallowSpace.current = false;
+    event.preventDefault();
   };
 
   return (
@@ -71,9 +77,9 @@ export default function ServicePicker({ services, barber, value, error, hint, on
           aria-controls={LIST_ID}
           aria-activedescendant={activeService ? optionId(activeService.id) : undefined}
           {...controlProps(ID, error, hint)}
-          // Keyboard clicks (detail 0) are handled in onKeyDown; this is for the mouse and touch.
-          onClick={(event) => event.detail !== 0 && (open ? setOpen(false) : show())}
+          onClick={() => (open ? setOpen(false) : show())}
           onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
           onBlur={() => setOpen(false)}
           className={`${CONTROL} ${borderFor(error)} flex items-center justify-between gap-3 pr-11 text-left`}
         >

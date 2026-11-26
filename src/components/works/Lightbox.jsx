@@ -23,11 +23,11 @@ function Chevron({ flip = false }) {
   );
 }
 
-// onProfile(slug): the "barber's profile" link under a work whose barber is known.
-export default function Lightbox({ works, index, onIndexChange, onClose, onProfile }) {
+// onProfile(slug): the "barber's profile" link under a work whose barber is known. opener: the work that opened it.
+export default function Lightbox({ works, index, onIndexChange, onClose, onProfile, opener }) {
   const rootRef = useRef(null);
   const closeRef = useRef(null);
-  const onDialogKeyDown = useDialog(rootRef, closeRef, onClose);
+  const onDialogKeyDown = useDialog(rootRef, closeRef, onClose, { opener });
   const { sections, works: labels } = site.ui;
   const work = works[index];
   const author = site.team.find(({ slug }) => slug === work.barber);

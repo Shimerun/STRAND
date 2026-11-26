@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { lazy, Suspense, useCallback, useRef, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { ACESFilmicToneMapping } from 'three';
 import ContextWatch from '../WebGLContextWatch.jsx';
+import { Compile, FrameProbe, FrameWatch, Ready } from './frameBudget.jsx';
 import { CAMERA, DESKTOP_MIN_PX } from './pose.js';
 import Shears, { CONFIG } from './Shears.jsx';
 import { SHEET_Z } from './sheet.js';
@@ -17,51 +18,6 @@ const SHADOW_PLANE = [40, 40]; // world units, wider than any viewport
 // desktop the shears are at most ~240px long, so 1.25 looks the same as 1.75 and halves the pixels per frame.
 const DPR = window.matchMedia(`(min-width: ${DESKTOP_MIN_PX}px)`).matches ? [1, 1.75] : [1, 1.25];
 const EXPOSURE = 1.05;
-const PROBE = { frames: 30, skip: 5, slowMs: 30 };
-
-// Upper median: the probe always ends with an odd count (frames - skip), where it is the plain median.
-const median = (values) => [...values].sort((a, b) => a - b)[values.length >> 1];
-
-// Mounts once the model has loaded: forces PROBE.frames renders and calls onSlow when the median
-// requestAnimationFrame delta, ignoring the first PROBE.skip, is above PROBE.slowMs.
-function FrameProbe({ onSlow }) {
-  const invalidate = useThree((state) => state.invalidate);
-
-  useEffect(() => {
-    const deltas = [];
-    let frame = 0;
-    let count = 0;
-    let last = 0;
-    // A hidden tab stalls requestAnimationFrame, which would read as a slow device: start over.
-    const restart = () => {
-      deltas.length = 0;
-      count = 0;
-      last = 0;
-    };
-    const sample = (now) => {
-      if (last) {
-        count += 1;
-        if (count > PROBE.skip) deltas.push(now - last);
-      }
-      last = now;
-      if (count >= PROBE.frames) {
-        if (median(deltas) > PROBE.slowMs) onSlow();
-        return;
-      }
-      invalidate();
-      frame = requestAnimationFrame(sample);
-    };
-    frame = requestAnimationFrame(sample);
-    document.addEventListener('visibilitychange', restart);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener('visibilitychange', restart);
-    };
-  }, [invalidate, onSlow]);
-
-  return null;
-}
-
 function Rig({ config, hold, layerRef, showAxes, onInfo }) {
   const { groupRef, rollRef, shadowRef, openRef } = useScissorsRig({ maxOpen: config.MAX_OPEN, length: config.SCALE, layerRef, hold });
 
@@ -88,13 +44,16 @@ export default function Scissors3D({ onLost, onSlow }) {
   const [config, setConfig] = useState(CONFIG);
   const [hold, setHold] = useState(debug ? 'open' : null);
   const [info, setInfo] = useState(null);
+  // Nothing is drawn until every shader is linked (Compile); the rig then fades the shears in where they are.
+  const [compiled, setCompiled] = useState(false);
+  const onCompiled = useCallback(() => setCompiled(true), []);
   const layerRef = useRef(null);
 
   return (
     <>
-      <div ref={layerRef} className="scissors-layer" aria-hidden="true">
+      <div ref={layerRef} className="scissors-layer" style={{ opacity: 0 }} aria-hidden="true">
         <Canvas
-          frameloop="demand"
+          frameloop={compiled ? 'demand' : 'never'}
           shadows
           dpr={DPR}
           camera={CAMERA}
@@ -111,7 +70,9 @@ export default function Scissors3D({ onLost, onSlow }) {
           <Studio />
           <Suspense fallback={null}>
             <Rig config={config} hold={hold} layerRef={layerRef} showAxes={debug} onInfo={debug ? setInfo : undefined} />
-            {!debug && <FrameProbe onSlow={onSlow} />}
+            {compiled ? <Ready /> : <Compile onReady={onCompiled} />}
+            {compiled && !debug && <FrameProbe onSlow={onSlow} />}
+            {compiled && !debug && <FrameWatch onSlow={onSlow} />}
           </Suspense>
         </Canvas>
       </div>
