@@ -1,11 +1,14 @@
 import { motion } from 'framer-motion';
 import { site } from '../../data/site.js';
 import { assetUrl } from '../../lib/assetUrl.js';
+import { phoneOnly } from '../../lib/booking.js';
 import { scrollToId } from '../../lib/scroll.js';
+import { EVENTS } from '../../lib/track.js';
 import BookButton from '../BookButton.jsx';
 import Button from '../Button.jsx';
 import Img from '../Img.jsx';
 import OpenBadge from '../OpenBadge.jsx';
+import PhoneIcon from '../PhoneIcon.jsx';
 import Reveal from '../Reveal.jsx';
 
 const SERVICES_ID = 'services';
@@ -17,10 +20,10 @@ const TAGLINE =
  * (none under reduced motion). copy: the duplicate drawn for the lower half of the cut, kept out of the
  * accessibility tree by its parent, so it carries no h1 and no alt text. Its buttons still take clicks (the
  * top piece is clipped away under them while the flap sags) but are left out of the tab order.
- * Both sets of buttons are marked data-own-cta, which keeps the mobile bar away while either is on screen
- * (each is partly clipped away during the cut, so neither alone covers the whole of it).
+ * ownCta marks the buttons data-own-cta, which keeps the mobile bar away while they are on screen; during the cut
+ * Hero.jsx marks a stand-in instead, since clipped and fallen buttons still count as on screen for an observer.
  */
-export default function HeroContent({ parallaxY, copy = false }) {
+export default function HeroContent({ parallaxY, copy = false, ownCta = true }) {
   const { cta, hero } = site.ui;
   const tabIndex = copy ? -1 : undefined;
 
@@ -56,19 +59,36 @@ export default function HeroContent({ parallaxY, copy = false }) {
           <p className="text-sm font-medium uppercase leading-relaxed tracking-heading text-text/80 sm:text-base">
             {hero.subline} · {site.addressShort}
           </p>
-          <div data-own-cta className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div data-own-cta={ownCta || undefined} className="mt-6 flex flex-col gap-3 sm:flex-row">
             <BookButton tabIndex={tabIndex} track={{ where: 'hero' }} />
-            <Button
-              tabIndex={tabIndex}
-              variant="ghost"
-              href={`#${SERVICES_ID}`}
-              onClick={(event) => {
-                event.preventDefault();
-                scrollToId(SERVICES_ID);
-              }}
-            >
-              {cta.services}
-            </Button>
+            {/* The call, since the mobile bar that carries it stays away on this screen; beside the second action, so
+                the main one keeps its full width and one-line label down to 320px. */}
+            <div className="flex gap-3">
+              <Button
+                tabIndex={tabIndex}
+                variant="ghost"
+                className="flex-1 !px-3"
+                href={`#${SERVICES_ID}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  scrollToId(SERVICES_ID);
+                }}
+              >
+                {cta.services}
+              </Button>
+              {!phoneOnly && (
+                <Button
+                  tabIndex={tabIndex}
+                  variant="ghost"
+                  aria-label={cta.call}
+                  className="w-12 shrink-0 !px-0 lg:hidden"
+                  href={`tel:${site.phone}`}
+                  track={{ name: EVENTS.callClick, where: 'hero' }}
+                >
+                  <PhoneIcon />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

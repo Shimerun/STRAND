@@ -79,6 +79,7 @@ export default function ProfileDetails({ barber, titleId, monogram, onBook }) {
       <BookButton
         className="mt-6 hidden w-full lg:inline-flex"
         label={cta.bookWithBarber}
+        barber={slug}
         track={{ where: 'profile', barber: slug }}
         onClick={() => onBook()}
       />

@@ -20,9 +20,11 @@ export const site = {
   booking: {
     daysAhead: 30, slotMinutes: 60, minLeadMinutes: 60, // must match DAYS_AHEAD, SLOT_MIN, MIN_LEAD_MIN in Code.gs
     maxBlocks: 4, // longest visit in slots; must match MAX_BLOCKS in integrations/google-sheets/Code.gs
-    // The shop's own EasyWeek booking page: every "book" button opens it while the site's form is off (no web app).
-    // null: those buttons call instead.
-    externalUrl: "https://strand.easyweek.com.ua/",
+    // The shop's EasyWeek booking (straight to it, not the shop's page there): every "book" button opens it while
+    // the site's form is off (no web app). null: those buttons call instead.
+    externalUrl: "https://booking.easyweek.com.ua/strand?lang=uk-UA&theme=custom",
+    // The same with the barber already chosen: {id} takes team[].easyweekId (their id in EasyWeek's team list).
+    externalBarberUrl: "https://booking.easyweek.com.ua/strand/team/303068/{id}?lang=uk-UA&theme=custom",
     // Services offered as extras to the main one in the booking form (ids from `services`, in display order).
     addons: ["scalp-peeling", "face-care", "gray-beard", "gray-head", "kids", "beard"]
   },
@@ -103,12 +105,12 @@ export const site = {
       prices: { "oleh-dok": 150, "liubov-zainchkovska": 150, "liliia-pavlenko": 150, "daryna-badio": 150 } }
   ],
   team: [
-    { slug: "oleh-dok", name: "Олег Док", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/olegdok_/" },
-    { slug: "liubov-zainchkovska", name: "Люба Зайнчковська", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/luybka_barber/" },
-    { slug: "liliia-pavlenko", name: "Лілія Павленко", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/pavlenko_lilya_/" },
-    { slug: "daryna-badio", name: "Дарина Бадьо", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/darina.bado/" },
-    { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", rating: null, instagram: "https://www.instagram.com/rmn_mkhlvski/" },
-    { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", rating: null, instagram: "https://www.instagram.com/puhach.dm/" }
+    { slug: "oleh-dok", name: "Олег Док", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/olegdok_/", easyweekId: 319634 },
+    { slug: "liubov-zainchkovska", name: "Люба Зайнчковська", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/luybka_barber/", easyweekId: 319649 },
+    { slug: "liliia-pavlenko", name: "Лілія Павленко", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/pavlenko_lilya_/", easyweekId: 329977 },
+    { slug: "daryna-badio", name: "Дарина Бадьо", role: "Барбер", rating: 5.0, instagram: "https://www.instagram.com/darina.bado/", easyweekId: 330004 },
+    { slug: "roman-mykhailovskyi", name: "Роман Михайловський", role: "Молодший барбер", rating: null, instagram: "https://www.instagram.com/rmn_mkhlvski/", easyweekId: 346199 },
+    { slug: "dmytro-puhach", name: "Дмитро Пугач", role: "Молодший барбер", rating: null, instagram: "https://www.instagram.com/puhach.dm/", easyweekId: 349136 }
   ],
   // width / height: the photo's own size, so the masonry keeps its place before the photo loads.
   // New photos: WebP, at most 1200 px wide (a phone at 3x fills the lightbox with that), about 100-250 KB.
@@ -162,6 +164,7 @@ export const site = {
       skip: "Перейти до вмісту",
       skipIntro: "Пропустити інтро", // jumps past the hero's cut and flight to the section under it
       bookWithBarber: "Записатись до майстра",
+      newTab: "відкриється EasyWeek у новій вкладці", // screen readers only, after a book button's label
       moreWorks: "Більше робіт в Instagram",
       menu: "Меню",
       close: "Закрити"

@@ -8,6 +8,11 @@ export const bookingEnabled = Boolean(ENDPOINT) || import.meta.env.DEV;
 // Without the form, booking goes to the shop's EasyWeek page; without that page too, the phone is the only way.
 export const externalBookingUrl = bookingEnabled ? null : site.booking.externalUrl;
 export const phoneOnly = !bookingEnabled && !externalBookingUrl;
+/** The EasyWeek booking with this barber (slug) already chosen; the general one without a barber or their id. */
+export function externalBookingUrlFor(barber) {
+  const id = site.team.find((member) => member.slug === barber)?.easyweekId;
+  return externalBookingUrl && id ? site.booking.externalBarberUrl.replace('{id}', id) : externalBookingUrl;
+}
 const FETCH_TIMEOUT_MS = 15_000;
 // Apps Script can cold-start and then wait up to 10 s for its lock.
 const SUBMIT_TIMEOUT_MS = 30_000;

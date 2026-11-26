@@ -92,7 +92,7 @@ export default function BarberProfile({ barber, onClose }) {
           </div>
 
           <motion.div {...contentProps} className="sticky bottom-0 mt-auto border-t border-line bg-bg/95 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 lg:hidden">
-            <BookButton className="w-full" label={cta.bookWithBarber} track={{ where: 'profile', barber: barber.slug }} onClick={() => book()} />
+            <BookButton className="w-full" label={cta.bookWithBarber} barber={barber.slug} track={{ where: 'profile', barber: barber.slug }} onClick={() => book()} />
           </motion.div>
         </div>
       </div>

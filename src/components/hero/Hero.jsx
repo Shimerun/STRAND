@@ -16,6 +16,7 @@ const CUE_GONE_AT = 0.5; // share of the aim: the scroll cue has faded out
 const SKIP_GONE_AT = 0.25; // share of the flight: past this there is little left to skip
 const FALL_ORIGIN_Y = '75%'; // the strip turns about its middle as it falls
 const FLAP_SHADE = 'linear-gradient(90deg, transparent 30%, rgb(10 10 10 / 0.5))'; // bg token, see tailwind.config
+const CTA_AWAY = 10_000; // px, far below the frame, whose overflow clips it: off screen for the mobile bar
 // The scroll the hero stays pinned for. Used twice: as the hero's own scroll room, and after the underlay.
 const PIN_ROOM = {
   className: 'h-[calc(var(--pin)*100svh)] lg:h-[calc(var(--pin-lg)*100svh)]',
@@ -40,6 +41,7 @@ export default function Hero({ children }) {
   const cueOpacity = useTransform(cut.aim, [0, CUE_GONE_AT], [1, 0]);
   const skipOpacity = useTransform(cut.split, [0, SKIP_GONE_AT], [1, 0]);
   const skipVisibility = useTransform(skipOpacity, (o) => (o > 0 ? 'visible' : 'hidden'));
+  const ctaY = useTransform(cut.split, (s) => (s > 0 ? CTA_AWAY : 0));
   const paths = useCutMarks(cut);
   // Straight to the section under the cut, keyboard focus with it.
   const skip = () => {
@@ -74,6 +76,9 @@ export default function Hero({ children }) {
           style={{ visibility: cut.frameVisibility }}
           className="pointer-events-auto sticky top-0 overflow-hidden"
         >
+          {/* Stands in for the buttons (data-own-cta) until the cut is through and the strip carrying them falls,
+              so the mobile bar comes up as they go. */}
+          <motion.div aria-hidden="true" data-own-cta style={{ y: ctaY }} className="pointer-events-none absolute inset-0" />
           {/* will-change: each piece gets its own layer, so the per-frame clip path re-masks it on the GPU
               instead of repainting the photo (Safari repainted the whole screen on every scroll frame). */}
           <motion.div
@@ -82,7 +87,7 @@ export default function Hero({ children }) {
           >
             <motion.div style={top.motion} className="relative will-change-transform">
               <motion.div style={{ clipPath: top.clip }} className="will-change-transform">
-                <HeroContent parallaxY={parallaxY} />
+                <HeroContent parallaxY={parallaxY} ownCta={false} />
               </motion.div>
             </motion.div>
 
@@ -97,7 +102,7 @@ export default function Hero({ children }) {
                 style={{ transform: flap.transform, transformOrigin: flap.origin, clipPath: flap.clip }}
                 className="absolute inset-0 will-change-transform"
               >
-                <HeroContent parallaxY={parallaxY} copy />
+                <HeroContent parallaxY={parallaxY} copy ownCta={false} />
                 {/* Shade over the strip, darker the further it lifts; only its opacity moves, on its own
                     layer so the strip is not repainted. */}
                 <motion.div

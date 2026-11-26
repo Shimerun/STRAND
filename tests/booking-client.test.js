@@ -4,6 +4,14 @@ import { bookingRequest } from '../src/components/booking/request.js';
 import { RULES } from '../src/components/booking/validation.js';
 import { formatPhone, isValidPhone, normalizePhone } from '../src/lib/phone.js';
 import { blocksFor, bookingDates, freeTimes } from '../src/lib/slots.js';
+import { site } from '../src/data/site.js';
+
+test('every barber opens their own EasyWeek booking page', () => {
+  assert.match(site.booking.externalBarberUrl, /\{id\}/);
+  const ids = site.team.map((barber) => barber.easyweekId);
+  assert.ok(ids.every(Number.isInteger), 'each barber needs an easyweekId');
+  assert.equal(new Set(ids).size, ids.length, 'two barbers share an easyweekId');
+});
 
 test('phone numbers in the usual Ukrainian spellings normalise to +380XXXXXXXXX', () => {
   const cases = {
